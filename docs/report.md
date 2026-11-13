@@ -1,8 +1,13 @@
 # Báo cáo: trust-region bilevel pseudo-labeling (PBPL / EBPL) trên FashionMNIST
 
-> Trạng thái: bảng chính (60 run), chẩn đoán suy biến, ablation-a và lưới tinh chỉnh FixMatch
-> đã xong. Ablation-b, đợt nhân bản (seed 6–10) và các đối chứng FixMatch tuned / một mạng
-> optimistic đang chạy. Mọi số liệu lấy từ `results/`.
+> Trạng thái: bảng chính (60 run), chẩn đoán suy biến, ablation, lưới tinh chỉnh FixMatch,
+> Figure 1 và đợt nhân bản seed 6–10 (PBPL, MPL, FixMatch, FixMatch tinh chỉnh; `rep-a`,
+> `rep-b`) đã xong. Đợt cuối (`rep-c`, `rep-d`: EBPL, các đối chứng SAM và cặp một mạng
+> lên 10 seed, phép thử thang meta-gradient chính xác) đang chạy. Mọi số liệu lấy từ `results/`.
+>
+> **Kết luận đến thời điểm này (Mục 10):** ở 40 nhãn, trên 10 seed, PBPL, MPL, FixMatch và
+> FixMatch tinh chỉnh cách nhau dưới 1 điểm, không khác biệt nào có ý nghĩa thống kê. Ưu thế
+> của PBPL ở seed 1–5 (+2.02, p = 0.019) không được nhân bản.
 
 ## 1. Thiết lập thực nghiệm
 
@@ -121,7 +126,9 @@ nghĩa là so sánh cặp trên cùng seed:
 | **PBPL (pessimistic)** | **+2.02 ± 1.18, thắng 5/5, p = 0.019** | +1.66 ± 3.99, 2/5, p = 0.41 |
 | FlexMatch | +0.46 ± 3.54, 1/3 | +0.36 ± 2.72, 1/3 |
 
-(p: t-test cặp hai phía; với 5/5 seed, sign test hai phía cho p = 0.0625.) Các baseline cổ
+(p: t-test cặp hai phía; với 5/5 seed, sign test hai phía cho p = 0.0625.) **Dòng PBPL ở 40
+nhãn không được nhân bản:** trên seed 6–10 chênh lệch là −0.87 ± 3.87 (2/5), gộp 10 seed
++0.58 ± 3.10 (7/10, p = 0.57); xem Mục 9. Các baseline cổ
 điển kém xa: tính theo trung bình (không cặp), PBPL hơn Pseudo-Label 8.8 / 6.6 điểm, Mean
 Teacher 14.8 / 13.9, Supervised 16.1 / 11.8 điểm (40 / 100 nhãn).
 
@@ -133,7 +140,8 @@ Teacher 14.8 / 13.9, Supervised 16.1 / 11.8 điểm (40 / 100 nhãn).
   trên cả 3 seed. MPL (cùng kiến trúc hai mạng, cùng λ_m, chỉ khác quy tắc feedback) thì
   không (+0.1, 2/5). So trực tiếp PBPL với MPL: +1.93 ± 3.64 (3/5, p = 0.30); EBPL với MPL:
   +2.86 (3/3, p = 0.14). Hướng đúng như lý thuyết, nhưng với 5 seed thì chưa có ý nghĩa thống kê,
-  và **đợt nhân bản không xác nhận**: trên seed 6–10, PBPL kém MPL 1.84 điểm (Mục 9).
+  và **đợt nhân bản không xác nhận cả hai điều**: trên seed 6–10, PBPL kém FixMatch 0.87 điểm
+  và kém MPL 1.84 điểm (Mục 9).
 - **100 nhãn.** Cả ba biến thể bilevel hơn FixMatch trung bình 1.7–4.4 điểm, nhưng phần lớn
   nhờ seed 3, nơi FixMatch chỉ đạt 75.0 (mọi biến thể bilevel +8 điểm). Ở các seed còn lại
   PBPL và MPL nằm trong khoảng −1.3 đến +2.7 điểm; EBPL +5.9 ở seed 2, −1.0 ở seed 1. PBPL không hơn MPL (−0.31, 1/5). Ở mức 100 nhãn, lợi ích
@@ -159,6 +167,11 @@ nâng đỉnh accuracy** mà **giữ được đỉnh đến cuối huấn luy�
 validation có nhãn lớn gấp 125 lần tập huấn luyện để dừng sớm, nên giao thức vòng lặp cuối
 (như FixMatch/USB) là giao thức chính. Dù vậy, cách diễn giải đúng là "ổn định hơn", không
 phải "tốt hơn ở mọi giao thức".
+
+**Cập nhật sau nhân bản (Mục 9):** ngay cả "ổn định hơn" cũng không đứng vững. Trên 10 seed,
+mức giảm từ đỉnh đến cuối trung bình là FixMatch 1.84, PBPL 1.24, FixMatch tinh chỉnh
+($\lambda_u=2$) 0.79, MPL 0.63 điểm. Mức giảm lớn của FixMatch tập trung ở seed 1–5 (2.96 điểm
+trung bình, so với 0.72 ở seed 6–10), tức đúng nhóm seed mà bảng chính dùng.
 
 ### 4.2 Feedback trong lúc huấn luyện
 
@@ -226,7 +239,8 @@ lại trên fiber.
 
 Dữ liệu `results/fmnist-ssl-ablate-{a,b}`; bảng sinh bởi `analysis/ablation_table.py` (đỉnh,
 mức giảm cuối, chẩn đoán trung bình 3 lần đánh giá cuối) và `analysis/main_table.py --ref pbpl`
-(so sánh cặp). Seed 4–5 của SAM-feedback và PBPL một mạng đang chạy trong `rep-b`.
+(so sánh cặp). Seed 4–5 của SAM-feedback và PBPL một mạng không vừa ngân sách của `rep-b`
+và được chạy trong `rep-c`, cùng các seed 4–10 của hai đối chứng SAM (`rep-d`).
 
 | biến thể (40 nhãn, seed 1–3) | cuối | đỉnh | giảm cuối | chọn theo val | − FixMatch (cặp) | − PBPL (cặp) | $L_l$ student bị đẩy | cos(c, c_opt) | phút/run |
 |---|---|---|---|---|---|---|---|---|---|
@@ -253,9 +267,9 @@ mức giảm cuối, chẩn đoán trung bình 3 lần đánh giá cuối) và `
   hai mạng (+0.36 ± 0.72). Ở đây anchor là teacher đã thấy dữ liệu có nhãn, nên labeled loss
   của anchor chỉ 0.0016: đúng vùng feedback optimistic suy biến (Prop. N2a). Feedback
   pessimistic lớn gấp 39 lần và gần trực giao với optimistic (cos 0.33). Đối chứng optimistic
-  một mạng (`abl_selfopt`, cùng $\lambda_m$) đang chạy trong `rep-b`. Đây là phép thử trực tiếp
-  lập luận không suy biến *trong lúc huấn luyện*, vì ở cấu hình hai mạng student held-out không
-  bao giờ khớp hết nhãn (Mục 4.2).
+  một mạng (`abl_selfopt`) là phép thử trực tiếp lập luận không suy biến *trong lúc huấn
+  luyện*, vì ở cấu hình hai mạng student held-out không bao giờ khớp hết nhãn (Mục 4.2). Kết
+  quả ở Mục 6.1: bản optimistic tốt hơn.
 - Nếu chọn checkpoint theo validation, mọi biến thể có feedback bị đẩy (PBPL, SAM-feedback,
   một mạng) nằm trong 73.98–74.37, hơn FixMatch 1.4–1.8 điểm (2/3 hoặc 3/3 seed, p ≥ 0.24).
 
@@ -271,6 +285,45 @@ mức giảm cuối, chẩn đoán trung bình 3 lần đánh giá cuối) và `
   SAM trên labeled loss được chạy thêm seed 4–10 (`rep-c`) để so với PBPL trên 10 seed.
 - **PBPL + FlexMatch** hơn FlexMatch +2.48 ± 5.96 điểm (2/3 seed). Regularizer chuyển được sang
   base khác, cùng lưu ý về phương sai; ở seed 2 nó kém FlexMatch (66.0 so với 70.4).
+
+### 6.1 Đối chứng optimistic một mạng: phép thử lý thuyết trong lúc huấn luyện
+
+`abl_selfopt` giống hệt PBPL một mạng (`abl_self`), chỉ khác quy tắc feedback: $v=\nabla
+L_l(\theta')$ thay cho $\nabla L_l(\theta'+\varepsilon)$, cùng $\lambda_m=0.1$ và cùng chuẩn
+hóa. Dữ liệu `results/fmnist-ssl-rep-b`. Chỉ seed 1–2 vừa ngân sách kernel; seed 3–10 chạy
+trong `rep-c`/`rep-d`.
+
+| một mạng, 40 nhãn, seed 1–2 | cuối | đỉnh | giảm cuối | chọn theo val | $L_l$ anchor (vòng 20k) | $\|c\|$ thô, vòng 1k → 20k | phút/run |
+|---|---|---|---|---|---|---|---|
+| optimistic (`abl_selfopt`) | 75.90 | 75.98 | 0.08 | 75.86 | 3–7·10⁻⁴ | 8.6 → 0.44 (s1); 7.8 → 0.27 (s2) | 27.6 |
+| pessimistic (`abl_self`) | 72.42 | 73.93 | 1.51 | 73.93 | 5–7·10⁻⁴ | 42 → 32 (s1); 16 → 41 (s2) | 39.0 |
+| FixMatch (tham chiếu) | 70.32 | 73.17 | 2.85 | 73.16 | — | — | 11.3 |
+
+Optimistic − pessimistic = +3.47 ± 0.86 điểm (seed 1: 78.9 so với 76.0; seed 2: 72.9 so với
+68.9).
+
+- **Về độ lớn feedback, lý thuyết đúng.** Ở cấu hình một mạng anchor khớp nhãn (labeled loss
+  3–7·10⁻⁴), và chuẩn feedback optimistic thô giảm 20–30 lần trong lúc huấn luyện, đúng như
+  N2(a). Feedback pessimistic thì không giảm: ở vòng 20k nó lớn gấp 50–65 lần feedback
+  optimistic tính trên cùng anchor.
+- **Về accuracy, kết quả ngược với điều lý thuyết gợi ý.** Bản optimistic hơn bản pessimistic
+  3.47 điểm trên cả 2 seed và gần như không suy giảm cuối huấn luyện (0.08 so với 1.51 điểm).
+  Hai seed là quá ít để xếp hạng, nhưng đủ để thấy feedback optimistic suy biến không làm
+  phương pháp sụp về FixMatch.
+- **Giải thích phù hợp với log: chuẩn hóa RMS chạy (`--meta_norm 2`).** Feedback được chia cho
+  RMS chạy của chính nó trước khi vào $L_{\rm meta}$. Cách chuẩn hóa này được chọn ở Mục 3 vì
+  tốt hơn thang meta-gradient chính xác. Khi feedback optimistic co lại, RMS chạy co theo,
+  nên bước meta vẫn có độ lớn cỡ 1: từ vòng 9k đến 20k, $L_{\rm meta}$ sau chuẩn hóa nằm
+  trong khoảng −0.5 đến +0.1 ở cả hai biến thể (trung vị −0.08 / −0.11 với optimistic,
+  −0.07 / −0.15 với pessimistic, seed 1 / 2), dù chuẩn thô chênh nhau 20–100 lần (optimistic
+  0.27–6.2, pessimistic 8.4–64). Như vậy chuẩn hóa xóa đúng
+  thứ mà N2(a) nói tới (độ lớn tiến về 0). Chỉ còn *hướng* của feedback, và hướng gradient
+  labeled loss tại một mạng gần khớp nhãn vẫn mang thông tin. Với cài đặt này, định lý không
+  suy biến không phân biệt được hai biến thể về accuracy.
+- **Phép thử còn lại.** Ở thang chính xác (`--meta_norm 0`), feedback optimistic thực sự tắt
+  dần. Một lượt sàng lọc cặp một mạng ở thang này (seed 0, 10k vòng, $\lambda_m\in\{3, 10\}$)
+  nằm trong `rep-d`. Ở cấu hình hai mạng, thang chính xác với $\lambda_m$ = 10–100 làm hỏng mọi
+  biến thể (val 0.64–0.69 so với 0.74 của FixMatch, Mục 3), nên cần $\lambda_m$ nhỏ hơn.
 
 ## 7. Tinh chỉnh FixMatch: đối chứng công bằng
 
@@ -292,9 +345,24 @@ chọn theo val ở vòng cuối.
 Trên chính giao thức đã dùng để chọn PBPL, FixMatch với $\lambda_u=2$ vượt cấu hình PBPL được
 chọn (val +1.5, test +2.6 điểm). Đây chỉ là một seed, trong khi độ lệch giữa các seed ở 40
 nhãn là 3–4 điểm, nên chưa đủ để kết luận. Nhưng nó cho thấy bảng chính đặt PBPL đã tinh chỉnh
-cạnh FixMatch chưa tinh chỉnh. Cấu hình này ("FixMatch tuned") được chạy theo giao thức chính
-trên seed 1–10 (`rep-b`). PBPL với cùng $\lambda_u=2$ (tức thêm regularizer bilevel vào FixMatch
-đã tinh chỉnh, giữ nguyên $\lambda_m$, $r$) là phép so sánh tiếp theo (`rep-c`).
+cạnh FixMatch chưa tinh chỉnh. Cấu hình này ("FixMatch tinh chỉnh") đã chạy theo giao thức
+chính trên seed 1–10 (`results/fmnist-ssl-rep-b`):
+
+| 40 nhãn, seed 1–10 | vòng cuối | chọn theo val | giảm cuối | phút/run |
+|---|---|---|---|---|
+| FixMatch mặc định ($\lambda_u=1$) | 72.75 ± 3.76 | 74.52 ± 3.46 | 1.84 | 11.1 |
+| FixMatch tinh chỉnh ($\lambda_u=2$) | 73.71 ± 3.66 | 74.41 ± 3.68 | 0.79 | 10.9 |
+| PBPL + FixMatch mặc định | 73.32 ± 3.10 | 74.46 ± 2.93 | 1.24 | 40.3 |
+
+- **FixMatch tinh chỉnh − FixMatch:** +0.96 ± 1.52 điểm ở vòng cuối (6/10, p = 0.078); theo
+  val −0.10 ± 1.98 (5/10). Tinh chỉnh không nâng đỉnh mà giảm suy giảm cuối huấn luyện (1.84 →
+  0.79 điểm). Đây đúng là kiểu lợi ích mà Mục 4.1 từng gán cho PBPL, nhưng với chi phí của
+  FixMatch.
+- **PBPL − FixMatch tinh chỉnh:** −0.38 ± 3.43 (5/10, p = 0.73); theo val +0.05 ± 3.54 (6/10,
+  p = 0.97).
+- PBPL trên base đã tinh chỉnh ($\lambda_u=2$, giữ $\lambda_m$, $r$) không được chạy. PBPL đã
+  không hơn chính base của nó trên 10 seed, nên ngân sách đợt cuối được dành cho việc đưa các
+  biến thể còn lại lên 10 seed (Mục 10).
 
 ## 8. Figure 1 của bản thảo theo giao thức của review
 
@@ -328,21 +396,43 @@ trên seed 1–10 (`rep-b`). PBPL với cùng $\lambda_u=2$ (tức thêm regular
 ## 9. Nhân bản trên seed 6–10 (40 nhãn)
 
 Seed 6–10 chưa từng được xem trước khi quyết định đợt này; cấu hình giữ nguyên như bảng chính.
-Dữ liệu `results/fmnist-ssl-rep-a` (PBPL, MPL). FixMatch seed 6–10 nằm trong `rep-b`, đang chạy.
+Dữ liệu `results/fmnist-ssl-rep-a` (PBPL, MPL) và `results/fmnist-ssl-rep-b` (FixMatch,
+FixMatch tinh chỉnh). Bảng: `main_table.py ... --seeds 6-10` và `--seeds 1-10`.
 
 | 40 nhãn, vòng cuối | seed 6 | 7 | 8 | 9 | 10 | trung bình |
 |---|---|---|---|---|---|---|
+| FixMatch | 71.4 | 74.2 | 79.8 | 72.7 | 74.6 | 74.54 ± 3.20 |
+| FixMatch tinh chỉnh ($\lambda_u=2$) | 71.2 | 75.5 | 80.6 | 72.7 | 74.4 | 74.88 ± 3.60 |
 | MPL (optimistic) | 74.5 | 72.4 | 77.8 | 74.8 | 78.1 | 75.51 ± 2.43 |
 | PBPL (pessimistic) | 70.5 | 71.9 | 73.6 | 73.6 | 78.8 | 73.67 ± 3.14 |
 
+Gộp seed 1–10, so sánh cặp (điểm phần trăm):
+
+| 40 nhãn, 10 seed | vòng cuối | chọn checkpoint theo val |
+|---|---|---|
+| PBPL − FixMatch | +0.58 ± 3.10, thắng 7/10, p = 0.57 | −0.05 ± 3.77, 7/10, p = 0.97 |
+| PBPL − FixMatch tinh chỉnh | −0.38 ± 3.43, 5/10, p = 0.73 | +0.05 ± 3.54, 6/10, p = 0.97 |
+| PBPL − MPL | +0.04 ± 3.47, 4/10, p = 0.97 | +0.68 ± 2.92, 7/10, p = 0.48 |
+| MPL − FixMatch | +0.54 ± 2.54, 5/10, p = 0.52 | −0.74 ± 2.33, 2/10, p = 0.34 |
+| FixMatch tinh chỉnh − FixMatch | +0.96 ± 1.52, 6/10, p = 0.078 | −0.10 ± 1.98, 5/10, p = 0.88 |
+
+Trung bình 10 seed (cuối / đỉnh / giảm cuối): FixMatch 72.75 / 74.58 / 1.84; FixMatch tinh
+chỉnh 73.71 / 74.50 / 0.79; MPL 73.28 / 73.91 / 0.63; PBPL 73.32 / 74.57 / 1.24.
+
+- **Kết quả chính của Mục 4 ở 40 nhãn không được nhân bản.** Trên seed 6–10, PBPL − FixMatch
+  = −0.87 ± 3.87 điểm (2/5, p = 0.64). Gộp 10 seed, mọi khác biệt giữa FixMatch, FixMatch
+  tinh chỉnh, MPL và PBPL đều dưới 1 điểm và không cái nào có ý nghĩa thống kê, ở cả hai giao
+  thức. Ưu thế +2.02 (5/5, p = 0.019) ở seed 1–5 trùng với nhóm seed mà FixMatch suy giảm mạnh
+  cuối huấn luyện (2.96 điểm trung bình, so với 0.72 ở seed 6–10). Ở seed 6–10, FixMatch không
+  có suy giảm nào đáng kể để PBPL sửa.
 - **PBPL không hơn MPL.** Trên seed 6–10, PBPL − MPL = −1.84 ± 2.21 điểm (thắng 1/5, p = 0.14).
-  Gộp 10 seed: +0.04 ± 3.47 (4/10, p = 0.97); chọn checkpoint theo validation: +0.68 ± 2.92
-  (7/10, p = 0.48). Hướng "pessimistic > optimistic" ở seed 1–5 (+1.93) là nhiễu.
+  Gộp 10 seed: +0.04 ± 3.47 (4/10, p = 0.97). Hướng "pessimistic > optimistic" ở seed 1–5
+  (+1.93) là nhiễu.
 - **Lần này PBPL suy giảm cuối huấn luyện** (đỉnh − cuối = 1.51 điểm trung bình; 2.7 điểm ở
   seed 7), còn MPL thì không (0.40). Vì vậy "PBPL chống được suy giảm cuối huấn luyện" (Mục 4.1)
-  cũng không đứng vững như một tính chất riêng của PBPL.
+  cũng không đứng vững như một tính chất riêng của PBPL. FixMatch tinh chỉnh còn ổn định hơn
+  PBPL trên 10 seed (giảm 0.79 so với 1.24 điểm).
 - Chẩn đoán feedback giống seed 1–5: labeled loss của student pessimistic 0.25 so với anchor
   0.07, $\|c\|/\|c_{\rm opt}\|$ = 2.5, cos 0.80, KL tới anchor 1.6·10⁻³. Feedback pessimistic
   vẫn không suy biến và khác hẳn feedback optimistic. Chỉ là sự khác biệt đó không chuyển thành
   accuracy.
-

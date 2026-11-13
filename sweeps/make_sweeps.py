@@ -279,34 +279,42 @@ def _done(dirs):
 
 
 def wave3(it=20000):
-    """Phase 3 (after the weekly quota reset), decided after ablate-b and rep-b.
-    rep-c: what rep-b could not fit, then FixMatch + SAM on the labeled loss (the strongest
-    control of ablate-b) on seeds 4-10, fiber-SAM to 5 seeds, and three screen runs (seed 0,
-    10k iterations) of the regularizers on the tuned FixMatch base.
-    rep-d: PBPL on the tuned FixMatch base (lam_u = 2, lam_m and r unchanged) on seeds 1-10,
-    and tuned FixMatch / labeled-loss SAM at 100 labels (seeds 1-5).
-    python sweeps/make_sweeps.py wave3   (reads results/fmnist-ssl-rep-b to find the remainder)"""
-    done = _done([os.path.join(HERE, "..", "results", "fmnist-ssl-rep-b")])
-    rep_b = json.load(open(os.path.join(HERE, "rep-b.json")))["jobs"]
-    c = [j for j in rep_b if j["name"] not in done]
-    for sd in range(4, 11):
-        c.append({"name": f"abl_labsam_4_s{sd}", "args": f"--lab_reg sam --radius 0.1 --n_per_class 4 --seed {sd} --iters {it}", "est_min": 15})
-    scr = "--n_per_class 4 --seed 0 --iters 10000"
-    c += [{"name": "scr_labsam", "args": f"--lab_reg sam --radius 0.1 {scr}", "est_min": 8},
-          {"name": "scr_labsam_lu2", "args": f"{FMT} --lab_reg sam --radius 0.1 {scr}", "est_min": 8},
-          {"name": "scr_pess_lu2", "args": f"{FMT} --bilevel two --feedback pess {PESS} {scr}", "est_min": 22}]
-    for sd in (4, 5):
-        c.append({"name": f"abl_fibersam_4_s{sd}", "args": f"--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed {sd} --iters {it}", "est_min": 25})
-    write("fmnist-ssl-rep-c", c, float(os.environ.get("REPC_HOURS", 4.0)))
-    d = []
-    for sd in range(1, 6):
-        d.append({"name": f"pbpltuned_4_s{sd}", "args": f"{FMT} --bilevel two --feedback pess {PESS} --n_per_class 4 --seed {sd} --iters {it}", "est_min": 43})
-    for sd in range(1, 6):
-        d.append({"name": f"fmtuned_10_s{sd}", "args": f"{FMT} --n_per_class 10 --seed {sd} --iters {it}", "est_min": 12})
-        d.append({"name": f"abl_labsam_10_s{sd}", "args": f"--lab_reg sam --radius 0.1 --n_per_class 10 --seed {sd} --iters {it}", "est_min": 15})
-    for sd in range(6, 11):
-        d.append({"name": f"pbpltuned_4_s{sd}", "args": f"{FMT} --bilevel two --feedback pess {PESS} --n_per_class 4 --seed {sd} --iters {it}", "est_min": 43})
-    write("fmnist-ssl-rep-d", d, float(os.environ.get("REPD_HOURS", 4.0)))
+    """Phase 3 (after the weekly quota reset), decided after rep-b.  With 10 seeds, PBPL, MPL,
+    FixMatch and tuned FixMatch are within 1 point of each other at 40 labels, so this wave
+    takes every remaining candidate of the family to the same seeds 1-10 (paired against the
+    FixMatch and tuned-FixMatch runs that already exist) and adds one theory test:
+    rep-c: EBPL and the one-network optimistic / pessimistic pair to 5 seeds, SAM-feedback to
+           5 seeds, then EBPL on seeds 6-10.
+    rep-d: fiber-SAM and labeled-loss SAM (the strongest controls) on seeds 4-10, the
+           one-network optimistic control on seeds 6-10, and a screen (seed 0, 10k iterations,
+           validation) of the one-network pair at the exact meta-gradient scale
+           (--meta_norm 0), where the optimistic feedback really vanishes as the anchor fits
+           the labels (the running-RMS normalisation of the main runs rescales it back up).
+           Jobs at the end of a queue are skipped by the runner when they no longer fit.
+    python sweeps/make_sweeps.py wave3"""
+    def job(name, a, sd, est):
+        return {"name": f"{name}_4_s{sd}", "args": f"{a} --n_per_class 4 --seed {sd} --iters {it}", "est_min": est}
+    EBPL = f"--bilevel two --feedback exp {EXP}"
+    SELF_O = f"--bilevel self --feedback opt {OPT}"
+    SELF_P = f"--bilevel self --feedback pess {PESS}"
+    SAMFB = f"--bilevel two --feedback sam {PESS}"
+    LABSAM, FIBSAM = "--lab_reg sam --radius 0.1", "--lab_reg fibersam --radius 0.1"
+    c = [job("ebpl", EBPL, sd, 40) for sd in (4, 5)]
+    c += [job("abl_selfopt", SELF_O, sd, 30) for sd in (3, 4, 5)]
+    c += [job("abl_self", SELF_P, sd, 41) for sd in (4, 5)]
+    c += [job("abl_samfb", SAMFB, sd, 31) for sd in (4, 5)]
+    c += [job("ebpl", EBPL, sd, 40) for sd in range(6, 11)]
+    c += [job("abl_samfb", SAMFB, sd, 31) for sd in range(6, 11)]
+    write("fmnist-ssl-rep-c", c, float(os.environ.get("REPC_HOURS", 4.5)))
+    d = [job("abl_fibersam", FIBSAM, sd, 25) for sd in range(4, 11)]
+    d += [job("abl_labsam", LABSAM, sd, 15) for sd in range(4, 11)]
+    d += [job("abl_selfopt", SELF_O, sd, 30) for sd in range(6, 11)]
+    scr = "--n_per_class 4 --seed 0 --iters 10000 --meta_norm 0"
+    for lm in (3, 10):
+        d.append({"name": f"scr_selfopt_raw_lm{lm}", "args": f"--bilevel self --feedback opt --lam_m {lm} {scr}", "est_min": 16})
+        d.append({"name": f"scr_selfpess_raw_lm{lm}", "args": f"--bilevel self --feedback pess --lam_m {lm} --radius 0.1 {scr}", "est_min": 22})
+    d += [job("abl_self", SELF_P, sd, 41) for sd in range(6, 11)]
+    write("fmnist-ssl-rep-d", d, float(os.environ.get("REPD_HOURS", 4.5)))
 
 
 def remainder():

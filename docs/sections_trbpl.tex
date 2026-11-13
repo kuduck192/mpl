@@ -131,9 +131,22 @@ non-admissible controls that the construction rules out (one ascent step from ze
 SAM step blind to $X_u$, and SAM on the deployed network's labeled loss) match the pessimistic
 rule in accuracy. The theory therefore guarantees that the pessimistic feedback is non-zero and
 differs from the optimistic one where the latter degenerates; it does not imply, and the
-experiments do not show, an accuracy gain where the optimistic feedback is not degenerate. The
-one-network look-ahead, where the anchor fits the labels (labeled loss $\approx2\cdot10^{-3}$),
-is the configuration in which the proposition applies.
+experiments do not show, an accuracy gain where the optimistic feedback is not degenerate.
+Nor does the pessimistic rule improve on the default FixMatch base itself over ten seeds
+($+0.58\pm3.10$ points, $p=0.57$; the gain on the first five seeds, $+2.02$, $p=0.019$, did not
+replicate).
+
+The one-network look-ahead, where the anchor fits the labels (labeled loss
+$3$--$7\cdot10^{-4}$), is the configuration in which the proposition applies, and there the
+magnitudes behave as predicted. The raw optimistic feedback shrinks by a factor of $20$--$30$
+during training, while the pessimistic one does not ($50$--$65$ times larger at $20$k
+iterations). The optimistic look-ahead is nevertheless the more accurate of the two
+($+3.47$ points on both of two seeds). The feedback is divided by its own running RMS before
+it enters the teacher loss, so the vanishing magnitude of N2(a) is normalised away and the two
+meta steps have the same size. What remains is the direction, on which N2 is silent and N3 only
+identifies the extra component, not its value for generalisation. For the proposition to
+have practical consequences, the feedback magnitude has to survive the implementation: exact
+meta-gradient scale, or one normalisation shared by all rules.
 
 \begin{remark}[Lazy regime]
 With linear features and the minimum-norm student anchor, $V_r(a(z))=\log(1+e^{r\omega-m(z)})$

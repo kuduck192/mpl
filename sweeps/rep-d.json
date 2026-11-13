@@ -1,0 +1,147 @@
+{
+ "slug": "fmnist-ssl-rep-d",
+ "budget_hours": 4.5,
+ "files": [],
+ "jobs": [
+  {
+   "name": "abl_fibersam_4_s4",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "abl_fibersam_4_s5",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "abl_fibersam_4_s6",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "abl_fibersam_4_s7",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "abl_fibersam_4_s8",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "abl_fibersam_4_s9",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "abl_fibersam_4_s10",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "abl_labsam_4_s4",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "abl_labsam_4_s5",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "abl_labsam_4_s6",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "abl_labsam_4_s7",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "abl_labsam_4_s8",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "abl_labsam_4_s9",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "abl_labsam_4_s10",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "abl_selfopt_4_s6",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 30
+  },
+  {
+   "name": "abl_selfopt_4_s7",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 30
+  },
+  {
+   "name": "abl_selfopt_4_s8",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 30
+  },
+  {
+   "name": "abl_selfopt_4_s9",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 30
+  },
+  {
+   "name": "abl_selfopt_4_s10",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 30
+  },
+  {
+   "name": "scr_selfopt_raw_lm3",
+   "args": "--bilevel self --feedback opt --lam_m 3 --n_per_class 4 --seed 0 --iters 10000 --meta_norm 0",
+   "est_min": 16
+  },
+  {
+   "name": "scr_selfpess_raw_lm3",
+   "args": "--bilevel self --feedback pess --lam_m 3 --radius 0.1 --n_per_class 4 --seed 0 --iters 10000 --meta_norm 0",
+   "est_min": 22
+  },
+  {
+   "name": "scr_selfopt_raw_lm10",
+   "args": "--bilevel self --feedback opt --lam_m 10 --n_per_class 4 --seed 0 --iters 10000 --meta_norm 0",
+   "est_min": 16
+  },
+  {
+   "name": "scr_selfpess_raw_lm10",
+   "args": "--bilevel self --feedback pess --lam_m 10 --radius 0.1 --n_per_class 4 --seed 0 --iters 10000 --meta_norm 0",
+   "est_min": 22
+  },
+  {
+   "name": "abl_self_4_s6",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "abl_self_4_s7",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "abl_self_4_s8",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "abl_self_4_s9",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "abl_self_4_s10",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 41
+  }
+ ]
+}

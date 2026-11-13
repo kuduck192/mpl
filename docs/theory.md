@@ -270,15 +270,29 @@ Tổng hợp từ `docs/report.md`, FashionMNIST, CNN 0.157M tham số, 40 và 1
    tức SAM, mù với $X_u$) là thứ mà Mục 3 loại bỏ về mặt lý thuyết. Trên thực nghiệm nó ít nhất
    bằng PBPL (3 seed). SAM trên labeled loss của chính teacher (không bilevel) cũng vậy (report
    Mục 6). Lợi ích đo được ở 40 nhãn so với FixMatch mặc định không quy được cho cấu trúc
-   pessimistic bilevel.
-4. **Vùng mà định lý thực sự áp dụng là cấu hình một mạng.** Ở đó anchor là teacher đã thấy
-   nhãn, labeled loss của anchor chỉ ≈ 2·10⁻³, và feedback pessimistic lớn gấp 39 lần
-   optimistic. Đối chứng optimistic một mạng (`abl_selfopt`) là phép thử trực tiếp; kết quả ở
-   report Mục 6.
+   pessimistic bilevel. Trên 10 seed, chính lợi ích đó cũng biến mất (PBPL − FixMatch = +0.58,
+   p = 0.57; report Mục 9).
+4. **Ở cấu hình một mạng, nơi định lý áp dụng, độ lớn đúng như dự đoán nhưng không quyết định
+   accuracy.** Anchor là teacher đã thấy nhãn (labeled loss 3–7·10⁻⁴). Feedback optimistic thô
+   co lại 20–30 lần trong lúc huấn luyện, đúng như N2(a); feedback pessimistic thì không (gấp
+   50–65 lần ở vòng 20k). Nhưng bản optimistic một mạng *tốt hơn* bản pessimistic (+3.47
+   điểm, 2/2 seed; report Mục 6.1). Lý do khớp với log: feedback được chuẩn hóa bằng RMS chạy
+   của chính nó trước khi vào $L_{\rm meta}$, nên độ lớn tiến về 0 của N2(a) bị chuẩn hóa
+   xóa đi và bước meta của hai biến thể có cùng cỡ. N2 nói về *độ lớn* của feedback; với
+   chuẩn hóa này chỉ *hướng* còn ảnh hưởng tới huấn luyện. Về hướng, N3 chỉ nói feedback
+   pessimistic bằng hướng MPL cộng gradient của chuẩn labeled gradient "vô hình" (ở đây thành
+   phần này chiếm ưu thế: cos 0.33 với optimistic). Nó không nói thành phần đó tốt hơn cho
+   accuracy, và trên 2 seed thì hướng optimistic tốt hơn.
+   Phép thử ở thang meta-gradient chính xác (`--meta_norm 0`), nơi feedback optimistic thực sự
+   tắt dần, nằm trong đợt `rep-d`.
 
 Tóm lại: lý thuyết đảm bảo feedback pessimistic *khác 0 và khác MPL* tại các điểm mà MPL suy
-biến. Nó không đảm bảo, và thực nghiệm không cho thấy, rằng sự khác biệt đó cải thiện accuracy
-ở những cấu hình mà MPL không suy biến.
+biến, và điều đó được xác nhận cả ở chẩn đoán tĩnh lẫn trong lúc huấn luyện một mạng. Nó không
+đảm bảo, và thực nghiệm không cho thấy, rằng sự khác biệt đó cải thiện accuracy: ở cấu hình
+hai mạng MPL không suy biến; ở cấu hình một mạng sự suy biến về độ lớn bị chuẩn hóa feedback
+trung hòa. Để định lý có hệ quả thực hành, cần một cài đặt mà độ lớn feedback được giữ nguyên
+(thang chính xác hoặc chuẩn hóa dùng chung cho mọi biến thể, ví dụ chia cho RMS của feedback
+optimistic). Đây là hướng còn để ngỏ.
 
 ---
 
