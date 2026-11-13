@@ -456,7 +456,7 @@ có bậc $s^2$ (N2(d)). Kiểm chứng số:
    thì không.
 
 **Thực nghiệm: không vượt baseline mạnh ở mức có ý nghĩa thống kê.**
-- So với Supervised, Pseudo-Label, Mean Teacher: PBPL / EBPL hơn 8–16 điểm. Nhưng gần như toàn
+- So với Supervised, Pseudo-Label, Mean Teacher: PBPL hơn 6.6–16.1 điểm (Mục 4). Nhưng gần như toàn
   bộ khoảng cách đó là của FixMatch, phần base mà regularizer được gắn vào.
 - So với FixMatch, 40 nhãn, 10 seed: PBPL +0.58 ± 3.10 điểm (p = 0.57) ở vòng cuối, −0.05 khi
   chọn checkpoint theo val. So với FixMatch tinh chỉnh: −0.38. So với MPL: +0.04. Ưu thế ở seed
