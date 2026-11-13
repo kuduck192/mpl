@@ -7,6 +7,7 @@ reference palette, light mode), neutral ink for text, recessive grid, one y-axis
   python analysis/figures.py figure1     # Figure 1 protocol (after ablate-b)
   python analysis/figures.py main        # paired differences vs FixMatch (after main-a/b)
   python analysis/figures.py curves      # training curves of the main runs (after main-a/b)
+  python analysis/figures.py dynamics    # feedback diagnostics along the main runs
 """
 import glob
 import json
@@ -116,7 +117,7 @@ def degeneracy():
     its = sorted(by)
     keys = [("gT_opt", "optimistic (MPL)", COL["mpl"], "-"),
             ("gT_pess_r0.1", "pessimistic on the fiber, r = 0.1 (PBPL)", COL["pbpl"], "-"),
-            ("gT_pess_r0.3", "pessimistic on the fiber, r = 0.3", COL["pbpl_r0.3"], "-"),
+            ("gT_pess_r0.3", "pessimistic, r = 0.3 (≤ 8% of iterates admissible)", COL["pbpl_r0.3"], "-"),
             ("gT_exp_r3.0", "expected, r = 3 (EBPL)", COL["ebpl"], "-"),
             ("gT_sam_r0.1", "unconstrained SAM step, r = 0.1 (off the fiber)", INK2, "--")]
     fig, axes = plt.subplots(1, 2, figsize=(6.6, 3.2))
@@ -250,6 +251,51 @@ def curves():
     fig.tight_layout()
     os.makedirs(OUT, exist_ok=True)
     fig.savefig(os.path.join(OUT, "main_curves.png"))
+    print("wrote", OUT)
+
+
+def dynamics():
+    """Feedback along the main training runs: labelled loss of the anchor student and of the
+    admissible student the feedback is taken at, and the cosine between the feedback actually
+    used and the optimistic feedback at the same anchor (mean over seeds)."""
+    R = _load("results/fmnist-ssl-main-*/results/*.json")
+    runs = defaultdict(list)
+    for n, r in R.items():
+        m = re.match(r"(.+)_(\d+)_s(\d+)$", n)
+        if m:
+            runs[(m.group(1), int(m.group(2)))].append(r["hist"])
+
+    def mean_curve(hs, key):
+        its = sorted(set.intersection(*[{d["iter"] for d in h if d.get(key) is not None} for h in hs]))
+        return its, [np.mean([next(d[key] for d in h if d["iter"] == i) for h in hs]) for i in its]
+    fig, axes = plt.subplots(2, 2, figsize=(6.4, 4.4))
+    for j, npc in enumerate((4, 10)):
+        ax = axes[0, j]
+        for meth, key, lab, ls in [("mpl", "lab_loss_anchor", "MPL: anchor student", "-"),
+                                   ("pbpl", "lab_loss_anchor", "PBPL: anchor student", "-"),
+                                   ("pbpl", "lab_loss_adv", "PBPL: pessimistic student (r = 0.1)", "--"),
+                                   ("ebpl", "lab_loss_adv", "EBPL: perturbed student (r = 3)", ":")]:
+            hs = runs.get((meth, npc), [])
+            if hs:
+                its, y = mean_curve(hs, key)
+                ax.plot(its, y, color=COL[meth], ls=ls, lw=1.6, label=lab)
+        ax.set_yscale("log")
+        ax.minorticks_off()
+        ax.set_title(f"{10 * npc} labels", fontsize=8, color=INK)
+        ax.set_ylabel("held-out labelled loss\nof the student")
+        ax = axes[1, j]
+        for meth, lab in [("pbpl", "PBPL"), ("ebpl", "EBPL")]:
+            hs = runs.get((meth, npc), [])
+            if hs:
+                its, y = mean_curve(hs, "cos_c_copt")
+                ax.plot(its, y, color=COL[meth], lw=1.6, label=lab)
+        ax.set_ylabel("cos(feedback used,\noptimistic feedback)")
+        ax.set_xlabel("iteration")
+    axes[0, 1].legend(fontsize=6.5, loc="upper right")
+    axes[1, 0].legend(fontsize=6.5, loc="lower left")
+    fig.tight_layout()
+    os.makedirs(OUT, exist_ok=True)
+    fig.savefig(os.path.join(OUT, "main_dynamics.png"))
     print("wrote", OUT)
 
 

@@ -27,7 +27,9 @@ LABEL = {"sup": "Supervised", "pseudolabel": "Pseudo-Label", "meanteacher": "Mea
          "abl_pbplflex": "PBPL + FlexMatch"}
 
 
-def load(dirs, key):
+def load(dirs, key, select="final", seeds=None):
+    """select = 'final' (last iterate, the reported protocol) or 'val' (checkpoint with the best
+    validation accuracy of the same model; 5k labelled validation images, an oracle in practice)."""
     res = defaultdict(dict)  # (method, npc) -> {seed: value}
     extra = defaultdict(dict)
     for d in dirs:
@@ -42,7 +44,13 @@ def load(dirs, key):
             if not m:
                 continue
             meth, npc, sd = m.group(1), int(m.group(2)), int(m.group(3))
-            res[(meth, npc)][sd] = r["final"].get(key, np.nan)
+            if seeds and sd not in seeds:
+                continue
+            if select == "val":
+                h = [d for d in r["hist"] if key in d and key.replace("test", "val") in d]
+                res[(meth, npc)][sd] = max(h, key=lambda d: d[key.replace("test", "val")])[key]
+            else:
+                res[(meth, npc)][sd] = r["final"].get(key, np.nan)
             extra[(meth, npc)][sd] = dict(r["final"], minutes_total=r.get("minutes", np.nan))
     return res, extra
 
@@ -57,8 +65,15 @@ def main():
     ap.add_argument("dirs", nargs="+")
     ap.add_argument("--key", default="test_ema")
     ap.add_argument("--md", default="")
+    ap.add_argument("--select", default="final", choices=["final", "val"])
+    ap.add_argument("--seeds", default="", help="e.g. 1-5 or 6-10 (default: all)")
+    ap.add_argument("--no_cost", action="store_true")
     args = ap.parse_args()
-    res, extra = load(args.dirs, args.key)
+    seeds = None
+    if args.seeds:
+        lo, hi = map(int, args.seeds.split("-"))
+        seeds = set(range(lo, hi + 1))
+    res, extra = load(args.dirs, args.key, args.select, seeds)
     npcs = sorted({k[1] for k in res})
     lines = ["| method | " + " | ".join(f"{10 * n} labels" for n in npcs) + " |",
              "|---|" + "---|" * len(npcs)]
@@ -84,7 +99,9 @@ def main():
             lines.append(f"| {LABEL.get(meth, meth)} | {10 * n} | {','.join(map(str, common))} | "
                          f"{d.mean():+.2f} ± {d.std(ddof=1):.2f} | {int((d > 0).sum())}/{len(d)} | {p:.3f} |")
     # wall-clock cost (one T4, 20k iterations) and a few mechanism diagnostics at the end of training
-    lines += ["", "Cost and end-of-training diagnostics (mean over runs; 40 + 100 labels pooled):", "",
+    if args.no_cost:
+        extra = {}
+    lines += [] if args.no_cost else ["", "Cost and end-of-training diagnostics (mean over runs; 40 + 100 labels pooled):", "",
               "| method | minutes / run (T4) | pseudo-label acc. above threshold | mask rate | student test acc. |",
               "|---|---|---|---|---|"]
     for meth in ORDER:

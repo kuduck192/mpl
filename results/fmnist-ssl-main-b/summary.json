@@ -1,0 +1,142 @@
+[
+ {
+  "name": "ebpl_10_s3",
+  "rc": 0,
+  "minutes": 37.098910415172575
+ },
+ {
+  "name": "ebpl_10_s2",
+  "rc": 0,
+  "minutes": 38.96776780287425
+ },
+ {
+  "name": "ebpl_10_s1",
+  "rc": 0,
+  "minutes": 36.83977179924647
+ },
+ {
+  "name": "ebpl_4_s3",
+  "rc": 0,
+  "minutes": 38.86724597613017
+ },
+ {
+  "name": "ebpl_4_s2",
+  "rc": 0,
+  "minutes": 36.9664169271787
+ },
+ {
+  "name": "ebpl_4_s1",
+  "rc": 0,
+  "minutes": 38.974775767326356
+ },
+ {
+  "name": "mpl_4_s1",
+  "rc": 0,
+  "minutes": 27.487132966518402
+ },
+ {
+  "name": "mpl_4_s2",
+  "rc": 0,
+  "minutes": 28.491858688990273
+ },
+ {
+  "name": "mpl_4_s3",
+  "rc": 0,
+  "minutes": 27.358193830649057
+ },
+ {
+  "name": "mpl_4_s4",
+  "rc": 0,
+  "minutes": 28.571882883707683
+ },
+ {
+  "name": "mpl_4_s5",
+  "rc": 0,
+  "minutes": 27.469894031683605
+ },
+ {
+  "name": "mpl_10_s1",
+  "rc": 0,
+  "minutes": 28.56420340935389
+ },
+ {
+  "name": "mpl_10_s2",
+  "rc": 0,
+  "minutes": 27.536361598968504
+ },
+ {
+  "name": "mpl_10_s3",
+  "rc": 0,
+  "minutes": 28.591323443253835
+ },
+ {
+  "name": "mpl_10_s4",
+  "rc": 0,
+  "minutes": 27.345177352428436
+ },
+ {
+  "name": "meanteacher_4_s1",
+  "rc": 0,
+  "minutes": 10.112646253903707
+ },
+ {
+  "name": "mpl_10_s5",
+  "rc": 0,
+  "minutes": 28.535206055641176
+ },
+ {
+  "name": "pseudolabel_4_s1",
+  "rc": 0,
+  "minutes": 5.147694055239359
+ },
+ {
+  "name": "pseudolabel_4_s2",
+  "rc": 0,
+  "minutes": 5.183826204140981
+ },
+ {
+  "name": "meanteacher_4_s2",
+  "rc": 0,
+  "minutes": 10.776899286111195
+ },
+ {
+  "name": "pseudolabel_4_s3",
+  "rc": 0,
+  "minutes": 5.420031090577443
+ },
+ {
+  "name": "meanteacher_4_s3",
+  "rc": 0,
+  "minutes": 10.128012390931447
+ },
+ {
+  "name": "pseudolabel_10_s1",
+  "rc": 0,
+  "minutes": 5.147108157475789
+ },
+ {
+  "name": "meanteacher_10_s1",
+  "rc": 0,
+  "minutes": 10.784956041971842
+ },
+ {
+  "name": "pseudolabel_10_s2",
+  "rc": 0,
+  "minutes": 5.480269690354665
+ },
+ {
+  "name": "meanteacher_10_s2",
+  "rc": 0,
+  "minutes": 10.11452985604604
+ },
+ {
+  "name": "pseudolabel_10_s3",
+  "rc": 0,
+  "minutes": 5.172223575909933
+ },
+ {
+  "name": "meanteacher_10_s3",
+  "rc": 0,
+  "minutes": 10.761430207888285
+ }
+]

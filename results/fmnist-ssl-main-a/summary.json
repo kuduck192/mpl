@@ -1,0 +1,162 @@
+[
+ {
+  "name": "pbpl_4_s2",
+  "rc": 0,
+  "minutes": 40.30791647831599
+ },
+ {
+  "name": "pbpl_4_s1",
+  "rc": 0,
+  "minutes": 41.20273305575053
+ },
+ {
+  "name": "pbpl_4_s3",
+  "rc": 0,
+  "minutes": 40.22285698254903
+ },
+ {
+  "name": "pbpl_4_s4",
+  "rc": 0,
+  "minutes": 41.214088288942975
+ },
+ {
+  "name": "pbpl_4_s5",
+  "rc": 0,
+  "minutes": 40.09132252136866
+ },
+ {
+  "name": "pbpl_10_s1",
+  "rc": 0,
+  "minutes": 41.15359514951706
+ },
+ {
+  "name": "pbpl_10_s2",
+  "rc": 0,
+  "minutes": 40.05777301390966
+ },
+ {
+  "name": "pbpl_10_s3",
+  "rc": 0,
+  "minutes": 41.164397327105206
+ },
+ {
+  "name": "pbpl_10_s4",
+  "rc": 0,
+  "minutes": 40.10137412150701
+ },
+ {
+  "name": "pbpl_10_s5",
+  "rc": 0,
+  "minutes": 41.18012269735336
+ },
+ {
+  "name": "fixmatch_4_s1",
+  "rc": 0,
+  "minutes": 11.246567781766256
+ },
+ {
+  "name": "fixmatch_4_s2",
+  "rc": 0,
+  "minutes": 11.49146675268809
+ },
+ {
+  "name": "fixmatch_4_s3",
+  "rc": 0,
+  "minutes": 11.247657084465027
+ },
+ {
+  "name": "fixmatch_4_s4",
+  "rc": 0,
+  "minutes": 11.40531363884608
+ },
+ {
+  "name": "fixmatch_4_s5",
+  "rc": 0,
+  "minutes": 11.289764626820881
+ },
+ {
+  "name": "fixmatch_10_s1",
+  "rc": 0,
+  "minutes": 11.51330155134201
+ },
+ {
+  "name": "fixmatch_10_s2",
+  "rc": 0,
+  "minutes": 11.234624214967091
+ },
+ {
+  "name": "fixmatch_10_s3",
+  "rc": 0,
+  "minutes": 11.464482736587524
+ },
+ {
+  "name": "fixmatch_10_s4",
+  "rc": 0,
+  "minutes": 11.213163101673127
+ },
+ {
+  "name": "fixmatch_10_s5",
+  "rc": 0,
+  "minutes": 11.412192507584889
+ },
+ {
+  "name": "sup_4_s1",
+  "rc": 0,
+  "minutes": 2.4539401054382326
+ },
+ {
+  "name": "flexmatch_4_s1",
+  "rc": 0,
+  "minutes": 11.254139749209086
+ },
+ {
+  "name": "sup_4_s2",
+  "rc": 0,
+  "minutes": 2.3287671128908793
+ },
+ {
+  "name": "flexmatch_4_s2",
+  "rc": 0,
+  "minutes": 11.47963140408198
+ },
+ {
+  "name": "sup_4_s3",
+  "rc": 0,
+  "minutes": 2.3459961851437887
+ },
+ {
+  "name": "flexmatch_4_s3",
+  "rc": 0,
+  "minutes": 11.213928329944611
+ },
+ {
+  "name": "sup_10_s1",
+  "rc": 0,
+  "minutes": 2.3869214693705243
+ },
+ {
+  "name": "flexmatch_10_s1",
+  "rc": 0,
+  "minutes": 11.53265552520752
+ },
+ {
+  "name": "sup_10_s2",
+  "rc": 0,
+  "minutes": 2.338074819246928
+ },
+ {
+  "name": "flexmatch_10_s2",
+  "rc": 0,
+  "minutes": 11.249739929040272
+ },
+ {
+  "name": "sup_10_s3",
+  "rc": 0,
+  "minutes": 2.365463550885518
+ },
+ {
+  "name": "flexmatch_10_s3",
+  "rc": 0,
+  "minutes": 11.475400892893473
+ }
+]

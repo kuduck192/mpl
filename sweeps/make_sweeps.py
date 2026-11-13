@@ -216,5 +216,22 @@ def degeneracy(seeds=(1, 2, 3)):
     write("fmnist-ssl-degeneracy", jobs, 6.0)
 
 
+def replication(it=20000):
+    """Phase 2c: replication set decided after the main table (seeds 6-10, never looked at
+    before): FixMatch / MPL / PBPL at 40 labels and FixMatch / PBPL at 100 labels.  Reported
+    separately from seeds 1-5 and pooled.  Two kernels, longest jobs first."""
+    a, b = [], []
+    for sd in (6, 7, 8, 9, 10):
+        a.append({"name": f"pbpl_4_s{sd}", "args": f"--bilevel two --feedback pess {PESS} --n_per_class 4 --seed {sd} --iters {it}"})
+        b.append({"name": f"pbpl_10_s{sd}", "args": f"--bilevel two --feedback pess {PESS} --n_per_class 10 --seed {sd} --iters {it}"})
+    for sd in (6, 7, 8, 9, 10):
+        a.append({"name": f"mpl_4_s{sd}", "args": f"--bilevel two --feedback opt {OPT} --n_per_class 4 --seed {sd} --iters {it}"})
+    for sd in (6, 7, 8, 9, 10):
+        b.append({"name": f"fixmatch_4_s{sd}", "args": f"--base fixmatch --n_per_class 4 --seed {sd} --iters {it}"})
+        b.append({"name": f"fixmatch_10_s{sd}", "args": f"--base fixmatch --n_per_class 10 --seed {sd} --iters {it}"})
+    write("fmnist-ssl-rep-a", a, 4.5)
+    write("fmnist-ssl-rep-b", b, 4.5)
+
+
 if __name__ == "__main__":
     globals()[sys.argv[1]]()

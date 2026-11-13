@@ -1,0 +1,24 @@
+/kaggle/working/ssl_fmnist.py:728: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  Xtr = torch.from_numpy(xtr).to(dev)
+[sup_10_s1] labeled=100 unlabeled=55000 val=5000 params=157098 dev=cuda
+{"name": "sup_10_s1", "iter": 1000, "test_ema": 0.3807, "test": 0.5271, "val_ema": 0.3784, "unl_ema": 0.3841, "minutes": 0.1589}
+{"name": "sup_10_s1", "iter": 2000, "test_ema": 0.4667, "test": 0.6533, "val_ema": 0.4778, "unl_ema": 0.4739, "minutes": 0.2703}
+{"name": "sup_10_s1", "iter": 3000, "test_ema": 0.5141, "test": 0.6484, "val_ema": 0.515, "unl_ema": 0.5074, "minutes": 0.3836}
+{"name": "sup_10_s1", "iter": 4000, "test_ema": 0.5982, "test": 0.6662, "val_ema": 0.6052, "unl_ema": 0.6049, "minutes": 0.4964}
+{"name": "sup_10_s1", "iter": 5000, "test_ema": 0.5892, "test": 0.6711, "val_ema": 0.5918, "unl_ema": 0.5881, "minutes": 0.6115}
+{"name": "sup_10_s1", "iter": 6000, "test_ema": 0.5037, "test": 0.6811, "val_ema": 0.5108, "unl_ema": 0.4996, "minutes": 0.7334}
+{"name": "sup_10_s1", "iter": 7000, "test_ema": 0.5011, "test": 0.6801, "val_ema": 0.5052, "unl_ema": 0.4961, "minutes": 0.8496}
+{"name": "sup_10_s1", "iter": 8000, "test_ema": 0.5216, "test": 0.6853, "val_ema": 0.5234, "unl_ema": 0.5204, "minutes": 0.9674}
+{"name": "sup_10_s1", "iter": 9000, "test_ema": 0.6082, "test": 0.6835, "val_ema": 0.6142, "unl_ema": 0.606, "minutes": 1.0918}
+{"name": "sup_10_s1", "iter": 10000, "test_ema": 0.5845, "test": 0.6896, "val_ema": 0.586, "unl_ema": 0.5806, "minutes": 1.204}
+{"name": "sup_10_s1", "iter": 11000, "test_ema": 0.5875, "test": 0.6926, "val_ema": 0.5878, "unl_ema": 0.5835, "minutes": 1.3184}
+{"name": "sup_10_s1", "iter": 12000, "test_ema": 0.5739, "test": 0.6912, "val_ema": 0.5734, "unl_ema": 0.57, "minutes": 1.4322}
+{"name": "sup_10_s1", "iter": 13000, "test_ema": 0.5995, "test": 0.6965, "val_ema": 0.5984, "unl_ema": 0.5947, "minutes": 1.546}
+{"name": "sup_10_s1", "iter": 14000, "test_ema": 0.6198, "test": 0.6966, "val_ema": 0.6162, "unl_ema": 0.6128, "minutes": 1.6581}
+{"name": "sup_10_s1", "iter": 15000, "test_ema": 0.6225, "test": 0.6927, "val_ema": 0.619, "unl_ema": 0.6172, "minutes": 1.7747}
+{"name": "sup_10_s1", "iter": 16000, "test_ema": 0.6416, "test": 0.7045, "val_ema": 0.641, "unl_ema": 0.6362, "minutes": 1.893}
+{"name": "sup_10_s1", "iter": 17000, "test_ema": 0.1456, "test": 0.6953, "val_ema": 0.1534, "unl_ema": 0.1504, "minutes": 2.0057}
+{"name": "sup_10_s1", "iter": 18000, "test_ema": 0.5832, "test": 0.6614, "val_ema": 0.5914, "unl_ema": 0.591, "minutes": 2.1165}
+{"name": "sup_10_s1", "iter": 19000, "test_ema": 0.6957, "test": 0.7005, "val_ema": 0.6946, "unl_ema": 0.6961, "minutes": 2.2291}
+{"name": "sup_10_s1", "iter": 20000, "test_ema": 0.7031, "test": 0.7041, "val_ema": 0.697, "unl_ema": 0.6992, "minutes": 2.3433}
+[sup_10_s1] done in 2.3 min; final={"iter": 20000, "test_ema": 0.7031, "test": 0.7041, "val_ema": 0.697, "unl_ema": 0.6991636363636363, "minutes": 2.3432920296986897}

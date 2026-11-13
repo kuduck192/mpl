@@ -1,0 +1,47 @@
+{
+ "slug": "fmnist-ssl-rep-a",
+ "budget_hours": 4.5,
+ "files": [],
+ "jobs": [
+  {
+   "name": "pbpl_4_s6",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 6 --iters 20000"
+  },
+  {
+   "name": "pbpl_4_s7",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 7 --iters 20000"
+  },
+  {
+   "name": "pbpl_4_s8",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 8 --iters 20000"
+  },
+  {
+   "name": "pbpl_4_s9",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 9 --iters 20000"
+  },
+  {
+   "name": "pbpl_4_s10",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 10 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s6",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 6 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s7",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 7 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s8",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 8 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s9",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 9 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s10",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 10 --iters 20000"
+  }
+ ]
+}
