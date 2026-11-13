@@ -205,7 +205,13 @@ $V_r(a(z))=\log(1+e^{r\omega-m(z)})$ và
 $E_s(a(z))=\mathbb E_{g\sim\mathcal N(0,1)}\log(1+e^{-m(z)+s\omega g})\approx\log(1+e^{s^2\omega^2/2-m(z)})$
 khi margin lớn. Cả hai là logistic loss của *cùng* margin $m(z)$, dịch đi $r\omega$ hoặc
 $s^2\omega^2/2$: chúng không mang thông tin mới so với feedback optimistic, chỉ không bão
-hòa sớm. Mọi lợi ích vượt quá điều đó phải đến từ việc $\ker J_u(\theta)$ phụ thuộc
+hòa sớm. Với nhiều điểm có nhãn $j$, $m_j(z)=y_j z^\top k_j$ với
+$k_j=(\Psi^\top\Psi)^{-1}\Psi^\top\psi(x_j)$ là trọng số hồi quy kernel của $x_j$ lên các điểm
+không nhãn, nên cả MPL lẫn PBPL đều đẩy pseudo-label về nghiệm kiểu *label propagation*
+($z$ thẳng hàng với $\sum_j w_j y_jk_j$); khác biệt duy nhất là trọng số
+$w_j=\sigma(r\omega_j-m_j)$ thay cho $\sigma(-m_j)$, tức PBPL **nâng trọng số theo hàm mũ
+$\approx e^{r\omega_j}$ cho các điểm có nhãn nằm xa span của dữ liệu không nhãn** — những
+điểm mà dữ liệu không nhãn "chưa phủ". Mọi lợi ích vượt quá điều đó phải đến từ việc $\ker J_u(\theta)$ phụ thuộc
 $\theta$ (feature learning) — đây là điều thực nghiệm phải trả lời, không phải điều lý
 thuyết đã chứng minh.
 

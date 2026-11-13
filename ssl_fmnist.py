@@ -245,18 +245,37 @@ RA_OPS = [_op_identity, _op_autocontrast, _op_brightness, _op_contrast, _op_equa
           _op_solarize, _op_translate_x, _op_translate_y]
 
 
+_GEO = {"rotate": 6, "shear_x": 8, "shear_y": 9, "translate_x": 11, "translate_y": 12}
+_COLOR = [(1, _op_autocontrast), (2, _op_brightness), (3, _op_contrast), (4, _op_equalize),
+          (5, _op_posterize), (7, _op_sharpness), (10, _op_solarize)]
+
+
 def rand_augment(x, n_ops=2, p_apply=0.5):
-    B = len(x)
-    x = x.clone()
+    """RandAugment as in FixMatch (2 ops, each applied w.p. 0.5, magnitude in {0.1..0.9}).
+    Fully batched without host synchronisation: all geometric ops of a layer are one
+    per-sample affine warp; colour ops are evaluated on the batch and selected."""
+    B, dev = len(x), x.device
     for _ in range(n_ops):
-        op_id = torch.randint(0, len(RA_OPS), (B,), device=x.device)
-        apply = torch.rand(B, device=x.device) < p_apply
-        mag = torch.randint(1, 10, (B,), device=x.device).float() / 10.0
-        for k, op in enumerate(RA_OPS):
-            idx = torch.nonzero((op_id == k) & apply, as_tuple=False).flatten()
-            if idx.numel() == 0 or k == 0:
-                continue
-            x[idx] = op(x[idx], mag[idx])
+        op_id = torch.randint(0, len(RA_OPS), (B,), device=dev)
+        op_id = torch.where(torch.rand(B, device=dev) < p_apply, op_id, torch.zeros_like(op_id))
+        m = torch.randint(1, 10, (B,), device=dev).float() / 10.0
+        sgn = _rand_sign(B, dev)
+        t = _theta_eye(B, dev)
+        ang = sgn * 30.0 * m * math.pi / 180.0
+        is_rot = op_id == _GEO["rotate"]
+        t[:, 0, 0] = torch.where(is_rot, torch.cos(ang), t[:, 0, 0])
+        t[:, 0, 1] = torch.where(is_rot, -torch.sin(ang), t[:, 0, 1])
+        t[:, 1, 0] = torch.where(is_rot, torch.sin(ang), t[:, 1, 0])
+        t[:, 1, 1] = torch.where(is_rot, torch.cos(ang), t[:, 1, 1])
+        t[:, 0, 1] = torch.where(op_id == _GEO["shear_x"], sgn * 0.3 * m, t[:, 0, 1])
+        t[:, 1, 0] = torch.where(op_id == _GEO["shear_y"], sgn * 0.3 * m, t[:, 1, 0])
+        t[:, 0, 2] = torch.where(op_id == _GEO["translate_x"], sgn * 0.6 * m, t[:, 0, 2])
+        t[:, 1, 2] = torch.where(op_id == _GEO["translate_y"], sgn * 0.6 * m, t[:, 1, 2])
+        is_geo = is_rot | (op_id == _GEO["shear_x"]) | (op_id == _GEO["shear_y"]) | \
+            (op_id == _GEO["translate_x"]) | (op_id == _GEO["translate_y"])
+        x = torch.where(is_geo[:, None, None, None], _affine(x, t), x)
+        for k, op in _COLOR:
+            x = torch.where((op_id == k)[:, None, None, None], op(x, m), x)
     return x
 
 
@@ -448,7 +467,8 @@ class FlexState:
         self.n = n_unl
 
     def thresholds(self):
-        counts = torch.bincount(self.selected + 1, minlength=NUM_CLASSES + 1).float()
+        counts = torch.zeros(NUM_CLASSES + 1, device=self.selected.device).scatter_add_(
+            0, self.selected + 1, torch.ones_like(self.selected, dtype=torch.float))
         unused, cls = counts[0], counts[1:]
         denom = torch.maximum(cls.max(), unused)  # threshold warm-up
         beta = cls / denom.clamp_min(1)
@@ -458,8 +478,7 @@ class FlexState:
         th = self.thresholds()
         mask = (conf >= th[pl]).float()
         sel = conf >= self.tau
-        if sel.any():
-            self.selected[idx[sel]] = pl[sel]
+        self.selected[idx] = torch.where(sel, pl, self.selected[idx])
         return mask
 
 
@@ -500,33 +519,41 @@ class Feedback:
                 self.eps = dzeros(theta_p)
             eps = self.eps
         elif mode == "exp":
-            eps = self._sample_fiber_noise(theta_p, xs_in, st)
+            eps = self._sample_fiber_noise(theta_p, xs_in, st, diag)
         else:
             raise ValueError(mode)
+
+        if mode == "pess":
+            # persistent adversary: one normalised ascent step on L_l, then K retraction
+            # steps back to the fiber of the anchor (descent on the KL to the anchor's
+            # predictions on the student's inputs), then projection on the ball B(0, r).
+            p = leaf(dadd(theta_p, eps))
+            g = grads_of(F.cross_entropy(self._f(p, xl), yl), p)
+            new = dadd(eps, g, a.alpha * a.radius / (dnorm(g) + 1e-12))
+            if a.pess_solver == "penalty":  # (first version, kept for ablation)
+                with torch.no_grad():
+                    anchor = F.softmax(self._f(theta_p, xs_in), 1)
+                q = leaf(dadd(theta_p, eps))
+                gD = grads_of(kl_anchor(anchor, self._f(q, xs_in)).mean(), q)
+                new = dadd(new, gD, -a.beta * a.alpha * a.radius / (dnorm(g) + 1e-12))
+            else:
+                new = self._retract(theta_p, new, xs_in, a.k_proj, st, diag)
+            en = dnorm(new)
+            self.eps = dscale(new, torch.clamp(a.radius / (en + 1e-12), max=1.0))
+            eps = self.eps
+            if diag:
+                st["eps_norm"] = min(en.item(), a.radius)
 
         p = leaf(dadd(theta_p, eps))
         loss_l = F.cross_entropy(self._f(p, xl), yl)
         v = grads_of(loss_l, p)
-        st["lab_loss_adv"] = loss_l.item()
-
-        if mode == "pess":
-            with torch.no_grad():
-                anchor = F.softmax(self._f(theta_p, xs_in), 1)
-            D = kl_anchor(anchor, self._f(p, xs_in)).mean()
-            gD = grads_of(D, p)
-            st["fiber_kl"] = D.item()
-            g = dadd(v, gD, -a.beta)
-            gn = dnorm(g)
-            new = dadd(self.eps, g, a.alpha * a.radius / (gn + 1e-12))
-            en = dnorm(new)
-            self.eps = dscale(new, min(1.0, a.radius / (en.item() + 1e-12)))
-            st["eps_norm"] = en.item()
 
         # meta feedback through the student's one-step update: JVP at theta
         _, c = jvp(lambda q: self._f(q, xs_in), (theta,), (v,))
-        st["v_norm"] = dnorm(v).item()
-        st["c_norm"] = c.norm().item() / math.sqrt(c.shape[0])
         if diag:
+            st["lab_loss_adv"] = loss_l.item()
+            st["v_norm"] = dnorm(v).item()
+            st["c_norm"] = c.norm().item() / math.sqrt(c.shape[0])
             if mode == "opt":
                 st["lab_loss_anchor"] = loss_l.item()
             else:
@@ -541,24 +568,34 @@ class Feedback:
         self.stats = st
         return c.detach(), st
 
-    def _sample_fiber_noise(self, theta_p, xs_in, st):
-        """Random admissible student: isotropic direction on the sphere of radius r,
-        re-fitted to the anchor's predictions (fiber) by K descent steps on the
-        KL to the anchor, then rescaled to radius r."""
+    def _retract(self, theta_p, eps, xs_in, K, st, diag=False):
+        """K descent steps on D(eps) = KL(p_anchor(x) || p_{anchor+eps}(x)) over the
+        student's inputs, with the Rayleigh / Barzilai-Borwein step 2D/||grad D||^2
+        (exact for one eigen-direction of the quadratic model 0.5 eps^T G eps)."""
+        with torch.no_grad():
+            anchor = F.softmax(self._f(theta_p, xs_in), 1)
+        for _ in range(K):
+            p = leaf(dadd(theta_p, eps))
+            D = kl_anchor(anchor, self._f(p, xs_in)).mean()
+            gD = grads_of(D, p)
+            step = (2.0 * D.detach()) / (ddot(gD, gD) + 1e-20)
+            eps = {k: eps[k] - step * gD[k] for k in eps}
+            if diag:
+                st["fiber_kl_before"] = D.item()
+        if diag:
+            with torch.no_grad():
+                st["fiber_kl"] = kl_anchor(anchor, self._f(dadd(theta_p, eps), xs_in)).mean().item()
+        return eps
+
+    def _sample_fiber_noise(self, theta_p, xs_in, st, diag=False):
+        """Random admissible student: isotropic perturbation of norm r, re-fitted to the
+        anchor's predictions (fiber) by K retraction steps (law of R(theta + xi))."""
         a = self.a
         xi = {k: torch.randn_like(v) for k, v in theta_p.items()}
         xi = dscale(xi, a.radius / (dnorm(xi) + 1e-12))
-        with torch.no_grad():
-            anchor = F.softmax(self._f(theta_p, xs_in), 1)
-        for _ in range(a.k_proj):
-            p = leaf(dadd(theta_p, xi))
-            D = kl_anchor(anchor, self._f(p, xs_in)).mean()
-            gD = grads_of(D, p)
-            # Rayleigh-quotient (Barzilai-Borwein-like) step size for 0.5 xi^T G xi
-            step = (2.0 * D.item()) / (ddot(gD, gD).item() + 1e-12)
-            xi = {k: xi[k] - step * gD[k] for k in xi}
-            st["fiber_kl"] = D.item()
-        xi = dscale(xi, a.radius / (dnorm(xi) + 1e-12))
+        xi = self._retract(theta_p, xi, xs_in, a.k_proj, st, diag)
+        if diag:
+            st["eps_norm"] = dnorm(xi).item()
         return xi
 
 
@@ -580,7 +617,8 @@ def main(argv=None):
     ap.add_argument("--wd", type=float, default=5e-4)
     ap.add_argument("--ema", type=float, default=0.999)
     ap.add_argument("--width", type=int, default=32)
-    ap.add_argument("--base", default="fixmatch", choices=["sup", "fixmatch", "flexmatch"])
+    ap.add_argument("--base", default="fixmatch",
+                    choices=["sup", "fixmatch", "flexmatch", "pseudolabel", "meanteacher"])
     ap.add_argument("--lam_u", type=float, default=1.0)
     ap.add_argument("--tau", type=float, default=0.95)
     # bilevel pseudo-labeling regularizer
@@ -595,7 +633,8 @@ def main(argv=None):
     ap.add_argument("--radius", type=float, default=0.3)
     ap.add_argument("--beta", type=float, default=10.0)
     ap.add_argument("--alpha", type=float, default=0.5)
-    ap.add_argument("--k_proj", type=int, default=2)
+    ap.add_argument("--k_proj", type=int, default=2, help="retraction steps (pess and exp)")
+    ap.add_argument("--pess_solver", default="retract", choices=["retract", "penalty"])
     ap.add_argument("--eps_reset", type=int, default=0)
     # one-network labeled-loss regularizers (controls): SAM / fiber-SAM (teacher-anchored PBPL)
     ap.add_argument("--lab_reg", default="none", choices=["none", "sam", "fibersam"])
@@ -651,6 +690,8 @@ def main(argv=None):
         fb = Feedback(args, teacher)
     flex = FlexState(nu, dev, args.tau) if args.base == "flexmatch" else None
     lab_eps = None  # persistent eps for fibersam
+    lab_fb = Feedback(args, teacher) if args.lab_reg == "fibersam" else None
+    teacher0 = None
 
     # optional supervised warm start (degeneracy diagnostic)
     if args.warm_sup_iters > 0:
@@ -665,7 +706,9 @@ def main(argv=None):
         if student is not None:
             student.load_state_dict(teacher.state_dict())
             s_ema = EMA(student, args.ema)
+            s_opt = make_sgd(student, args.stu_lr if args.stu_lr > 0 else args.lr, args.wd)
         t_opt = make_sgd(teacher, args.lr, args.wd)
+        teacher0 = copy.deepcopy(teacher).eval()  # reference supervised-only model
 
     hist = []
     run_stats = {}
@@ -681,6 +724,13 @@ def main(argv=None):
         acc_unl_ema, pred_u = evaluate(t_ema.model, Xu_ev, Yu_ev)
         rec = {"iter": k, "test_ema": acc_te_ema, "test": acc_te, "val_ema": acc_val_ema,
                "unl_ema": acc_unl_ema, "minutes": (time.time() - t_start) / 60}
+        if teacher0 is not None:  # degeneracy diagnostic: how far did the teacher move?
+            _, pred_now = evaluate(teacher, Xu_ev, Yu_ev)
+            _, pred_0 = evaluate(teacher0, Xu_ev, Yu_ev)
+            rec["pl_changed"] = (pred_now != pred_0).float().mean().item()
+            rec["unl_raw"] = (pred_now == Yu_ev).float().mean().item()
+            rec["drift"] = math.sqrt(sum(((p - p0) ** 2).sum().item() for p, p0 in
+                                         zip(teacher.parameters(), teacher0.parameters())))
         if student is not None:
             rec["stu_test_ema"], _ = evaluate(s_ema.model, Xte, Yte)
             rec["stu_test"], _ = evaluate(student, Xte, Yte)
@@ -714,30 +764,52 @@ def main(argv=None):
             iu = perm_u[pu:pu + bu]
             pu += bu
             xu_raw = Xu[iu]
-            xu_w, xu_s = weak_aug(xu_raw), strong_aug(xu_raw)
-
-            logits = teacher(torch.cat([xl_w, xu_w, xu_s]).contiguous(memory_format=torch.channels_last))
-            zl, zw, zs = logits.split([args.bl, bu, bu])
+            xu_w = weak_aug(xu_raw)
+            if args.base in ("fixmatch", "flexmatch"):
+                xu_s = strong_aug(xu_raw)
+            elif args.base == "meanteacher":
+                xu_s = weak_aug(xu_raw)  # second, independent weak view
+            else:  # pseudolabel: target and prediction on the same weak view
+                xu_s = None
+            parts = [xl_w, xu_w] + ([xu_s] if xu_s is not None else [])
+            logits = teacher(torch.cat(parts).contiguous(memory_format=torch.channels_last))
+            if xu_s is None:
+                zl, zw = logits.split([args.bl, bu])
+                zs = zw
+            else:
+                zl, zw, zs = logits.split([args.bl, bu, bu])
             l_sup = F.cross_entropy(zl, yl)
-            with torch.no_grad():
-                q = F.softmax(zw.detach(), 1)
-                conf, pl = q.max(1)
-                if flex is not None:
-                    mask = flex.mask_and_update(conf, pl, iu)
-                else:
-                    mask = (conf >= args.tau).float()
-            l_fm = (F.cross_entropy(zs, pl, reduction="none") * mask).mean()
-            total = l_sup + args.lam_u * l_fm
-            push("mask", mask.mean().item())
-            push("pl_acc_masked", ((pl == Yu_true[iu]).float() * mask).sum().item() / max(mask.sum().item(), 1))
-            push("pl_acc_all", (pl == Yu_true[iu]).float().mean().item())
-            push("ent_u", -(q * torch.log(q.clamp_min(1e-8))).sum(1).mean().item())
+            ramp = min(1.0, k / (0.4 * args.iters)) if args.base in ("meanteacher", "pseudolabel") else 1.0
+            if args.base == "meanteacher":
+                with torch.no_grad(), bn_frozen_stats(t_ema.model):
+                    t_ema.model.train()
+                    q = F.softmax(t_ema.model(xu_w), 1)
+                    t_ema.model.eval()
+                    conf, pl = q.max(1)
+                    mask = torch.ones_like(conf)
+                l_fm = ((F.softmax(zs, 1) - q) ** 2).mean()
+            else:
+                with torch.no_grad():
+                    q = F.softmax(zw.detach(), 1)
+                    conf, pl = q.max(1)
+                    if flex is not None:
+                        mask = flex.mask_and_update(conf, pl, iu)
+                    else:
+                        mask = (conf >= args.tau).float()
+                l_fm = (F.cross_entropy(zs, pl, reduction="none") * mask).mean()
+            total = l_sup + args.lam_u * ramp * l_fm
+            log_now = (k % args.log_every == 0)
+            if log_now:
+                push("mask", mask.mean().item())
+                push("pl_acc_masked", ((pl == Yu_true[iu]).float() * mask).sum().item() / max(mask.sum().item(), 1))
+                push("pl_acc_all", (pl == Yu_true[iu]).float().mean().item())
+                push("ent_u", -(q * torch.log(q.clamp_min(1e-8))).sum(1).mean().item())
 
             # ---- bilevel pseudo-labeling regularizer --------------------------------
             if fb is not None:
                 t_soft = F.softmax(zw / args.T_s, 1)
                 if args.stu_view == "strong":
-                    xs_in = xu_s
+                    xs_in = xu_s if xu_s is not None else strong_aug(xu_raw)
                 elif args.stu_view == "weak":
                     xs_in = xu_w
                 else:
@@ -750,7 +822,8 @@ def main(argv=None):
                     sp = dict(student.named_parameters())
                     g_stu = grads_of(l_stu, sp)
                     theta = pdict(student)
-                    push("stu_loss", l_stu.item())
+                    if log_now:
+                        push("stu_loss", l_stu.item())
                 else:  # self: one-step look-ahead of the deployed network
                     eta = lr_k
                     theta = pdict(teacher)
@@ -758,9 +831,10 @@ def main(argv=None):
                     with bn_frozen_stats(teacher):
                         l_look = soft_ce(functional_call(teacher, pl_, (xs_in,)), t_soft.detach()).mean()
                     g_stu = grads_of(l_look, pl_)
-                    push("stu_loss", l_look.item())
+                    if log_now:
+                        push("stu_loss", l_look.item())
                 theta_p = {n: theta[n] - eta * g_stu[n] for n in theta}
-                c, st = fb.feedback(theta, theta_p, xs_in, xl_w, yl, diag=(k % args.log_every == 0))
+                c, st = fb.feedback(theta, theta_p, xs_in, xl_w, yl, diag=log_now)
                 for kk, vv in st.items():
                     push(kk, vv)
                 if args.meta_norm:
@@ -771,10 +845,11 @@ def main(argv=None):
                 l_meta = (t_soft * c).sum(1).mean()
                 lam_m = args.lam_m if k >= args.meta_warmup else 0.0
                 total = total + lam_m * l_meta
-                push("meta", l_meta.item())
-                if args.bilevel == "two":
-                    with torch.no_grad():
-                        push("stu_pl_agree", (s_logits.argmax(1) == pl).float().mean().item())
+                if log_now:
+                    push("meta", l_meta.item())
+                    if args.bilevel == "two":
+                        with torch.no_grad():
+                            push("stu_pl_agree", (s_logits.argmax(1) == pl).float().mean().item())
 
             # ---- one-network labeled-loss regularizers (controls) --------------------
             if args.lab_reg != "none":
@@ -792,18 +867,18 @@ def main(argv=None):
                 with bn_frozen_stats(teacher):
                     l_adv = F.cross_entropy(functional_call(teacher, pe, (xl_w,)), yl)
                 g_adv = grads_of(l_adv, pe)
-                push("lab_loss_adv", l_adv.item())
+                if log_now:
+                    push("lab_loss_adv", l_adv.item())
                 if args.lab_reg == "fibersam":
-                    with torch.no_grad(), bn_frozen_stats(teacher):
-                        anchor = F.softmax(functional_call(teacher, pdict(teacher), (xu_w,)), 1)
-                    with bn_frozen_stats(teacher):
-                        D = kl_anchor(anchor, functional_call(teacher, pe, (xu_w,))).mean()
-                    gD = grads_of(D, pe)
-                    g = dadd(g_adv, gD, -args.beta)
-                    new = dadd(lab_eps, g, args.alpha * args.radius / (dnorm(g) + 1e-12))
-                    en = dnorm(new).item()
-                    lab_eps = dscale(new, min(1.0, args.radius / (en + 1e-12)))
-                    push("fiber_kl", D.item())
+                    # teacher-anchored PBPL: same ascent-then-retract adversary, fiber of the
+                    # deployed network's own predictions on the weak unlabeled views
+                    new = dadd(lab_eps, g_adv, args.alpha * args.radius / (dnorm(g_adv) + 1e-12))
+                    st_l = {}
+                    new = lab_fb._retract(pdict(teacher), new, xu_w, args.k_proj, st_l, log_now)
+                    en = dnorm(new)
+                    lab_eps = dscale(new, torch.clamp(args.radius / (en + 1e-12), max=1.0))
+                    for kk, vv in st_l.items():
+                        push(kk, vv)
                 # replace the labeled CE gradient by the gradient at the perturbed point
                 total = total - l_sup  # labeled term handled through g_adv below
                 t_opt.zero_grad(set_to_none=True)

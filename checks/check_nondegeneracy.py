@@ -168,3 +168,32 @@ for s in [0.025, 0.05, 0.1]:
             acc += grad(L_l, retract(w + sgn * xi))
     g_exp = Tmat @ (acc / (2 * n))
     print(f"{s:6.3f}   {g_exp.norm().item():.3e}       {g_exp.norm().item() / s ** 2:.3e}")
+
+
+# ---------------------------------------------------------------------------
+# Practical inner solver used in ssl_fmnist.py: persistent eps, normalized
+# projected ascent on  L_l(w+eps) - beta * KL(p_w(Xu) || p_{w+eps}(Xu)).
+# Does it find the fiber maximizer (direction +-u, value V_r)?
+# ---------------------------------------------------------------------------
+def D_u(z):
+    return kl(P_u, z, Xu)
+
+
+print("\npractical solver (r = 0.1, 600 steps, alpha = 0.2, from a random eps of norm 1e-3):")
+print("   beta    |cos(eps,u)|   L_l(w+eps)-L_l(w)   exact V_r-L_l(w)   KL to anchor")
+r = 0.1
+_, vr_exact = pess_eps(r)
+for beta in [10.0, 100.0, 1000.0]:
+    torch.manual_seed(1)
+    e = torch.randn(NPAR)
+    e = 1e-3 * e / e.norm()
+    for t in range(600):
+        g = grad(L_l, w + e) - beta * grad(D_u, w + e)
+        e = e + 0.2 * r * g / (g.norm() + 1e-15)
+        if e.norm() > r:
+            e = e * (r / e.norm())
+    cos = abs((e @ u) / e.norm()).item()
+    print(f"{beta:7.0f}     {cos:.4f}         {(L_l(w + e) - L_l(w)).item():.3e}          "
+          f"{vr_exact - L_l(w).item():.3e}         {D_u(w + e).item():.1e}")
+    v = grad(L_l, w + e)
+    print(f"          teacher gradient ||A v|| / r = {(Tmat @ v).norm().item() / r:.3e}  (exact maximizer: see table above)")

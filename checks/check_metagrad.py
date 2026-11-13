@@ -23,6 +23,7 @@ class A:  # minimal args for Feedback
     alpha = 0.5
     k_proj = 2
     eps_reset = 0
+    pess_solver = "retract"
 
 
 def run(mode):
@@ -47,6 +48,8 @@ def run(mode):
     theta = S.pdict(student)
     theta_p = {n: theta[n] - eta * g_stu[n] for n in theta}
     c, _ = fb.feedback(theta, theta_p, xu, xl, yl)
+    if mode == "pess":  # feedback() first updates the adversary, then evaluates v at it
+        eps_fixed = {k: v.clone() for k, v in fb.eps.items()}
     l_meta = (t * (c * eta)).sum(1).mean()
     g_impl = torch.autograd.grad(l_meta, list(teacher.parameters()))
 
