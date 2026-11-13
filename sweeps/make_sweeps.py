@@ -227,23 +227,38 @@ def replication(it=20000):
     for sd in (6, 7, 8, 9, 10):
         a.append({"name": f"mpl_4_s{sd}", "args": f"--bilevel two --feedback opt {OPT} --n_per_class 4 --seed {sd} --iters {it}"})
     write("fmnist-ssl-rep-a", a, 4.5)
-    # rep-b was rewritten after the FixMatch grid of ablate-a: on the screen protocol (seed 0,
-    # 40 labels, best validation accuracy) FixMatch with lam_u = 2 beat the selected PBPL
-    # config (val 78.04 vs 76.50).  The tuned FixMatch is therefore run on seeds 1-10 under
-    # the main protocol.  Jobs are in priority order (the budget guard skips the tail):
-    # 40-label controls first, then the 100-label replication.
+    # rep-b was rewritten after ablate-a.  (1) The FixMatch grid (screen protocol: seed 0,
+    # 40 labels, best validation accuracy) selects lam_u = 2, which beat the selected PBPL
+    # config on the screen (val 78.04 vs 76.50): this tuned FixMatch is run on seeds 1-10.
+    # (2) One-network look-ahead: the anchor fits the labels (L_l ~ 2e-3), i.e. the regime
+    # where the optimistic feedback degenerates; the optimistic one-network control
+    # (abl_selfopt) is the training-time test of the non-degeneracy argument.  (3) EBPL and
+    # the two ablations of ablate-a are completed to seeds 1-5.  Jobs are in priority order;
+    # the runner skips a job when the remaining budget is below 1.1 x est_min.  The 100-label
+    # replication moves to rep-c.
     b = []
     for sd in (6, 7, 8, 9, 10):
-        b.append({"name": f"fixmatch_4_s{sd}", "args": f"--base fixmatch --n_per_class 4 --seed {sd} --iters {it}"})
+        b.append({"name": f"fixmatch_4_s{sd}", "args": f"--base fixmatch --n_per_class 4 --seed {sd} --iters {it}", "est_min": 12})
     for sd in range(1, 11):
-        b.append({"name": f"fmtuned_4_s{sd}", "args": f"{FMT} --n_per_class 4 --seed {sd} --iters {it}"})
-    for sd in (6, 7, 8, 9, 10):
-        b.append({"name": f"pbpl_10_s{sd}", "args": f"--bilevel two --feedback pess {PESS} --n_per_class 10 --seed {sd} --iters {it}"})
-    for sd in (6, 7, 8, 9, 10):
-        b.append({"name": f"fixmatch_10_s{sd}", "args": f"--base fixmatch --n_per_class 10 --seed {sd} --iters {it}"})
+        b.append({"name": f"fmtuned_4_s{sd}", "args": f"{FMT} --n_per_class 4 --seed {sd} --iters {it}", "est_min": 12})
     for sd in (1, 2, 3, 4, 5):
-        b.append({"name": f"fmtuned_10_s{sd}", "args": f"{FMT} --n_per_class 10 --seed {sd} --iters {it}"})
+        b.append({"name": f"abl_selfopt_4_s{sd}", "args": f"--bilevel self --feedback opt {OPT} --n_per_class 4 --seed {sd} --iters {it}", "est_min": 30})
+    for sd in (4, 5):
+        b.append({"name": f"abl_self_4_s{sd}", "args": f"--bilevel self --feedback pess {PESS} --n_per_class 4 --seed {sd} --iters {it}", "est_min": 40})
+    for sd in (4, 5):
+        b.append({"name": f"ebpl_4_s{sd}", "args": f"--bilevel two --feedback exp {EXP} --n_per_class 4 --seed {sd} --iters {it}", "est_min": 40})
+    for sd in (4, 5):
+        b.append({"name": f"abl_samfb_4_s{sd}", "args": f"--bilevel two --feedback sam {PESS} --n_per_class 4 --seed {sd} --iters {it}", "est_min": 31})
     write("fmnist-ssl-rep-b", b, float(os.environ.get("REPB_HOURS", 4.3)))
+    # rep-c: 100-label replication (seeds 6-10) and tuned FixMatch at 100 labels
+    c = []
+    for sd in (6, 7, 8, 9, 10):
+        c.append({"name": f"pbpl_10_s{sd}", "args": f"--bilevel two --feedback pess {PESS} --n_per_class 10 --seed {sd} --iters {it}", "est_min": 42})
+    for sd in (6, 7, 8, 9, 10):
+        c.append({"name": f"fixmatch_10_s{sd}", "args": f"--base fixmatch --n_per_class 10 --seed {sd} --iters {it}", "est_min": 12})
+    for sd in range(1, 11):
+        c.append({"name": f"fmtuned_10_s{sd}", "args": f"{FMT} --n_per_class 10 --seed {sd} --iters {it}", "est_min": 12})
+    write("fmnist-ssl-rep-c", c, float(os.environ.get("REPC_HOURS", 4.0)))
 
 
 if __name__ == "__main__":

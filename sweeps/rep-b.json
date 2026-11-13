@@ -5,123 +5,133 @@
  "jobs": [
   {
    "name": "fixmatch_4_s6",
-   "args": "--base fixmatch --n_per_class 4 --seed 6 --iters 20000"
+   "args": "--base fixmatch --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fixmatch_4_s7",
-   "args": "--base fixmatch --n_per_class 4 --seed 7 --iters 20000"
+   "args": "--base fixmatch --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fixmatch_4_s8",
-   "args": "--base fixmatch --n_per_class 4 --seed 8 --iters 20000"
+   "args": "--base fixmatch --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fixmatch_4_s9",
-   "args": "--base fixmatch --n_per_class 4 --seed 9 --iters 20000"
+   "args": "--base fixmatch --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fixmatch_4_s10",
-   "args": "--base fixmatch --n_per_class 4 --seed 10 --iters 20000"
+   "args": "--base fixmatch --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s1",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 1 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s2",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 2 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s3",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 3 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s4",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 4 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s5",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 5 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s6",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 6 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s7",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 7 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s8",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 8 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s9",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 9 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 12
   },
   {
    "name": "fmtuned_4_s10",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 10 --iters 20000"
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 12
   },
   {
-   "name": "pbpl_10_s6",
-   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 6 --iters 20000"
+   "name": "abl_selfopt_4_s1",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 30
   },
   {
-   "name": "pbpl_10_s7",
-   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 7 --iters 20000"
+   "name": "abl_selfopt_4_s2",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 30
   },
   {
-   "name": "pbpl_10_s8",
-   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 8 --iters 20000"
+   "name": "abl_selfopt_4_s3",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 30
   },
   {
-   "name": "pbpl_10_s9",
-   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 9 --iters 20000"
+   "name": "abl_selfopt_4_s4",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 30
   },
   {
-   "name": "pbpl_10_s10",
-   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 10 --iters 20000"
+   "name": "abl_selfopt_4_s5",
+   "args": "--bilevel self --feedback opt --lam_m 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 30
   },
   {
-   "name": "fixmatch_10_s6",
-   "args": "--base fixmatch --n_per_class 10 --seed 6 --iters 20000"
+   "name": "abl_self_4_s4",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 40
   },
   {
-   "name": "fixmatch_10_s7",
-   "args": "--base fixmatch --n_per_class 10 --seed 7 --iters 20000"
+   "name": "abl_self_4_s5",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 40
   },
   {
-   "name": "fixmatch_10_s8",
-   "args": "--base fixmatch --n_per_class 10 --seed 8 --iters 20000"
+   "name": "ebpl_4_s4",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 40
   },
   {
-   "name": "fixmatch_10_s9",
-   "args": "--base fixmatch --n_per_class 10 --seed 9 --iters 20000"
+   "name": "ebpl_4_s5",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 40
   },
   {
-   "name": "fixmatch_10_s10",
-   "args": "--base fixmatch --n_per_class 10 --seed 10 --iters 20000"
+   "name": "abl_samfb_4_s4",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 31
   },
   {
-   "name": "fmtuned_10_s1",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 10 --seed 1 --iters 20000"
-  },
-  {
-   "name": "fmtuned_10_s2",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 10 --seed 2 --iters 20000"
-  },
-  {
-   "name": "fmtuned_10_s3",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 10 --seed 3 --iters 20000"
-  },
-  {
-   "name": "fmtuned_10_s4",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 10 --seed 4 --iters 20000"
-  },
-  {
-   "name": "fmtuned_10_s5",
-   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 10 --seed 5 --iters 20000"
+   "name": "abl_samfb_4_s5",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 31
   }
  ]
 }

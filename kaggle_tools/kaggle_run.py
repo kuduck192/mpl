@@ -69,6 +69,9 @@ def worker(gid):
         if n_gpu > 0:
             env["CUDA_VISIBLE_DEVICES"] = str(gid)
         remaining = (budget - (time.time() - T0)) / 60.0
+        if j.get("est_min") and remaining < 1.1 * float(j["est_min"]):
+            print(f"[gpu{gid}] {remaining:.0f} min left < 1.1 x est. {j['est_min']} min, skipping {j['name']}", flush=True)
+            continue
         script = j.get("script", "ssl_fmnist.py")
         if script == "ssl_fmnist.py":
             cmd = [sys.executable, WORK + "/ssl_fmnist.py", "--name", j["name"], "--out_dir", WORK + "/results",
