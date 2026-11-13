@@ -122,6 +122,19 @@ stayed on the fiber. The expected rule at $s=3$ is a median $2.4$ times the opti
 At $r=0.3$ the ascent-then-retract solver with $K=5$ does not stay on the fiber ($\le8\%$
 admissible iterates), so that radius does not test Proposition~N2(b).
 
+\paragraph{Scope of the result in training.} Proposition~N2 is a statement about pairs at which
+the anchor fits the labeled data. With a held-out two-network student such pairs are not
+reached in training: the student's labeled loss stays above $0.05$ after $20$k iterations and the
+optimistic feedback does not vanish. Consistently, over ten seeds at $40$ labels the pessimistic
+rule does not improve on the optimistic one (difference $+0.04\pm3.47$ points). The
+non-admissible controls that the construction rules out (one ascent step from zero, i.e.\ a
+SAM step blind to $X_u$, and SAM on the deployed network's labeled loss) match the pessimistic
+rule in accuracy. The theory therefore guarantees that the pessimistic feedback is non-zero and
+differs from the optimistic one where the latter degenerates; it does not imply, and the
+experiments do not show, an accuracy gain where the optimistic feedback is not degenerate. The
+one-network look-ahead, where the anchor fits the labels (labeled loss $\approx2\cdot10^{-3}$),
+is the configuration in which the proposition applies.
+
 \begin{remark}[Lazy regime]
 With linear features and the minimum-norm student anchor, $V_r(a(z))=\log(1+e^{r\omega-m(z)})$
 and $E_s(a(z))\approx\log(1+e^{s^2\omega^2/2-m(z)})$ for large margins: both are logistic

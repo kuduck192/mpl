@@ -255,6 +255,31 @@ fiber, JVP); teacher vẫn dùng toàn bộ dữ liệu cho FixMatch như chuẩ
   có tín hiệu bậc $r$ nhưng không có bảo đảm hội tụ; EBPL có bảo đảm nhưng tín hiệu chỉ
   bậc $s^2$.
 
+### 2.8 Phạm vi thực nghiệm: lý thuyết giải thích được gì, không giải thích được gì
+
+Tổng hợp từ `docs/report.md`, FashionMNIST, CNN 0.157M tham số, 40 và 100 nhãn:
+
+1. **Không suy biến tại điểm bất động: được xác nhận.** Tại các cặp supervised-only trên CNN
+   thật, feedback pessimistic trên fiber lớn hơn optimistic trung vị 134 lần và không giảm khi
+   mạng khớp nhãn (report Mục 5). Đây là nội dung của N2(a)–(b).
+2. **Huấn luyện hai mạng không đi tới vùng đó.** Student held-out không bao giờ khớp hết nhãn
+   (labeled loss ≥ 0.05 ở vòng 20k), nên feedback MPL không triệt tiêu (report Mục 4.2). Đúng
+   như vậy, trên 10 seed ở 40 nhãn PBPL ≈ MPL: chênh +0.04 ± 3.47 điểm (report Mục 9). Định lý
+   đúng nhưng điều kiện của nó (anchor khớp nhãn) không xảy ra trong cấu hình hai mạng.
+3. **Thiết kế A4 không cần cho accuracy.** Biến thể "một bước ascent từ 0" (ε reset mỗi bước,
+   tức SAM, mù với $X_u$) là thứ mà Mục 3 loại bỏ về mặt lý thuyết. Trên thực nghiệm nó ít nhất
+   bằng PBPL (3 seed). SAM trên labeled loss của chính teacher (không bilevel) cũng vậy (report
+   Mục 6). Lợi ích đo được ở 40 nhãn so với FixMatch mặc định không quy được cho cấu trúc
+   pessimistic bilevel.
+4. **Vùng mà định lý thực sự áp dụng là cấu hình một mạng.** Ở đó anchor là teacher đã thấy
+   nhãn, labeled loss của anchor chỉ ≈ 2·10⁻³, và feedback pessimistic lớn gấp 39 lần
+   optimistic. Đối chứng optimistic một mạng (`abl_selfopt`) là phép thử trực tiếp; kết quả ở
+   report Mục 6.
+
+Tóm lại: lý thuyết đảm bảo feedback pessimistic *khác 0 và khác MPL* tại các điểm mà MPL suy
+biến. Nó không đảm bảo, và thực nghiệm không cho thấy, rằng sự khác biệt đó cải thiện accuracy
+ở những cấu hình mà MPL không suy biến.
+
 ---
 
 ## 3. Thuật toán (cài đặt trong `ssl_fmnist.py`)
