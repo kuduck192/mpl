@@ -40,13 +40,17 @@ teacher, một mạng), FixMatch + SAM trên labeled loss, PBPL + FlexMatch.
 
 **Chẩn đoán suy biến (Prop. N2 trên CNN thật, `checks/degeneracy_static.py`).** Huấn luyện
 một mạng chỉ trên dữ liệu có nhãn; tại các checkpoint $w_k$ lập cặp supervised-only
-(teacher = student = $w_k$, BN ở eval mode, input sạch, 448 ảnh không nhãn không giao tập có
-nhãn — nên cặp tự nhất quán chính xác), đo chuẩn meta-gradient của teacher cho ba quy tắc
-feedback khi $w_k$ khớp dần nhãn. Bản động (khởi đầu từ cặp supervised-only rồi chạy động học
-với meta-gradient không chuẩn hóa, $\lambda_m=30$) đã bị loại: bước meta quá lớn phá teacher
-ngay sau warm-up ở cả ba biến thể, nên không kiểm tra được giả thuyết.
+(teacher = student = $w_k$, input sạch, 448 ảnh không nhãn không giao tập có nhãn, BN dùng
+thống kê của chính batch như feedback lúc huấn luyện), nên cặp tự nhất quán chính xác
+($\theta'=\theta$). Đo chuẩn meta-gradient của teacher $\|g_T\|$ khi $w_k$ khớp dần nhãn, cho:
+optimistic ($\varepsilon=0$); pessimistic ($\varepsilon$ = iterate *chấp nhận được* tốt nhất của
+60 bước ascent-rồi-co, K = 5 bước co, KL trung bình tới anchor trên $X$ ≤ 2·10⁻³, $r\in\{0.1,0.3\}$);
+expected (16 hướng ngẫu nhiên bán kính 3 co về fiber); và đối chứng SAM không ràng buộc
+($\varepsilon=r\,g/\|g\|$, rời fiber). 3 seed, 100 nhãn, checkpoint 250…8000 vòng. Bản động
+(khởi đầu từ cặp supervised-only rồi chạy động học với meta-gradient không chuẩn hóa,
+$\lambda_m=30$) đã bị loại: bước meta quá lớn phá teacher ngay sau warm-up ở cả ba biến thể.
 
-## 2. Pilot và hai lỗi thiết kế được phát hiện
+## 2. Pilot và ba lỗi thiết kế được phát hiện
 
 1. **Feedback không held-out.** Bản đầu cho student dùng toàn bộ tập không nhãn (chứa cả 40
    ảnh có nhãn, theo quy ước FixMatch). Student học thuộc chúng qua pseudo-label đúng của
@@ -58,6 +62,12 @@ ngay sau warm-up ở cả ba biến thể, nên không kiểm tra được giả
    tìm được nghiệm trên fiber: trên toy MLP, cos với hướng nghiệm đúng chỉ 0.10–0.46 (β = 10…1000).
    Bộ giải "ascent rồi co về fiber" (K bước giảm KL với bước Rayleigh) đạt cos 0.61–0.68 với
    KL tới anchor 6·10⁻⁶ (`checks/check_nondegeneracy.py`).
+3. **Chẩn đoán tĩnh phải ở lại trên fiber.** Bản đầu của chẩn đoán suy biến dùng BN ở eval
+   mode và K = 2: adversary "pessimistic" rời fiber (KL tới anchor 0.11 với $r=0.1$, 1.17 với
+   $r=0.3$), tức không còn là student chấp nhận được, nên bị hủy. Với BN theo batch (như lúc
+   huấn luyện) và K = 5, mọi iterate $r=0.1$ đều có KL ≤ 2·10⁻³ (thử trên 1 seed: KL
+   7–8·10⁻⁴); với K = 2 chỉ 13–19% iterate chấp nhận được. Lúc huấn luyện K = 2 là đủ vì
+   adversary được giữ trạng thái qua các vòng lặp (KL ≈ 2·10⁻³ trong bảng sàng lọc).
 
 ## 3. Chọn siêu tham số (validation, seed 0, 40 nhãn, 10k vòng)
 
