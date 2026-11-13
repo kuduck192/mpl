@@ -438,3 +438,62 @@ chỉnh 73.71 / 74.50 / 0.79; MPL 73.28 / 73.91 / 0.63; PBPL 73.32 / 74.57 / 1.2
   0.07, $\|c\|/\|c_{\rm opt}\|$ = 2.5, cos 0.80, KL tới anchor 1.6·10⁻³. Feedback pessimistic
   vẫn không suy biến và khác hẳn feedback optimistic. Chỉ là sự khác biệt đó không chuyển thành
   accuracy.
+
+## 10. Kết luận và giới hạn
+
+Câu hỏi ban đầu là liệu một dạng pessimistic / expected trust-region bilevel pseudo-labeling
+có thể vừa không suy biến theo lý thuyết, vừa vượt các baseline SSL truyền thống trên
+FashionMNIST hay không.
+
+**Lý thuyết: đạt, và được kiểm chứng ở cả ba mức.** Feedback được lấy tại student xấu nhất
+(PBPL) hoặc trung bình (EBPL) trong tập student *chấp nhận được* (fiber: student giữ nguyên dự
+đoán của anchor trên dữ liệu không nhãn). Tại các cặp supervised-only, tức điểm bất động của
+MPL, feedback optimistic triệt tiêu, feedback pessimistic thì không (N2(b)), còn expected chỉ
+có bậc $s^2$ (N2(d)). Kiểm chứng số:
+1. toy MLP (`checks/check_nondegeneracy.py`);
+2. CNN thật, chẩn đoán tĩnh (Mục 5): pessimistic lớn hơn optimistic trung vị 134 lần;
+3. trong lúc huấn luyện một mạng (Mục 6.1): feedback optimistic thô co 20–30 lần, pessimistic
+   thì không.
+
+**Thực nghiệm: không vượt baseline mạnh ở mức có ý nghĩa thống kê.**
+- So với Supervised, Pseudo-Label, Mean Teacher: PBPL / EBPL hơn 8–16 điểm. Nhưng gần như toàn
+  bộ khoảng cách đó là của FixMatch, phần base mà regularizer được gắn vào.
+- So với FixMatch, 40 nhãn, 10 seed: PBPL +0.58 ± 3.10 điểm (p = 0.57) ở vòng cuối, −0.05 khi
+  chọn checkpoint theo val. So với FixMatch tinh chỉnh: −0.38. So với MPL: +0.04. Ưu thế ở seed
+  1–5 (+2.02, p = 0.019) không được nhân bản (Mục 9).
+- 100 nhãn, 5 seed: PBPL hơn FixMatch +1.66 (p = 0.41), không hơn MPL (−0.31).
+- EBPL mới có 3 seed (+2.36 so với FixMatch, p = 0.09). Seed 4–10 đang chạy trong `rep-c`.
+- Các đối chứng không bilevel (SAM trên labeled loss, fiber-SAM tâm tại teacher) ít nhất bằng
+  PBPL trên 3 seed, với chi phí bằng một phần ba. Seed 4–10 đang chạy trong `rep-d`.
+
+**Vì sao không suy biến không chuyển thành accuracy.** Có ba lý do, mỗi lý do có số liệu đi kèm:
+1. *Cấu hình hai mạng không chạm tới điều kiện của định lý.* Student held-out không bao giờ khớp
+   hết nhãn, nên feedback MPL không triệt tiêu và không có gì để pessimism sửa (Mục 4.2, 9).
+2. *Ở cấu hình một mạng, suy biến có xảy ra nhưng bị chuẩn hóa trung hòa.* RMS chạy đưa bước
+   meta của hai quy tắc về cùng cỡ, nên chỉ còn hướng có tác dụng. Trên 2 seed, hướng optimistic
+   tốt hơn (Mục 6.1).
+3. *Lợi ích quan sát được ở seed 1–5 là chống suy giảm cuối huấn luyện của FixMatch.* Tinh chỉnh
+   $\lambda_u$ hoặc một bước SAM cũng chữa được hiện tượng này, và nó gần như không xuất hiện ở
+   seed 6–10 (Mục 4.1, 7, 9).
+
+**Giới hạn của nghiên cứu.**
+- Một tập dữ liệu, một CNN nhỏ (0.157M tham số), 20k vòng lặp (FixMatch gốc dùng $2^{20}$ vòng),
+  40 và 100 nhãn.
+- Phương sai giữa các seed lớn (3–4 điểm, vì seed quyết định tập có nhãn). Với 10 seed, sai số
+  chuẩn của chênh lệch cặp khoảng 1 điểm, nên chỉ phát hiện được hiệu ứng từ khoảng 2–3 điểm trở
+  lên. Một hiệu ứng thật cỡ 0.5 điểm không bị loại trừ.
+- Siêu tham số được chọn trên một seed (seed 0, 10k vòng). Bán kính bị bộ giải giới hạn ở
+  $r=0.1$: với $r\ge0.3$ bộ giải ascent-rồi-co bậc nhất ($K=2$) không ở lại được trên fiber.
+- "Chấp nhận được" chỉ theo nghĩa xấp xỉ: KL tới anchor ≈ 2·10⁻³ trên batch.
+- Figure 1 của bản thảo không tái lập được với giao thức và bộ giải penalty của review (Mục 8).
+- Chi phí: PBPL 3.6×, EBPL 3.4×, MPL 2.5× FixMatch.
+- Giao thức chọn checkpoint theo val dùng 5 000 ảnh có nhãn, tức là một oracle; nó chỉ là giao
+  thức phụ.
+
+**Nếu muốn định lý có hệ quả thực hành.**
+- Giữ nguyên độ lớn feedback: thang meta-gradient chính xác, hoặc một chuẩn hóa dùng chung cho
+  mọi quy tắc. Lượt sàng lọc ở thang chính xác đang chạy trong `rep-d`.
+- Dùng cấu hình một mạng, nơi suy biến thực sự xảy ra.
+- Dùng bài toán mà FixMatch có confirmation bias mạnh và ổn định giữa các seed (ví dụ CIFAR-10
+  với 40 nhãn, huấn luyện dài hơn). Ở đó việc giữ được tín hiệu từ dữ liệu có nhãn có nhiều chỗ
+  để tạo khác biệt hơn.
