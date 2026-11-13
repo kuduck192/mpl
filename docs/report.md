@@ -1,7 +1,8 @@
 # Báo cáo: trust-region bilevel pseudo-labeling (PBPL / EBPL) trên FashionMNIST
 
-> Trạng thái: bảng chính (60 run) và chẩn đoán suy biến đã xong; ablation, lưới tinh chỉnh
-> FixMatch và đợt nhân bản (seed 6–10) đang chạy. Mọi số liệu lấy từ `results/`.
+> Trạng thái: bảng chính (60 run), chẩn đoán suy biến, ablation-a và lưới tinh chỉnh FixMatch
+> đã xong. Ablation-b, đợt nhân bản (seed 6–10) và các đối chứng FixMatch tuned / một mạng
+> optimistic đang chạy. Mọi số liệu lấy từ `results/`.
 
 ## 1. Thiết lập thực nghiệm
 
@@ -222,4 +223,61 @@ lại trên fiber.
 
 ## 6. Ablation (40 nhãn, seed 1–3)
 
-_(kernel `fmnist-ssl-ablate-{a,b}` đang chạy)_
+Dữ liệu `results/fmnist-ssl-ablate-a`; bảng sinh bởi `analysis/ablation_table.py` (đỉnh, mức
+giảm cuối, chẩn đoán trung bình 3 lần đánh giá cuối) và `analysis/main_table.py --ref pbpl`
+(so sánh cặp). Seed 4–5 của hai ablation dưới đây đang chạy trong `rep-b`.
+
+| biến thể (40 nhãn, seed 1–3) | cuối | đỉnh | giảm cuối | chọn theo val | − FixMatch (cặp) | − PBPL (cặp) | $L_l$ student bị đẩy | cos(c, c_opt) | phút/run |
+|---|---|---|---|---|---|---|---|---|---|
+| FixMatch | 70.65 | 72.54 | 1.90 | 72.54 | — | −2.36 ± 1.32, 0/3 | — | — | 11.3 |
+| MPL (optimistic) | 70.15 | 71.22 | 1.07 | 71.18 | −0.50 ± 1.96, 1/3 | −2.86 ± 3.08, 1/3 | 0.082 (= anchor) | 1 | 27.7 |
+| **PBPL** | 73.01 | 74.02 | 1.01 | 73.98 | +2.36 ± 1.32, 3/3, p = 0.09 | — | 0.271 (anchor 0.124) | 0.83 | 40.5 |
+| SAM-feedback ($\varepsilon=r\,g/\|g\|$ reset mỗi bước, không co về fiber) | 74.06 | 74.18 | 0.12 | 74.14 | +3.41 ± 0.41, 3/3, p = 0.005 | +1.05 ± 1.37, 2/3, p = 0.31 | 0.457 (anchor 0.150) | 0.80 | 29.2 |
+| PBPL một mạng (look-ahead của chính teacher) | 73.37 | 74.37 | 1.00 | 74.37 | +2.72 ± 1.39, 3/3, p = 0.08 | +0.36 ± 0.72, 2/3, p = 0.47 | 0.057 (anchor 0.0016) | 0.33 | 38.9 |
+
+Đọc kết quả:
+
+- **Ràng buộc fiber không cần cho accuracy.** Ở SAM-feedback, student được đẩy một bước bán
+  kính $r=0.1$ theo hướng gradient labeled loss, reset mỗi vòng lặp và không co về fiber, tức
+  *không* phải student chấp nhận được. Biến thể này ít nhất bằng PBPL (+1.05 ± 1.37 điểm,
+  2/3 seed, p = 0.31), rẻ hơn (29 so với 41 phút) và cũng không suy giảm cuối huấn luyện
+  (giảm 0.12 điểm). Vậy ở 40 nhãn, cái chống suy giảm là *lấy feedback tại một student bị đẩy
+  về phía labeled loss cao hơn*, không phải tính chấp nhận được mà định nghĩa pessimistic đòi
+  hỏi. Điều này khớp với chẩn đoán tĩnh (Mục 5): SAM-feedback cũng không triệt tiêu tại các cặp
+  supervised-only, chỉ là nó rời fiber. Trong huấn luyện, việc rời fiber với $r=0.1$ không gây hại.
+- **Một mạng là đủ.** PBPL dạng look-ahead của chính teacher (không có student phụ) ngang PBPL
+  hai mạng (+0.36 ± 0.72). Ở đây anchor là teacher đã thấy dữ liệu có nhãn, nên labeled loss
+  của anchor chỉ 0.0016: đúng vùng feedback optimistic suy biến (Prop. N2a). Feedback
+  pessimistic lớn gấp 39 lần và gần trực giao với optimistic (cos 0.33). Đối chứng optimistic
+  một mạng (`abl_selfopt`, cùng $\lambda_m$) đang chạy trong `rep-b`. Đây là phép thử trực tiếp
+  lập luận không suy biến *trong lúc huấn luyện*, vì ở cấu hình hai mạng student held-out không
+  bao giờ khớp hết nhãn (Mục 4.2).
+- Nếu chọn checkpoint theo validation, mọi biến thể có feedback bị đẩy (PBPL, SAM-feedback,
+  một mạng) nằm trong 73.98–74.37, hơn FixMatch 1.4–1.8 điểm (2/3 hoặc 3/3 seed, p ≥ 0.24).
+
+_(Ablation-b — FixMatch + fiber-SAM, FixMatch + SAM trên labeled loss, PBPL + FlexMatch và
+Figure 1 — đang chạy.)_
+
+## 7. Tinh chỉnh FixMatch: đối chứng công bằng
+
+Bảng chính dùng FixMatch mặc định ($\tau=0.95$, $\lambda_u=1$), trong khi PBPL được chọn trong 12
+cấu hình. Để cân bằng, lưới $\tau\in\{0.8, 0.9, 0.95\}\times\lambda_u\in\{1, 2\}$ (6 cấu hình,
+gồm mặc định) được chạy theo đúng giao thức đã dùng để chọn PBPL: seed 0, 40 nhãn, 10k vòng,
+chọn theo val ở vòng cuối.
+
+| cấu hình (seed 0, 40 nhãn, 10k vòng) | val | test |
+|---|---|---|
+| **FixMatch, τ = 0.95, λ_u = 2** | **78.04** | **77.71** |
+| PBPL đã chọn (λ_m = 0.1, r = 0.1; phần FixMatch mặc định) | 76.50 | 75.12 |
+| FixMatch, τ = 0.8, λ_u = 2 | 74.46 | 75.06 |
+| FixMatch, τ = 0.9, λ_u = 2 | 74.42 | 75.25 |
+| FixMatch, τ = 0.8, λ_u = 1 | 74.32 | 75.25 |
+| FixMatch, τ = 0.95, λ_u = 1 (mặc định, bảng chính) | 74.08 | 74.87 |
+| FixMatch, τ = 0.9, λ_u = 1 | 72.52 | 72.43 |
+
+Trên chính giao thức đã dùng để chọn PBPL, FixMatch với $\lambda_u=2$ vượt cấu hình PBPL được
+chọn (val +1.5, test +2.6 điểm). Đây chỉ là một seed, trong khi độ lệch giữa các seed ở 40
+nhãn là 3–4 điểm, nên chưa đủ để kết luận. Nhưng nó cho thấy bảng chính đặt PBPL đã tinh chỉnh
+cạnh FixMatch chưa tinh chỉnh. Cấu hình này ("FixMatch tuned") được chạy theo giao thức chính
+trên seed 1–10 (`rep-b`). PBPL với cùng $\lambda_u=2$ (tức thêm regularizer bilevel vào FixMatch
+đã tinh chỉnh, giữ nguyên $\lambda_m$, $r$) là phép so sánh tiếp theo (`rep-c`).
