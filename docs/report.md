@@ -132,7 +132,8 @@ Teacher 14.8 / 13.9, Supervised 16.1 / 11.8 điểm (40 / 100 nhãn).
 - **40 nhãn.** PBPL + FixMatch hơn FixMatch trên cả 5 seed (+0.7 đến +3.3 điểm). EBPL hơn
   trên cả 3 seed. MPL (cùng kiến trúc hai mạng, cùng λ_m, chỉ khác quy tắc feedback) thì
   không (+0.1, 2/5). So trực tiếp PBPL với MPL: +1.93 ± 3.64 (3/5, p = 0.30); EBPL với MPL:
-  +2.86 (3/3, p = 0.14). Hướng đúng như lý thuyết, nhưng với 5 seed thì chưa có ý nghĩa thống kê.
+  +2.86 (3/3, p = 0.14). Hướng đúng như lý thuyết, nhưng với 5 seed thì chưa có ý nghĩa thống kê,
+  và **đợt nhân bản không xác nhận**: trên seed 6–10, PBPL kém MPL 1.84 điểm (Mục 9).
 - **100 nhãn.** Cả ba biến thể bilevel hơn FixMatch trung bình 1.7–4.4 điểm, nhưng phần lớn
   nhờ seed 3, nơi FixMatch chỉ đạt 75.0 (mọi biến thể bilevel +8 điểm). Ở các seed còn lại
   PBPL và MPL nằm trong khoảng −1.3 đến +2.7 điểm; EBPL +5.9 ở seed 2, −1.0 ở seed 1. PBPL không hơn MPL (−0.31, 1/5). Ở mức 100 nhãn, lợi ích
@@ -323,4 +324,25 @@ trên seed 1–10 (`rep-b`). PBPL với cùng $\lambda_u=2$ (tức thêm regular
   (KL tới anchor ≤ 2·10⁻³ trên batch, BN theo batch) và bộ giải ascent-rồi-co. Ở đây dùng bộ giải
   penalty của review, bộ giải mà pilot (Mục 2, lỗi 2) đã thấy là không đáng tin. Chưa thử giao
   thức này với bộ giải ascent-rồi-co.
+
+## 9. Nhân bản trên seed 6–10 (40 nhãn)
+
+Seed 6–10 chưa từng được xem trước khi quyết định đợt này; cấu hình giữ nguyên như bảng chính.
+Dữ liệu `results/fmnist-ssl-rep-a` (PBPL, MPL). FixMatch seed 6–10 nằm trong `rep-b`, đang chạy.
+
+| 40 nhãn, vòng cuối | seed 6 | 7 | 8 | 9 | 10 | trung bình |
+|---|---|---|---|---|---|---|
+| MPL (optimistic) | 74.5 | 72.4 | 77.8 | 74.8 | 78.1 | 75.51 ± 2.43 |
+| PBPL (pessimistic) | 70.5 | 71.9 | 73.6 | 73.6 | 78.8 | 73.67 ± 3.14 |
+
+- **PBPL không hơn MPL.** Trên seed 6–10, PBPL − MPL = −1.84 ± 2.21 điểm (thắng 1/5, p = 0.14).
+  Gộp 10 seed: +0.04 ± 3.47 (4/10, p = 0.97); chọn checkpoint theo validation: +0.68 ± 2.92
+  (7/10, p = 0.48). Hướng "pessimistic > optimistic" ở seed 1–5 (+1.93) là nhiễu.
+- **Lần này PBPL suy giảm cuối huấn luyện** (đỉnh − cuối = 1.51 điểm trung bình; 2.7 điểm ở
+  seed 7), còn MPL thì không (0.40). Vì vậy "PBPL chống được suy giảm cuối huấn luyện" (Mục 4.1)
+  cũng không đứng vững như một tính chất riêng của PBPL.
+- Chẩn đoán feedback giống seed 1–5: labeled loss của student pessimistic 0.25 so với anchor
+  0.07, $\|c\|/\|c_{\rm opt}\|$ = 2.5, cos 0.80, KL tới anchor 1.6·10⁻³. Feedback pessimistic
+  vẫn không suy biến và khác hẳn feedback optimistic. Chỉ là sự khác biệt đó không chuyển thành
+  accuracy.
 
