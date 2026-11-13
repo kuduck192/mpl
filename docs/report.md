@@ -36,12 +36,15 @@ theo accuracy validation ở seed 0, 40 nhãn, 10k vòng lặp, cùng ngân sác
 
 **Ablation (40 nhãn).** SAM-feedback ($\varepsilon$ reset mỗi bước = một bước SAM từ 0, mù
 với $X_u$), PBPL một mạng (look-ahead của chính teacher), FixMatch + fiber-SAM (PBPL tâm tại
-teacher, một mạng), FixMatch + SAM trên labeled loss, PBPL với solver phạt (bản đầu tiên),
-PBPL + FlexMatch.
+teacher, một mạng), FixMatch + SAM trên labeled loss, PBPL + FlexMatch.
 
-**Chẩn đoán suy biến.** Teacher huấn luyện supervised 3 000 vòng, student = bản sao
-(cặp supervised-only), tắt FixMatch, student nhìn đúng ảnh augment yếu của teacher, feedback
-không chuẩn hóa; đo $\|\phi_t-\phi_0\|$, tỉ lệ pseudo-label đổi, accuracy pseudo-label.
+**Chẩn đoán suy biến (Prop. N2 trên CNN thật, `checks/degeneracy_static.py`).** Huấn luyện
+một mạng chỉ trên dữ liệu có nhãn; tại các checkpoint $w_k$ lập cặp supervised-only
+(teacher = student = $w_k$, BN ở eval mode, input sạch, 448 ảnh không nhãn không giao tập có
+nhãn — nên cặp tự nhất quán chính xác), đo chuẩn meta-gradient của teacher cho ba quy tắc
+feedback khi $w_k$ khớp dần nhãn. Bản động (khởi đầu từ cặp supervised-only rồi chạy động học
+với meta-gradient không chuẩn hóa, $\lambda_m=30$) đã bị loại: bước meta quá lớn phá teacher
+ngay sau warm-up ở cả ba biến thể, nên không kiểm tra được giả thuyết.
 
 ## 2. Pilot và hai lỗi thiết kế được phát hiện
 
