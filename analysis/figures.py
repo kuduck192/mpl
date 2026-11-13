@@ -8,6 +8,7 @@ reference palette, light mode), neutral ink for text, recessive grid, one y-axis
   python analysis/figures.py main        # paired differences vs FixMatch (after main-a/b)
   python analysis/figures.py curves      # training curves of the main runs (after main-a/b)
   python analysis/figures.py dynamics    # feedback diagnostics along the main runs
+  python analysis/figures.py replication # paired differences, seeds 1-5 vs 6-10 (after rep-b)
 """
 import glob
 import json
@@ -27,7 +28,8 @@ OUT = os.path.join(ROOT, "docs", "figures")
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
 INK, INK2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 # colour follows the method in every figure; FixMatch is the neutral reference
-COL = {"mpl": SERIES[0], "pbpl": SERIES[1], "ebpl": SERIES[2], "pbpl_r0.3": SERIES[3], "fixmatch": INK2}
+COL = {"mpl": SERIES[0], "pbpl": SERIES[1], "ebpl": SERIES[2], "pbpl_r0.3": SERIES[3], "fixmatch": INK2,
+       "fmtuned": SERIES[4]}
 plt.rcParams.update({
     "font.size": 8, "axes.edgecolor": INK2, "axes.labelcolor": INK, "xtick.color": INK2,
     "ytick.color": INK2, "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.6,
@@ -314,6 +316,41 @@ def dynamics():
     os.makedirs(OUT, exist_ok=True)
     fig.savefig(os.path.join(OUT, "main_dynamics.png"))
     print("wrote", OUT)
+
+
+def replication():
+    """40 labels: test accuracy minus FixMatch on the same seed, for the seeds of the main table
+    (1-5) and the replication seeds (6-10).  Dots: seeds; bar and number: mean."""
+    R = _load("results/fmnist-ssl-*/results/*.json")
+    res = defaultdict(dict)
+    for n, r in R.items():
+        m = re.match(r"(.+)_4_s(\d+)$", n)
+        if m and r.get("final", {}).get("iter", 0) >= r["args"].get("iters", 1):
+            res[m.group(1)][int(m.group(2))] = 100 * r["final"]["test_ema"]
+    meths = [("fmtuned", "FixMatch\ntuned"), ("mpl", "MPL"), ("pbpl", "PBPL")]
+    fig, axes = plt.subplots(1, 2, figsize=(6.4, 2.7), sharey=True)
+    for ax, (lo, hi), title in zip(axes, ((1, 5), (6, 10)),
+                                   ("Seeds 1–5 (main table)", "Seeds 6–10 (replication)")):
+        base = res["fixmatch"]
+        for i, (meth, _) in enumerate(meths):
+            common = [s for s in range(lo, hi + 1) if s in res[meth] and s in base]
+            dif = [res[meth][s] - base[s] for s in common]
+            ax.scatter([i] * len(dif), dif, s=22, color=COL[meth], zorder=3, edgecolor="white", lw=0.8)
+            if dif:
+                mu = float(np.mean(dif))
+                ax.plot([i - 0.22, i + 0.22], [mu] * 2, color=INK, lw=1.5, zorder=4)
+                ax.annotate(f"{mu:+.1f}", (i + 0.24, mu), va="center", fontsize=7, color=INK)
+        ax.axhline(0, color=INK2, lw=0.8)
+        ax.set_xticks(range(len(meths)))
+        ax.set_xticklabels([lab for _, lab in meths])
+        ax.set_xlim(-0.5, len(meths) - 0.3)
+        ax.set_title(title, fontsize=8, color=INK)
+    axes[0].set_ylabel("test acc. − FixMatch, same seed (pp)")
+    fig.suptitle("40 labels, final iterate: paired difference to default FixMatch", fontsize=8, color=INK)
+    fig.tight_layout()
+    os.makedirs(OUT, exist_ok=True)
+    fig.savefig(os.path.join(OUT, "replication_paired.png"))
+    print("wrote", os.path.join(OUT, "replication_paired.png"))
 
 
 if __name__ == "__main__":
