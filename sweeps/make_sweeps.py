@@ -261,6 +261,54 @@ def replication(it=20000):
     write("fmnist-ssl-rep-c", c, float(os.environ.get("REPC_HOURS", 4.0)))
 
 
+def _done(dirs):
+    done = set()
+    for d in dirs:
+        for root, _, fs in os.walk(d):
+            for f in fs:
+                if not f.endswith(".json"):
+                    continue
+                try:
+                    r = json.load(open(os.path.join(root, f)))
+                except Exception:
+                    continue
+                if "final" in r and "args" in r and not r.get("stopped_early") \
+                        and r["final"].get("iter", 0) >= r["args"].get("iters", 1):
+                    done.add(r["args"]["name"])
+    return done
+
+
+def wave3(it=20000):
+    """Phase 3 (after the weekly quota reset), decided after ablate-b and rep-b.
+    rep-c: what rep-b could not fit, then FixMatch + SAM on the labeled loss (the strongest
+    control of ablate-b) on seeds 4-10, fiber-SAM to 5 seeds, and three screen runs (seed 0,
+    10k iterations) of the regularizers on the tuned FixMatch base.
+    rep-d: PBPL on the tuned FixMatch base (lam_u = 2, lam_m and r unchanged) on seeds 1-10,
+    and tuned FixMatch / labeled-loss SAM at 100 labels (seeds 1-5).
+    python sweeps/make_sweeps.py wave3   (reads results/fmnist-ssl-rep-b to find the remainder)"""
+    done = _done([os.path.join(HERE, "..", "results", "fmnist-ssl-rep-b")])
+    rep_b = json.load(open(os.path.join(HERE, "rep-b.json")))["jobs"]
+    c = [j for j in rep_b if j["name"] not in done]
+    for sd in range(4, 11):
+        c.append({"name": f"abl_labsam_4_s{sd}", "args": f"--lab_reg sam --radius 0.1 --n_per_class 4 --seed {sd} --iters {it}", "est_min": 15})
+    scr = "--n_per_class 4 --seed 0 --iters 10000"
+    c += [{"name": "scr_labsam", "args": f"--lab_reg sam --radius 0.1 {scr}", "est_min": 8},
+          {"name": "scr_labsam_lu2", "args": f"{FMT} --lab_reg sam --radius 0.1 {scr}", "est_min": 8},
+          {"name": "scr_pess_lu2", "args": f"{FMT} --bilevel two --feedback pess {PESS} {scr}", "est_min": 22}]
+    for sd in (4, 5):
+        c.append({"name": f"abl_fibersam_4_s{sd}", "args": f"--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed {sd} --iters {it}", "est_min": 25})
+    write("fmnist-ssl-rep-c", c, float(os.environ.get("REPC_HOURS", 4.0)))
+    d = []
+    for sd in range(1, 6):
+        d.append({"name": f"pbpltuned_4_s{sd}", "args": f"{FMT} --bilevel two --feedback pess {PESS} --n_per_class 4 --seed {sd} --iters {it}", "est_min": 43})
+    for sd in range(1, 6):
+        d.append({"name": f"fmtuned_10_s{sd}", "args": f"{FMT} --n_per_class 10 --seed {sd} --iters {it}", "est_min": 12})
+        d.append({"name": f"abl_labsam_10_s{sd}", "args": f"--lab_reg sam --radius 0.1 --n_per_class 10 --seed {sd} --iters {it}", "est_min": 15})
+    for sd in range(6, 11):
+        d.append({"name": f"pbpltuned_4_s{sd}", "args": f"{FMT} --bilevel two --feedback pess {PESS} --n_per_class 4 --seed {sd} --iters {it}", "est_min": 43})
+    write("fmnist-ssl-rep-d", d, float(os.environ.get("REPD_HOURS", 4.0)))
+
+
 def remainder():
     """python sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dir> [...]
     Writes a sweep with the jobs of <sweep.json> that have no complete result in the given
