@@ -119,3 +119,36 @@ labeled point $j$ by $\sigma(r\omega_j-m_j)$ instead of $\sigma(-m_j)$, i.e. by 
 $e^{r\omega_j}$ more when $x_j$ lies far from the span of the unlabeled features. Gains beyond
 this reweighting must come from feature learning, which is what the experiments test.
 \end{remark}
+
+\begin{remark}[Held-out feedback]
+If $X_l\subset X$, every admissible student reproduces the anchor on $X_l$, so $L_l$ is
+constant on $S_r(\theta)$ and $V_r=E_s=L_l$; moreover the anchor can fit $Y_l$ through the
+teacher's pseudo-labels on $X_l$, and the feedback vanishes for a reason unrelated to the
+pseudo-labels on $X\setminus X_l$. The condition $X_l\cap X_u=\emptyset$ of
+Assumption~1 is therefore part of the formulation: in the experiments the student path never
+sees labeled images, while the deployed network uses all images for its own SSL loss.
+\end{remark}
+
+\begin{algorithm}[t]
+\caption{TR-BPL on top of FixMatch (two networks; the teacher is deployed)}
+\label{alg:trbpl}
+\begin{algorithmic}[1]
+\Require teacher $\phi$, student $\theta$, $\varepsilon=0$; radius $r$, step fraction $\alpha$,
+retraction steps $K$, weights $\lambda_u,\lambda_m$, temperature $T$; variant $\in\{\textsc{opt},\textsc{pess},\textsc{exp}\}$
+\For{$t=0,1,\dots$}
+\State sample $(x_l,y_l)$, $x_u$; weak $\alpha(\cdot)$, strong $\mathcal A(\cdot)$; $w_i=\mathbb 1[x_{u,i}\notin X_l]$
+\State $\mathcal L_\phi\gets \mathrm{CE}(f_\phi(\alpha x_l),y_l)+\lambda_u\,\mathrm{FixMatch}_\phi(x_u)$;\quad $t_i\gets\operatorname{softmax}(f_\phi(\alpha x_{u,i})/T)$
+\State $g\gets\nabla_\theta\frac{\sum_iw_i\mathrm{CE}(\operatorname{sg}t_i,f_\theta(\mathcal Ax_{u,i}))}{\sum_iw_i}$;\quad $\theta'\gets\theta-\eta g$
+\If{\textsc{pess}} \Comment{persistent adversary on the fiber of $\theta'$}
+\State $\varepsilon\gets\varepsilon+\alpha r\,\nabla L_l(\theta'+\varepsilon)/\|\nabla L_l(\theta'+\varepsilon)\|$
+\State repeat $K$ times: $\varepsilon\gets\varepsilon-\frac{2D(\varepsilon)}{\|\nabla D(\varepsilon)\|^2}\nabla D(\varepsilon)$,\ \ $D(\varepsilon)=\mathrm{KL}_w\big(p_{\theta'}(\mathcal Ax_u)\,\|\,p_{\theta'+\varepsilon}(\mathcal Ax_u)\big)$
+\State $\varepsilon\gets\varepsilon\min\{1,r/\|\varepsilon\|\}$
+\ElsIf{\textsc{exp}} \State $\varepsilon\gets r\,\zeta/\|\zeta\|$, $\zeta\sim\mathcal N(0,I)$, then the same $K$ retraction steps
+\Else\ $\varepsilon\gets0$
+\EndIf
+\State $v\gets\nabla L_l(\theta'+\varepsilon)$;\quad $c_i\gets w_i\,J_{f_\theta}(\mathcal Ax_{u,i})\,v$ \Comment{one JVP}
+\State $\mathcal L_\phi\gets\mathcal L_\phi+\lambda_m\frac1B\sum_i\langle t_i,\operatorname{sg}(c_i/\bar c)\rangle$ \Comment{$\bar c$: running RMS of $c$}
+\State $\phi\gets\mathrm{SGD}(\phi,\nabla_\phi\mathcal L_\phi)$;\quad $\theta\gets\mathrm{SGD}(\theta,g)$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
