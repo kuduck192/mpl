@@ -43,7 +43,7 @@ def load(dirs, key):
                 continue
             meth, npc, sd = m.group(1), int(m.group(2)), int(m.group(3))
             res[(meth, npc)][sd] = r["final"].get(key, np.nan)
-            extra[(meth, npc)][sd] = r["final"]
+            extra[(meth, npc)][sd] = dict(r["final"], minutes_total=r.get("minutes", np.nan))
     return res, extra
 
 
@@ -83,6 +83,20 @@ def main():
             p = stats.ttest_rel([a[s] for s in common], [b[s] for s in common]).pvalue
             lines.append(f"| {LABEL.get(meth, meth)} | {10 * n} | {','.join(map(str, common))} | "
                          f"{d.mean():+.2f} ± {d.std(ddof=1):.2f} | {int((d > 0).sum())}/{len(d)} | {p:.3f} |")
+    # wall-clock cost (one T4, 20k iterations) and a few mechanism diagnostics at the end of training
+    lines += ["", "Cost and end-of-training diagnostics (mean over runs; 40 + 100 labels pooled):", "",
+              "| method | minutes / run (T4) | pseudo-label acc. above threshold | mask rate | student test acc. |",
+              "|---|---|---|---|---|"]
+    for meth in ORDER:
+        rows = [e for (m, n), d in extra.items() if m == meth for e in d.values()]
+        if not rows:
+            continue
+
+        def mean_of(k, scale=1.0):
+            v = [e[k] for e in rows if k in e and e[k] is not None and np.isfinite(e[k])]
+            return f"{scale * np.mean(v):.1f}" if v else "—"
+        lines.append(f"| {LABEL.get(meth, meth)} | {mean_of('minutes_total')} | {mean_of('pl_acc_masked', 100)} | "
+                     f"{mean_of('mask', 100)} | {mean_of('stu_test_ema', 100)} |")
     txt = "\n".join(lines)
     print(txt)
     if args.md:

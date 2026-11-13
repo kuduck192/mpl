@@ -6,14 +6,20 @@ supervised-only pair (teacher = student = w_k) and measure the teacher's meta-gr
   g_T = d/dphi L_l( theta'(phi) + eps ),   theta'(phi) = theta - eta grad_theta L_u(p_phi(X), theta)
 at phi = theta = w_k, for the optimistic (eps = 0), pessimistic (eps = fiber maximiser in
 B(0, r), found by the ascent-then-retract solver) and expected (eps = random direction
-retracted to the fiber, averaged) rules.  BatchNorm is in eval mode, inputs are clean, the
-student's inputs X are unlabeled images disjoint from the labeled set, so the pair is
-exactly self-consistent: theta' = theta and the optimistic feedback is grad L_l(w_k).
+retracted to the fiber, averaged) rules.  Inputs are clean, the student's inputs X are
+unlabeled images disjoint from the labeled set, and BatchNorm uses the statistics of the
+batch it is applied to without updating running statistics (as the training-time feedback
+does; `--bn eval` uses running statistics instead).  Teacher and student compute the same
+function of X, so the pair is exactly self-consistent: theta' = theta and the optimistic
+feedback is grad L_l(w_k).  The pessimistic maximiser is taken among *admissible* iterates
+only (mean KL to the anchor on X at most --kl_tol); the KL of every reported perturbation
+is stored with it.
 Prediction (Prop. N2): ||g_T opt|| -> 0 as w_k fits the labels, ||g_T pess|| does not.
 
   python checks/degeneracy_static.py --out results/degeneracy_static.json [--device cuda]
 """
 import argparse
+import contextlib
 import json
 import os
 import sys
@@ -28,10 +34,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import ssl_fmnist as S  # noqa: E402
 
 
-def teacher_grad(net, phi, x_u, c, eta):
+def teacher_grad(f, phi, x_u, c, eta):
     """d/dphi of eta * mean_i <softmax(f_phi(x_i)), c_i>  (= exact meta-gradient, Danskin)."""
     p = {k: v.detach().clone().requires_grad_(True) for k, v in phi.items()}
-    t = F.softmax(functional_call(net, p, (x_u,)), 1)
+    t = F.softmax(f(p, x_u), 1)
     l = eta * (t * c).sum(1).mean()
     g = torch.autograd.grad(l, list(p.values()))
     return torch.sqrt(sum((gi ** 2).sum() for gi in g)).item()
@@ -62,11 +68,17 @@ def run(args, seed):
             loss.backward()
             opt.step()
             k += 1
-        net.eval()
+        if args.bn == "eval":
+            net.eval()
+            bn_ctx = contextlib.nullcontext
+        else:
+            net.train()
+            bn_ctx = lambda: S.bn_frozen_stats(net)  # noqa: E731
         w = {n: p.detach().clone() for n, p in net.named_parameters()}
 
         def f(params, x):
-            return functional_call(net, params, (x,))
+            with bn_ctx():
+                return functional_call(net, params, (x,))
 
         def lab_grad(params):
             p = {n: v.detach().clone().requires_grad_(True) for n, v in params.items()}
@@ -95,37 +107,48 @@ def run(args, seed):
             with torch.no_grad():
                 return S.kl_anchor(anchor, f({n: w[n] + eps[n] for n in w}, Xu)).mean().item()
 
+        def ball(eps, r):
+            return S.dscale(eps, torch.clamp(r / (S.dnorm(eps) + 1e-12), max=1.0))
+
         Ll, v_opt = lab_grad(w)
-        rec = {"seed": seed, "iter": ck, "L_l": Ll, "grad_norm": S.dnorm(v_opt).item(),
-               "gT_opt": teacher_grad(net, w, Xu, c_of(v_opt), args.eta)}
+        rec = {"seed": seed, "iter": ck, "bn": args.bn, "L_l": Ll, "grad_norm": S.dnorm(v_opt).item(),
+               "gT_opt": teacher_grad(f, w, Xu, c_of(v_opt), args.eta)}
         for r in args.radii:
-            # pessimistic: persistent ascent-then-retract, start from a random direction
+            # pessimistic: ascent-then-retract from a random direction retracted to the fiber;
+            # the maximiser is the best admissible iterate (KL <= kl_tol); eps = 0 is admissible.
             g0 = torch.Generator(device="cpu").manual_seed(seed * 100 + 1)
             eps = {n: torch.randn(v.shape, generator=g0).to(dev) for n, v in w.items()}
-            eps = S.dscale(eps, 0.5 * r / S.dnorm(eps))
-            best, best_eps = -1.0, eps
-            for t in range(args.steps):
+            eps = ball(retract(S.dscale(eps, 0.5 * r / S.dnorm(eps)), args.k_init), r)
+            best, best_eps, best_kl, n_adm = Ll, S.dzeros(w), 0.0, 0
+            for t in range(args.steps + 1):
                 l, g = lab_grad(S.dadd(w, eps))
+                kl = kl_at(eps)
+                if kl <= args.kl_tol:
+                    n_adm += 1
+                    if l > best:
+                        best, best_eps, best_kl = l, eps, kl
+                if t == args.steps:
+                    break
                 eps = S.dadd(eps, g, args.alpha * r / (S.dnorm(g) + 1e-12))
-                eps = retract(eps, args.k_proj)
-                en = S.dnorm(eps)
-                eps = S.dscale(eps, torch.clamp(r / (en + 1e-12), max=1.0))
-                if l > best:
-                    best, best_eps = l, eps
+                eps = ball(retract(eps, args.k_proj), r)
             Lp, v_p = lab_grad(S.dadd(w, best_eps))
             rec[f"pess_r{r}_gain"] = Lp - Ll
-            rec[f"pess_r{r}_kl"] = kl_at(best_eps)
-            rec[f"gT_pess_r{r}"] = teacher_grad(net, w, Xu, c_of(v_p), args.eta)
+            rec[f"pess_r{r}_kl"] = best_kl
+            rec[f"pess_r{r}_norm"] = S.dnorm(best_eps).item()
+            rec[f"pess_r{r}_adm"] = n_adm / (args.steps + 1)
+            rec[f"gT_pess_r{r}"] = teacher_grad(f, w, Xu, c_of(v_p), args.eta)
         for r in args.radii_exp:
-            acc = None
+            acc, kls = None, []
             for m in range(args.n_exp):
                 g1 = torch.Generator(device="cpu").manual_seed(seed * 1000 + m)
                 xi = {n: torch.randn(v.shape, generator=g1).to(dev) for n, v in w.items()}
-                xi = retract(S.dscale(xi, r / S.dnorm(xi)), args.k_proj)
+                xi = retract(S.dscale(xi, r / S.dnorm(xi)), args.k_init)
+                kls.append(kl_at(xi))
                 _, v_e = lab_grad(S.dadd(w, xi))
                 acc = v_e if acc is None else S.dadd(acc, v_e)
             v_e = S.dscale(acc, 1.0 / args.n_exp)
-            rec[f"gT_exp_r{r}"] = teacher_grad(net, w, Xu, c_of(v_e), args.eta)
+            rec[f"exp_r{r}_kl"] = float(np.mean(kls))
+            rec[f"gT_exp_r{r}"] = teacher_grad(f, w, Xu, c_of(v_e), args.eta)
         print(json.dumps({k2: (round(v2, 6) if isinstance(v2, float) else v2) for k2, v2 in rec.items()}), flush=True)
         out.append(rec)
     return out
@@ -149,6 +172,9 @@ def main():
     ap.add_argument("--steps", type=int, default=60)
     ap.add_argument("--alpha", type=float, default=0.2)
     ap.add_argument("--k_proj", type=int, default=2)
+    ap.add_argument("--k_init", type=int, default=10, help="retraction steps for a random start")
+    ap.add_argument("--kl_tol", type=float, default=2e-3, help="admissibility: mean KL to the anchor on X")
+    ap.add_argument("--bn", choices=["batch", "eval"], default="batch")
     ap.add_argument("--n_exp", type=int, default=16)
     args = ap.parse_args()
     S.AMP = False
