@@ -137,6 +137,13 @@ def run(args, seed):
             rec[f"pess_r{r}_norm"] = S.dnorm(best_eps).item()
             rec[f"pess_r{r}_adm"] = n_adm / (args.steps + 1)
             rec[f"gT_pess_r{r}"] = teacher_grad(f, w, Xu, c_of(v_p), args.eta)
+        for r in args.radii:
+            # reference: unconstrained SAM step (blind to X): eps = r g / ||g||, no retraction
+            e_sam = S.dscale(v_opt, r / (S.dnorm(v_opt) + 1e-12))
+            Ls, v_s = lab_grad(S.dadd(w, e_sam))
+            rec[f"sam_r{r}_gain"] = Ls - Ll
+            rec[f"sam_r{r}_kl"] = kl_at(e_sam)
+            rec[f"gT_sam_r{r}"] = teacher_grad(f, w, Xu, c_of(v_s), args.eta)
         for r in args.radii_exp:
             acc, kls = None, []
             for m in range(args.n_exp):
@@ -171,7 +178,7 @@ def main():
     ap.add_argument("--radii_exp", type=float, nargs="+", default=[3.0])
     ap.add_argument("--steps", type=int, default=60)
     ap.add_argument("--alpha", type=float, default=0.2)
-    ap.add_argument("--k_proj", type=int, default=2)
+    ap.add_argument("--k_proj", type=int, default=5)
     ap.add_argument("--k_init", type=int, default=10, help="retraction steps for a random start")
     ap.add_argument("--kl_tol", type=float, default=2e-3, help="admissibility: mean KL to the anchor on X")
     ap.add_argument("--bn", choices=["batch", "eval"], default="batch")

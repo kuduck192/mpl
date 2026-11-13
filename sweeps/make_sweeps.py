@@ -157,7 +157,8 @@ def ablations(it=20000):
             if (tau, lu) != (0.95, 1.0):  # default = scr_fixmatch in the screen
                 a.append({"name": f"scr_fm_tau{tau}_lu{lu}",
                           "args": f"--base fixmatch --tau {tau} --lam_u {lu} --n_per_class 4 --seed 0 --iters 10000"})
-    if not os.path.exists(os.path.join(HERE, "..", "results", "local", "degeneracy_static.json")):
+    # the static degeneracy check runs on CPU (results/local/) unless asked to run on Kaggle
+    if os.environ.get("DEGEN_ON_KAGGLE"):
         a.append({"name": "degeneracy_static", "script": "degeneracy_static.py",
                   "args": "--out /kaggle/working/results/degeneracy_static.json --device cuda"})
     b.append({"name": "figure1", "script": "figure1_fmnist.py",

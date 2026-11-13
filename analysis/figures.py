@@ -103,30 +103,62 @@ def screen():
 
 
 def degeneracy():
-    f = sorted(glob.glob(os.path.join(ROOT, "results/**/degeneracy_static.json"), recursive=True))
-    d = json.load(open(f[0]))
-    rows = [r for v in d["results"].values() for r in v]
-    keys = [("gT_opt", "optimistic (MPL)", SERIES[0], "-"), ("gT_pess_r0.1", "pessimistic, r = 0.1", SERIES[1], "--"),
-            ("gT_pess_r0.3", "pessimistic, r = 0.3", SERIES[3], "-."), ("gT_exp_r3.0", "expected, r = 3", SERIES[2], ":")]
-    fig, ax = plt.subplots(figsize=(4.6, 2.9))
+    """Prop. N2 on the CNN: teacher meta-gradient norm at supervised-only pairs, per feedback
+    rule, along supervised-only training (mean over seeds); also prints a markdown table."""
+    files = sorted(glob.glob(os.path.join(ROOT, "results/**/degeneracy_static*.json"), recursive=True))
+    rows = []
+    for f in files:
+        d = json.load(open(f))
+        rows += [r for v in d["results"].values() for r in v]
+    by = defaultdict(list)
+    for r in rows:
+        by[r["iter"]].append(r)
+    its = sorted(by)
+    keys = [("gT_opt", "optimistic (MPL)", COL["mpl"], "-"),
+            ("gT_pess_r0.1", "pessimistic on the fiber, r = 0.1 (PBPL)", COL["pbpl"], "-"),
+            ("gT_pess_r0.3", "pessimistic on the fiber, r = 0.3", COL["pbpl_r0.3"], "-"),
+            ("gT_exp_r3.0", "expected, r = 3 (EBPL)", COL["ebpl"], "-"),
+            ("gT_sam_r0.1", "unconstrained SAM step, r = 0.1 (off the fiber)", INK2, "--")]
+    fig, axes = plt.subplots(1, 2, figsize=(6.6, 3.2))
     for k, lab, col, ls in keys:
-        by = defaultdict(list)
-        for r in rows:
-            by[r["iter"]].append((r["L_l"], r[k]))
-        its = sorted(by)
-        x = [np.mean([a for a, _ in by[i]]) for i in its]
-        y = [np.mean([b for _, b in by[i]]) for i in its]
-        ax.plot(x, y, ls=ls, marker="o", ms=4, color=col, label=lab)
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.invert_xaxis()
-    ax.set_xlabel("labeled loss of the supervised-only model (training proceeds →)")
-    ax.set_ylabel(r"teacher meta-gradient norm $\|\nabla_\phi\|$")
-    ax.legend(fontsize=7)
-    ax.set_title("Feedback at supervised-only pairs (CNN, 100 labels, mean of 3 seeds)", fontsize=8, color=INK)
-    fig.tight_layout()
+        if not all(k in r for r in rows):
+            continue
+        m = [np.mean([r[k] for r in by[i]]) for i in its]
+        axes[0].plot(its, m, ls=ls, marker="o", ms=3.5, color=col, label=lab, lw=1.6)
+        if k != "gT_opt":
+            ratio = [np.mean([r[k] / r["gT_opt"] for r in by[i]]) for i in its]
+            axes[1].plot(its, ratio, ls=ls, marker="o", ms=3.5, color=col, lw=1.6)
+    axes[1].axhline(1.0, color=INK2, lw=0.8)
+    for ax in axes:
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.minorticks_off()
+        ax.set_xticks(its)
+        ax.set_xticklabels([str(i) for i in its])
+        ax.set_xlabel("supervised-only training iterations")
+    axes[0].set_ylabel(r"teacher meta-gradient norm $\|g_T\|$")
+    axes[1].set_ylabel("ratio to the optimistic rule")
+    n_seeds = len({r["seed"] for r in rows})
+    axes[0].set_title(f"Feedback at supervised-only pairs (mean of {n_seeds} seed{'s' if n_seeds > 1 else ''})",
+                      fontsize=8, color=INK)
+    axes[1].set_title("Ratio to the optimistic feedback", fontsize=8, color=INK)
+    h, l = axes[0].get_legend_handles_labels()
+    fig.legend(h, l, loc="lower center", ncol=3, fontsize=6.5)
+    fig.tight_layout(rect=(0, 0.13, 1, 1))
     os.makedirs(OUT, exist_ok=True)
     fig.savefig(os.path.join(OUT, "degeneracy_static.png"))
+    # markdown table
+    cols = [("L_l", "{:.1e}"), ("gT_opt", "{:.3g}"), ("gT_pess_r0.1", "{:.3g}"), ("pess_r0.1_kl", "{:.1e}"),
+            ("gT_pess_r0.3", "{:.3g}"), ("pess_r0.3_kl", "{:.1e}"), ("pess_r0.3_adm", "{:.2f}"),
+            ("gT_exp_r3.0", "{:.3g}"), ("exp_r3.0_kl", "{:.1e}"), ("gT_sam_r0.1", "{:.3g}"), ("sam_r0.1_kl", "{:.1e}")]
+    print("| iter | " + " | ".join(c for c, _ in cols) + " |")
+    print("|---|" + "---|" * len(cols))
+    for i in its:
+        cells = []
+        for c, fm in cols:
+            v = [r[c] for r in by[i] if c in r]
+            cells.append(fm.format(np.mean(v)) if v else "—")
+        print(f"| {i} | " + " | ".join(cells) + " |")
     print("wrote", OUT)
 
 

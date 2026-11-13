@@ -31,9 +31,24 @@
    "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 3 --iters 20000"
   },
   {
-   "name": "degeneracy_static",
-   "script": "degeneracy_static.py",
-   "args": "--out /kaggle/working/results/degeneracy_static.json --device cuda"
+   "name": "scr_fm_tau0.8_lu1.0",
+   "args": "--base fixmatch --tau 0.8 --lam_u 1.0 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_fm_tau0.8_lu2.0",
+   "args": "--base fixmatch --tau 0.8 --lam_u 2.0 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_fm_tau0.9_lu1.0",
+   "args": "--base fixmatch --tau 0.9 --lam_u 1.0 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_fm_tau0.9_lu2.0",
+   "args": "--base fixmatch --tau 0.9 --lam_u 2.0 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_fm_tau0.95_lu2.0",
+   "args": "--base fixmatch --tau 0.95 --lam_u 2.0 --n_per_class 4 --seed 0 --iters 10000"
   }
  ]
 }
