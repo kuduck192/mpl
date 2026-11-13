@@ -3,9 +3,10 @@
 reference palette, light mode), neutral ink for text, recessive grid, one y-axis per panel.
 
   python analysis/figures.py screen      # Figs from the validation screen
-  python analysis/figures.py degeneracy  # static degeneracy diagnostic (after ablate-a)
+  python analysis/figures.py degeneracy  # static degeneracy diagnostic (checks/degeneracy_static.py)
   python analysis/figures.py figure1     # Figure 1 protocol (after ablate-b)
   python analysis/figures.py main        # paired differences vs FixMatch (after main-a/b)
+  python analysis/figures.py curves      # training curves of the main runs (after main-a/b)
 """
 import glob
 import json
@@ -24,6 +25,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "docs", "figures")
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
 INK, INK2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
+# colour follows the method in every figure; FixMatch is the neutral reference
+COL = {"mpl": SERIES[0], "pbpl": SERIES[1], "ebpl": SERIES[2], "pbpl_r0.3": SERIES[3], "fixmatch": INK2}
 plt.rcParams.update({
     "font.size": 8, "axes.edgecolor": INK2, "axes.labelcolor": INK, "xtick.color": INK2,
     "ytick.color": INK2, "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.6,
@@ -75,16 +78,19 @@ def screen():
     fm = 100 * R["scr_fixmatch"]["final"]["val_ema"]
     ax.axhline(fm, color=INK2, lw=1.0, ls="-")
     ax.annotate("FixMatch", (1.02, fm), xycoords=("axes fraction", "data"), va="center", fontsize=7, color=INK2)
-    for i, (lab, pat) in enumerate([("MPL", "scr_opt_lm{}"), ("PBPL, r = 0.1", "scr_pess_lm{}_r0.1"),
-                                    ("PBPL, r = 0.3", "scr_pess_lm{}_r0.3"), ("EBPL, r = 3", "scr_exp_lm{}_r3.0")]):
+    for i, (lab, pat, col) in enumerate([("MPL", "scr_opt_lm{}", COL["mpl"]),
+                                         ("PBPL, r = 0.1", "scr_pess_lm{}_r0.1", COL["pbpl"]),
+                                         ("PBPL, r = 0.3", "scr_pess_lm{}_r0.3", COL["pbpl_r0.3"]),
+                                         ("EBPL, r = 3", "scr_exp_lm{}_r3.0", COL["ebpl"])]):
         xs, ys = [], []
         for lm in [0.1, 0.3, 1.0]:
             n = pat.format(lm)
             if n in R:
                 xs.append(lm)
                 ys.append(100 * R[n]["final"]["val_ema"])
-        ax.plot(xs, ys, "-o", ms=4, color=SERIES[i], label=lab)
+        ax.plot(xs, ys, "-o", ms=4, color=col, label=lab)
     ax.set_xscale("log")
+    ax.minorticks_off()
     ax.set_xticks([0.1, 0.3, 1.0])
     ax.set_xticklabels(["0.1", "0.3", "1.0"])
     ax.set_xlabel(r"meta weight $\lambda_m$ (running-RMS normalised feedback)")
@@ -97,7 +103,7 @@ def screen():
 
 
 def degeneracy():
-    f = glob.glob(os.path.join(ROOT, "results/fmnist-ssl-ablate-a/results/degeneracy_static.json"))
+    f = sorted(glob.glob(os.path.join(ROOT, "results/**/degeneracy_static.json"), recursive=True))
     d = json.load(open(f[0]))
     rows = [r for v in d["results"].values() for r in v]
     keys = [("gT_opt", "optimistic (MPL)", SERIES[0], "-"), ("gT_pess_r0.1", "pessimistic, r = 0.1", SERIES[1], "--"),
@@ -125,7 +131,7 @@ def degeneracy():
 
 
 def figure1():
-    f = glob.glob(os.path.join(ROOT, "results/fmnist-ssl-ablate-b/results/figure1.json"))
+    f = sorted(glob.glob(os.path.join(ROOT, "results/**/figure1.json"), recursive=True))
     d = json.load(open(f[0]))
     rows = [r for v in d["results"].values() for r in v]
     fig, ax = plt.subplots(figsize=(4.6, 2.9))
@@ -164,7 +170,7 @@ def main():
             v = res.get((meth, npc), {})
             common = sorted(set(v) & set(base))
             dif = [v[s] - base[s] for s in common]
-            ax.scatter([i] * len(dif), dif, s=18, color=SERIES[i], zorder=3)
+            ax.scatter([i] * len(dif), dif, s=18, color=COL[meth], zorder=3)
             if dif:
                 ax.plot([i - 0.2, i + 0.2], [np.mean(dif)] * 2, color=INK, lw=1.5)
         ax.axhline(0, color=INK2, lw=0.8)
@@ -175,6 +181,43 @@ def main():
     fig.tight_layout()
     os.makedirs(OUT, exist_ok=True)
     fig.savefig(os.path.join(OUT, "main_paired.png"))
+    print("wrote", OUT)
+
+
+def curves():
+    """Mean over seeds of test accuracy (EMA teacher) and of the masked pseudo-label accuracy
+    along training, FixMatch vs the three bilevel feedback rules, 40 and 100 labels."""
+    R = _load("results/fmnist-ssl-main-*/results/*.json")
+    runs = defaultdict(list)
+    for n, r in R.items():
+        m = re.match(r"(.+)_(\d+)_s(\d+)$", n)
+        if m:
+            runs[(m.group(1), int(m.group(2)))].append(r["hist"])
+    meths = [("fixmatch", "FixMatch"), ("mpl", "MPL"), ("ebpl", "EBPL"), ("pbpl", "PBPL")]
+    fig, axes = plt.subplots(2, 2, figsize=(6.4, 4.6))
+    for j, npc in enumerate((4, 10)):
+        for row, key, ylab, scale in [(0, "test_ema", "test accuracy (%)", 100),
+                                      (1, "pl_acc_masked", "pseudo-label accuracy\nabove threshold (%)", 100)]:
+            ax = axes[row, j]
+            for meth, lab in meths:
+                hs = runs.get((meth, npc), [])
+                if not hs:
+                    continue
+                its = sorted(set.intersection(*[{d["iter"] for d in h if key in d} for h in hs]))
+                y = [scale * np.mean([next(d[key] for d in h if d["iter"] == i) for h in hs]) for i in its]
+                ax.plot(its, y, color=COL[meth], lw=1.6 if meth != "fixmatch" else 1.2,
+                        ls="-" if meth != "fixmatch" else "--", label=f"{lab} (n={len(hs)})")
+            ax.set_ylabel(ylab)
+            if row == 0:
+                ax.set_title(f"{10 * npc} labels", fontsize=8, color=INK)
+                lo = ax.get_ylim()
+                ax.set_ylim(max(lo[0], 50), lo[1])
+            else:
+                ax.set_xlabel("iteration")
+        axes[0, j].legend(fontsize=6.5, loc="lower right")
+    fig.tight_layout()
+    os.makedirs(OUT, exist_ok=True)
+    fig.savefig(os.path.join(OUT, "main_curves.png"))
     print("wrote", OUT)
 
 

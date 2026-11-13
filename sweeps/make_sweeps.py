@@ -150,8 +150,16 @@ def ablations(it=20000):
         b.append({"name": f"abl_pbplflex_4_s{sd}", "args": f"--base flexmatch --bilevel two --feedback pess {PESS} {c}"})
         b.append({"name": f"abl_fibersam_4_s{sd}", "args": f"--lab_reg fibersam --radius 0.1 {c}"})
         b.append({"name": f"abl_labsam_4_s{sd}", "args": f"--lab_reg sam --radius 0.1 {c}"})
-    a.append({"name": "degeneracy_static", "script": "degeneracy_static.py",
-              "args": "--out /kaggle/working/results/degeneracy_static.json --device cuda"})
+    # FixMatch gets a tuning budget comparable to MPL / EBPL (6 configurations), same protocol
+    # as the bilevel screen: validation accuracy, seed 0, 40 labels, 10k iterations.
+    for tau in (0.8, 0.9, 0.95):
+        for lu in (1.0, 2.0):
+            if (tau, lu) != (0.95, 1.0):  # default = scr_fixmatch in the screen
+                a.append({"name": f"scr_fm_tau{tau}_lu{lu}",
+                          "args": f"--base fixmatch --tau {tau} --lam_u {lu} --n_per_class 4 --seed 0 --iters 10000"})
+    if not os.path.exists(os.path.join(HERE, "..", "results", "local", "degeneracy_static.json")):
+        a.append({"name": "degeneracy_static", "script": "degeneracy_static.py",
+                  "args": "--out /kaggle/working/results/degeneracy_static.json --device cuda"})
     b.append({"name": "figure1", "script": "figure1_fmnist.py",
               "args": "--out /kaggle/working/results/figure1.json --device cuda"})
     files = ["checks/figure1_fmnist.py", "checks/degeneracy_static.py"]
