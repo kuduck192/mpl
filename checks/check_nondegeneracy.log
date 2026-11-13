@@ -1,0 +1,15 @@
+supervised-only w: L_l = 2.368e-16, ||grad L_l|| = 6.17e-09
+d = 131, rank J_u = 50 (N_u(C-1) = 50), dim ker J_u = 81
+lambda_max(Pi H Pi) = 7.724e-02,  ||(I-Pi) H u|| = 3.245e-01
+predicted first-order slope ||T H u|| = 1.240e-01
+
+   r      ||g_T opt||    ||g_T pess||   ||g_T pess||/r   V_r - L_l(w)    fiber residual
+ 0.020   2.860e-09     2.493e-03     1.246e-01      1.550e-05      2.2e-16
+ 0.050   2.860e-09     6.286e-03     1.257e-01      9.739e-05      2.2e-16
+ 0.100   2.860e-09     1.278e-02     1.278e-01      3.940e-04      3.3e-16
+ 0.200   2.860e-09     2.660e-02     1.330e-01      1.625e-03      1.6e-15
+
+   s      ||E g_T exp||   ||E g_T exp||/s^2   (Monte Carlo, 400 antithetic pairs)
+ 0.025   2.255e-04       3.608e-01
+ 0.050   1.079e-03       4.316e-01
+ 0.100   5.939e-03       5.939e-01

@@ -1,0 +1,14 @@
+{
+ "slug": "fmnist-ssl-pilot-02",
+ "budget_hours": 3.0,
+ "jobs": [
+  {
+   "name": "two_pess_4_s0",
+   "args": "--bilevel two --feedback pess --n_per_class 4 --iters 20000 --seed 0"
+  },
+  {
+   "name": "two_opt_4_s0",
+   "args": "--bilevel two --feedback opt --n_per_class 4 --iters 20000 --seed 0"
+  }
+ ]
+}

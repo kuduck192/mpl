@@ -1,0 +1,58 @@
+{
+ "slug": "fmnist-ssl-pilot-01",
+ "budget_hours": 3.0,
+ "jobs": [
+  {
+   "name": "fm4_s0",
+   "args": "--base fixmatch --n_per_class 4 --iters 20000 --seed 0"
+  },
+  {
+   "name": "fm10_s0",
+   "args": "--base fixmatch --n_per_class 10 --iters 20000 --seed 0"
+  },
+  {
+   "name": "flex4_s0",
+   "args": "--base flexmatch --n_per_class 4 --iters 20000 --seed 0"
+  },
+  {
+   "name": "sup4_s0",
+   "args": "--base sup --n_per_class 4 --iters 5000 --seed 0"
+  },
+  {
+   "name": "sup10_s0",
+   "args": "--base sup --n_per_class 10 --iters 5000 --seed 0"
+  },
+  {
+   "name": "t_two_opt",
+   "args": "--bilevel two --feedback opt --n_per_class 4 --iters 2000 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "t_two_pess",
+   "args": "--bilevel two --feedback pess --n_per_class 4 --iters 2000 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "t_two_exp",
+   "args": "--bilevel two --feedback exp --n_per_class 4 --iters 2000 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "t_two_sam",
+   "args": "--bilevel two --feedback sam --n_per_class 4 --iters 2000 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "t_two_pess_r1",
+   "args": "--bilevel two --feedback pess --radius 1.0 --n_per_class 4 --iters 2000 --eval_every 500"
+  },
+  {
+   "name": "t_self_pess",
+   "args": "--bilevel self --feedback pess --n_per_class 4 --iters 2000 --eval_every 500"
+  },
+  {
+   "name": "t_fibersam",
+   "args": "--lab_reg fibersam --n_per_class 4 --iters 2000 --eval_every 500"
+  },
+  {
+   "name": "t_sam",
+   "args": "--lab_reg sam --n_per_class 4 --iters 2000 --eval_every 500"
+  }
+ ]
+}

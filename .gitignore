@@ -1,0 +1,5 @@
+.kaggle_build/
+.kaggle_user
+__pycache__/
+*.pyc
+data/
