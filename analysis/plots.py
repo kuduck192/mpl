@@ -60,3 +60,40 @@ if __name__ == "__main__":
         curves(sys.argv[2], sys.argv[3], sys.argv[4:])
     elif cmd == "feedback":
         feedback(sys.argv[2], sys.argv[3:])
+
+
+def degeneracy(out, files):
+    """Degeneracy diagnostic: for each feedback rule, mean over seeds of the teacher's
+    movement away from the supervised-only start and of the pseudo-label accuracy."""
+    import collections
+    import numpy as np
+    groups = collections.defaultdict(list)
+    for f in files:
+        name, h = load(f)
+        groups[name.rsplit("_s", 1)[0]].append(h)
+    keys = [("drift", "||phi - phi_0||"), ("pl_changed", "pseudo-labels changed (frac.)"),
+            ("unl_raw", "pseudo-label accuracy on X_u"), ("c_norm", "RMS meta feedback (raw)")]
+    fig, axes = plt.subplots(1, len(keys), figsize=(3.2 * len(keys), 3.0), dpi=150)
+    for gi, (g, hs) in enumerate(sorted(groups.items())):
+        col = PALETTE[gi % len(PALETTE)]
+        for ax, (k, lab) in zip(axes, keys):
+            xs = [d["iter"] for d in hs[0] if k in d]
+            ys = np.array([[d.get(k, np.nan) for d in h if k in d][:len(xs)] for h in hs])
+            m = np.nanmean(ys, 0)
+            ax.plot(xs, m, color=col, lw=1.6, label=g)
+            if len(hs) > 1:
+                ax.fill_between(xs, np.nanmin(ys, 0), np.nanmax(ys, 0), color=col, alpha=0.15, lw=0)
+            ax.set_title(lab, fontsize=8)
+            ax.grid(alpha=0.3)
+            if k == "c_norm":
+                ax.set_yscale("log")
+    axes[0].legend(fontsize=7, frameon=False)
+    for ax in axes:
+        ax.set_xlabel("iteration", fontsize=8)
+        ax.tick_params(labelsize=7)
+    fig.tight_layout()
+    fig.savefig(out)
+
+
+if __name__ == "__main__" and sys.argv[1] == "degeneracy":
+    degeneracy(sys.argv[2], sys.argv[3:])

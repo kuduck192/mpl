@@ -34,13 +34,14 @@ BUILD = os.path.join(ROOT, ".kaggle_build")
 DRIVER = r'''
 import base64, json, os, queue, subprocess, sys, threading, time
 T0 = time.time()
-SRC = base64.b64decode("{SRC_B64}").decode()
+FILES = json.loads(base64.b64decode("{FILES_B64}").decode())
 SWEEP = json.loads(base64.b64decode("{SWEEP_B64}").decode())
 WORK = "/kaggle/working"
 os.makedirs(WORK + "/results", exist_ok=True)
 os.makedirs(WORK + "/logs", exist_ok=True)
-with open(WORK + "/ssl_fmnist.py", "w") as f:
-    f.write(SRC)
+for fname, b64 in FILES.items():
+    with open(WORK + "/" + fname, "w") as f:
+        f.write(base64.b64decode(b64).decode())
 try:
     import torch
     n_gpu = torch.cuda.device_count()
@@ -68,8 +69,12 @@ def worker(gid):
         if n_gpu > 0:
             env["CUDA_VISIBLE_DEVICES"] = str(gid)
         remaining = (budget - (time.time() - T0)) / 60.0
-        cmd = [sys.executable, WORK + "/ssl_fmnist.py", "--name", j["name"], "--out_dir", WORK + "/results",
-               "--max_minutes", str(max(1.0, remaining - 2.0))] + j["args"].split()
+        script = j.get("script", "ssl_fmnist.py")
+        if script == "ssl_fmnist.py":
+            cmd = [sys.executable, WORK + "/ssl_fmnist.py", "--name", j["name"], "--out_dir", WORK + "/results",
+                   "--max_minutes", str(max(1.0, remaining - 2.0))] + j["args"].split()
+        else:
+            cmd = [sys.executable, WORK + "/" + script] + j["args"].split()
         t = time.time()
         with open(WORK + f"/logs/{j['name']}.log", "w") as lf:
             rc = subprocess.call(cmd, stdout=lf, stderr=subprocess.STDOUT, env=env)
@@ -99,13 +104,16 @@ def build(sweep_path):
     with open(sweep_path) as f:
         sweep = json.load(f)
     slug = sweep["slug"]
-    with open(os.path.join(ROOT, "ssl_fmnist.py"), "rb") as f:
-        src_b64 = base64.b64encode(f.read()).decode()
+    files = {}
+    for rel in ["ssl_fmnist.py"] + sweep.get("files", []):
+        with open(os.path.join(ROOT, rel), "rb") as f:
+            files[os.path.basename(rel)] = base64.b64encode(f.read()).decode()
+    files_b64 = base64.b64encode(json.dumps(files).encode()).decode()
     sweep_b64 = base64.b64encode(json.dumps(sweep).encode()).decode()
     d = os.path.join(BUILD, slug)
     os.makedirs(d, exist_ok=True)
     with open(os.path.join(d, "run.py"), "w") as f:
-        f.write(DRIVER.replace("{SRC_B64}", src_b64).replace("{SWEEP_B64}", sweep_b64))
+        f.write(DRIVER.replace("{FILES_B64}", files_b64).replace("{SWEEP_B64}", sweep_b64))
     meta = {
         "id": f"{USER}/{slug}",
         "title": slug,

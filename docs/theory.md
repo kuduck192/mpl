@@ -215,7 +215,24 @@ $\approx e^{r\omega_j}$ cho các điểm có nhãn nằm xa span của dữ li�
 $\theta$ (feature learning) — đây là điều thực nghiệm phải trả lời, không phải điều lý
 thuyết đã chứng minh.
 
-### 2.6 Hội tụ — cái gì được bảo đảm, cái gì không
+### 2.6 Feedback phải held-out: $X_l\cap X=\emptyset$ là một phần của formulation
+
+**Remark (labeled inputs inside the student's inputs).** If $X_l\subset X$, every
+$\theta'\in\mathcal F_X(\theta)$ has $p_{\theta'}(X_l)=p_\theta(X_l)$, so $L_l$ is constant on
+$S_r(\theta)$ and $V_r=E_s=L_l$: pessimism and expectation both collapse to the optimistic
+value. Moreover the anchor can fit $Y_l$ through the teacher's pseudo-labels on $X_l$, so
+$\nabla L_l(\text{anchor})\to0$ and the feedback vanishes for a reason unrelated to the
+quality of the pseudo-labels on $X\setminus X_l$. Giả thiết $X_l\cap X_u=\emptyset$ của
+Assumption 1 (review) vì vậy không phải chi tiết kỹ thuật.
+
+Đây đúng là điều đã xảy ra trong pilot đầu tiên: theo quy ước FixMatch, tập không nhãn chứa
+cả ảnh có nhãn; student học chúng qua pseudo-label (đúng) của teacher, labeled loss của
+student xuống $0.015$, feedback MPL triệt tiêu, và việc chuẩn hóa feedback theo batch
+khuếch đại phần nhiễu còn lại (40 nhãn, seed 0, 20k vòng: FixMatch 72.5%, MPL 71.4%,
+PBPL 68.3%). Cài đặt hiện tại loại ảnh có nhãn khỏi *nhánh student* (loss của student,
+fiber, JVP); teacher vẫn dùng toàn bộ dữ liệu cho FixMatch như chuẩn.
+
+### 2.7 Hội tụ — cái gì được bảo đảm, cái gì không
 
 - **EBPL**: $E_s$ trơn; với retraction chính xác và anchor một bước, bước teacher là
   gradient ngẫu nhiên không chệch của hàm hợp trơn, nên các kết quả SGD không lồi chuẩn
