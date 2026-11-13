@@ -1,0 +1,51 @@
+{
+ "slug": "fmnist-ssl-ablate-b",
+ "budget_hours": 11.5,
+ "files": [
+  "checks/figure1_fmnist.py",
+  "checks/degeneracy_static.py"
+ ],
+ "jobs": [
+  {
+   "name": "abl_pbplflex_4_s1",
+   "args": "--base flexmatch --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "abl_fibersam_4_s1",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "abl_labsam_4_s1",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "abl_pbplflex_4_s2",
+   "args": "--base flexmatch --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "abl_fibersam_4_s2",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "abl_labsam_4_s2",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "abl_pbplflex_4_s3",
+   "args": "--base flexmatch --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "abl_fibersam_4_s3",
+   "args": "--lab_reg fibersam --radius 0.1 --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "abl_labsam_4_s3",
+   "args": "--lab_reg sam --radius 0.1 --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "figure1",
+   "script": "figure1_fmnist.py",
+   "args": "--out /kaggle/working/results/figure1.json --device cuda"
+  }
+ ]
+}

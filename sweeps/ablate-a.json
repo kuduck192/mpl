@@ -1,0 +1,39 @@
+{
+ "slug": "fmnist-ssl-ablate-a",
+ "budget_hours": 11.5,
+ "files": [
+  "checks/figure1_fmnist.py",
+  "checks/degeneracy_static.py"
+ ],
+ "jobs": [
+  {
+   "name": "abl_self_4_s1",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "abl_samfb_4_s1",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "abl_self_4_s2",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "abl_samfb_4_s2",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "abl_self_4_s3",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "abl_samfb_4_s3",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "degeneracy_static",
+   "script": "degeneracy_static.py",
+   "args": "--out /kaggle/working/results/degeneracy_static.json --device cuda"
+  }
+ ]
+}

@@ -1,0 +1,87 @@
+[
+ {
+  "name": "scr_exp_lm0.3_r1.0",
+  "rc": 0,
+  "minutes": 20.649501287937163
+ },
+ {
+  "name": "scr_exp_lm0.3_r3.0",
+  "rc": 0,
+  "minutes": 20.794409068425498
+ },
+ {
+  "name": "scr_exp_lm0.3_r10.0",
+  "rc": 0,
+  "minutes": 20.653812078634896
+ },
+ {
+  "name": "scr_exp_lm1.0_r1.0",
+  "rc": 0,
+  "minutes": 20.618336749076843
+ },
+ {
+  "name": "scr_exp_lm1.0_r3.0",
+  "rc": 0,
+  "minutes": 20.65589710474014
+ },
+ {
+  "name": "scr_exp_lm1.0_r10.0",
+  "rc": 0,
+  "minutes": 20.625073488553365
+ },
+ {
+  "name": "scr_opt_lm0.1",
+  "rc": 0,
+  "minutes": 15.064798041184742
+ },
+ {
+  "name": "scr_opt_lm0.3",
+  "rc": 0,
+  "minutes": 15.057515120506286
+ },
+ {
+  "name": "scr_opt_lm1.0",
+  "rc": 0,
+  "minutes": 15.055299504597981
+ },
+ {
+  "name": "scr_optraw_lm10",
+  "rc": 0,
+  "minutes": 14.99160157442093
+ },
+ {
+  "name": "scr_optraw_lm100",
+  "rc": 0,
+  "minutes": 15.041658023993174
+ },
+ {
+  "name": "scr_optraw_lm30",
+  "rc": 0,
+  "minutes": 15.119635037581126
+ },
+ {
+  "name": "scr_fixmatch",
+  "rc": 0,
+  "minutes": 5.892255063851675
+ },
+ {
+  "name": "scr_flexmatch",
+  "rc": 0,
+  "minutes": 5.905444737275442
+ },
+ {
+  "name": "degen_exp_s1",
+  "rc": 0,
+  "minutes": 9.155515523751577
+ },
+ {
+  "name": "degen_exp_s2",
+  "rc": 0,
+  "minutes": 9.291425732771556
+ },
+ {
+  "name": "degen_exp_s3",
+  "rc": 0,
+  "minutes": 9.097852901617687
+ }
+]

@@ -1,0 +1,135 @@
+{
+ "slug": "fmnist-ssl-main-a",
+ "budget_hours": 11.5,
+ "files": [],
+ "jobs": [
+  {
+   "name": "pbpl_4_s1",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "pbpl_4_s2",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "pbpl_4_s3",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "pbpl_4_s4",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 4 --iters 20000"
+  },
+  {
+   "name": "pbpl_4_s5",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 5 --iters 20000"
+  },
+  {
+   "name": "pbpl_10_s1",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 1 --iters 20000"
+  },
+  {
+   "name": "pbpl_10_s2",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 2 --iters 20000"
+  },
+  {
+   "name": "pbpl_10_s3",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 3 --iters 20000"
+  },
+  {
+   "name": "pbpl_10_s4",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 4 --iters 20000"
+  },
+  {
+   "name": "pbpl_10_s5",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 10 --seed 5 --iters 20000"
+  },
+  {
+   "name": "fixmatch_4_s1",
+   "args": "--base fixmatch --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "fixmatch_4_s2",
+   "args": "--base fixmatch --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "fixmatch_4_s3",
+   "args": "--base fixmatch --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "fixmatch_4_s4",
+   "args": "--base fixmatch --n_per_class 4 --seed 4 --iters 20000"
+  },
+  {
+   "name": "fixmatch_4_s5",
+   "args": "--base fixmatch --n_per_class 4 --seed 5 --iters 20000"
+  },
+  {
+   "name": "fixmatch_10_s1",
+   "args": "--base fixmatch --n_per_class 10 --seed 1 --iters 20000"
+  },
+  {
+   "name": "fixmatch_10_s2",
+   "args": "--base fixmatch --n_per_class 10 --seed 2 --iters 20000"
+  },
+  {
+   "name": "fixmatch_10_s3",
+   "args": "--base fixmatch --n_per_class 10 --seed 3 --iters 20000"
+  },
+  {
+   "name": "fixmatch_10_s4",
+   "args": "--base fixmatch --n_per_class 10 --seed 4 --iters 20000"
+  },
+  {
+   "name": "fixmatch_10_s5",
+   "args": "--base fixmatch --n_per_class 10 --seed 5 --iters 20000"
+  },
+  {
+   "name": "flexmatch_4_s1",
+   "args": "--base flexmatch --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "sup_4_s1",
+   "args": "--base sup --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "flexmatch_4_s2",
+   "args": "--base flexmatch --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "sup_4_s2",
+   "args": "--base sup --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "flexmatch_4_s3",
+   "args": "--base flexmatch --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "sup_4_s3",
+   "args": "--base sup --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "flexmatch_10_s1",
+   "args": "--base flexmatch --n_per_class 10 --seed 1 --iters 20000"
+  },
+  {
+   "name": "sup_10_s1",
+   "args": "--base sup --n_per_class 10 --seed 1 --iters 20000"
+  },
+  {
+   "name": "flexmatch_10_s2",
+   "args": "--base flexmatch --n_per_class 10 --seed 2 --iters 20000"
+  },
+  {
+   "name": "sup_10_s2",
+   "args": "--base sup --n_per_class 10 --seed 2 --iters 20000"
+  },
+  {
+   "name": "flexmatch_10_s3",
+   "args": "--base flexmatch --n_per_class 10 --seed 3 --iters 20000"
+  },
+  {
+   "name": "sup_10_s3",
+   "args": "--base sup --n_per_class 10 --seed 3 --iters 20000"
+  }
+ ]
+}

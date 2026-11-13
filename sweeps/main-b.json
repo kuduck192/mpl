@@ -1,0 +1,119 @@
+{
+ "slug": "fmnist-ssl-main-b",
+ "budget_hours": 11.5,
+ "files": [],
+ "jobs": [
+  {
+   "name": "ebpl_10_s3",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 10 --seed 3 --iters 20000"
+  },
+  {
+   "name": "ebpl_10_s2",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 10 --seed 2 --iters 20000"
+  },
+  {
+   "name": "ebpl_10_s1",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 10 --seed 1 --iters 20000"
+  },
+  {
+   "name": "ebpl_4_s3",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "ebpl_4_s2",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "ebpl_4_s1",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s1",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s2",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s3",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s4",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 4 --iters 20000"
+  },
+  {
+   "name": "mpl_4_s5",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 5 --iters 20000"
+  },
+  {
+   "name": "mpl_10_s1",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 10 --seed 1 --iters 20000"
+  },
+  {
+   "name": "mpl_10_s2",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 10 --seed 2 --iters 20000"
+  },
+  {
+   "name": "mpl_10_s3",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 10 --seed 3 --iters 20000"
+  },
+  {
+   "name": "mpl_10_s4",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 10 --seed 4 --iters 20000"
+  },
+  {
+   "name": "mpl_10_s5",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 10 --seed 5 --iters 20000"
+  },
+  {
+   "name": "meanteacher_4_s1",
+   "args": "--base meanteacher --lam_u 50 --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "pseudolabel_4_s1",
+   "args": "--base pseudolabel --n_per_class 4 --seed 1 --iters 20000"
+  },
+  {
+   "name": "meanteacher_4_s2",
+   "args": "--base meanteacher --lam_u 50 --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "pseudolabel_4_s2",
+   "args": "--base pseudolabel --n_per_class 4 --seed 2 --iters 20000"
+  },
+  {
+   "name": "meanteacher_4_s3",
+   "args": "--base meanteacher --lam_u 50 --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "pseudolabel_4_s3",
+   "args": "--base pseudolabel --n_per_class 4 --seed 3 --iters 20000"
+  },
+  {
+   "name": "meanteacher_10_s1",
+   "args": "--base meanteacher --lam_u 50 --n_per_class 10 --seed 1 --iters 20000"
+  },
+  {
+   "name": "pseudolabel_10_s1",
+   "args": "--base pseudolabel --n_per_class 10 --seed 1 --iters 20000"
+  },
+  {
+   "name": "meanteacher_10_s2",
+   "args": "--base meanteacher --lam_u 50 --n_per_class 10 --seed 2 --iters 20000"
+  },
+  {
+   "name": "pseudolabel_10_s2",
+   "args": "--base pseudolabel --n_per_class 10 --seed 2 --iters 20000"
+  },
+  {
+   "name": "meanteacher_10_s3",
+   "args": "--base meanteacher --lam_u 50 --n_per_class 10 --seed 3 --iters 20000"
+  },
+  {
+   "name": "pseudolabel_10_s3",
+   "args": "--base pseudolabel --n_per_class 10 --seed 3 --iters 20000"
+  }
+ ]
+}

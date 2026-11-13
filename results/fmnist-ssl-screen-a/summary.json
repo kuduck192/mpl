@@ -1,0 +1,92 @@
+[
+ {
+  "name": "scr_pess_lm0.1_r0.1",
+  "rc": 0,
+  "minutes": 19.543128403027854
+ },
+ {
+  "name": "scr_pess_lm0.1_r0.3",
+  "rc": 0,
+  "minutes": 20.238431016604107
+ },
+ {
+  "name": "scr_pess_lm0.1_r1.0",
+  "rc": 0,
+  "minutes": 19.322005573908488
+ },
+ {
+  "name": "scr_pess_lm0.3_r0.1",
+  "rc": 0,
+  "minutes": 20.168177302678426
+ },
+ {
+  "name": "scr_pess_lm0.3_r0.3",
+  "rc": 0,
+  "minutes": 19.313365487257638
+ },
+ {
+  "name": "scr_pess_lm0.3_r1.0",
+  "rc": 0,
+  "minutes": 20.15687595208486
+ },
+ {
+  "name": "scr_pess_lm1.0_r0.1",
+  "rc": 0,
+  "minutes": 19.294128513336183
+ },
+ {
+  "name": "scr_pess_lm1.0_r0.3",
+  "rc": 0,
+  "minutes": 20.17710196574529
+ },
+ {
+  "name": "scr_pess_lm1.0_r1.0",
+  "rc": 0,
+  "minutes": 19.35353264808655
+ },
+ {
+  "name": "scr_pessraw_lm10_r0.3",
+  "rc": 0,
+  "minutes": 20.135051814715066
+ },
+ {
+  "name": "scr_pessraw_lm30_r0.3",
+  "rc": 0,
+  "minutes": 19.308451084295907
+ },
+ {
+  "name": "scr_pessraw_lm100_r0.3",
+  "rc": 0,
+  "minutes": 20.125562405586244
+ },
+ {
+  "name": "degen_opt_s1",
+  "rc": 0,
+  "minutes": 6.274521414438883
+ },
+ {
+  "name": "degen_opt_s2",
+  "rc": 0,
+  "minutes": 6.421817747751872
+ },
+ {
+  "name": "degen_pess_s1",
+  "rc": 0,
+  "minutes": 8.842001946767171
+ },
+ {
+  "name": "degen_opt_s3",
+  "rc": 0,
+  "minutes": 6.455884635448456
+ },
+ {
+  "name": "degen_pess_s2",
+  "rc": 0,
+  "minutes": 8.631902658939362
+ },
+ {
+  "name": "degen_pess_s3",
+  "rc": 0,
+  "minutes": 8.830781304836274
+ }
+]

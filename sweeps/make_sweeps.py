@@ -107,6 +107,58 @@ def phase2(pess="--lam_m 0.3 --radius 0.3", exp="--lam_m 0.3 --radius 3.0", opt=
     write("fmnist-ssl-phase2-b", jobs_b, 11.5, files=["checks/figure1_fmnist.py"])
 
 
+PESS = "--lam_m 0.1 --radius 0.1"   # selected on the validation screen (seed 0)
+EXP = "--lam_m 0.3 --radius 3.0"
+OPT = "--lam_m 0.1"
+
+
+def main_table(it=20000):
+    """Phase 2a: main table.  FixMatch / MPL / PBPL on 5 seeds (paired comparison), the other
+    methods on 3 seeds; 40 and 100 labels.  Longest jobs first in each queue."""
+    a, b = [], []
+    for npc in (4, 10):
+        for sd in (1, 2, 3, 4, 5):
+            c = f"--n_per_class {npc} --seed {sd} --iters {it}"
+            a.append({"name": f"pbpl_{npc}_s{sd}", "args": f"--bilevel two --feedback pess {PESS} {c}"})
+            b.append({"name": f"mpl_{npc}_s{sd}", "args": f"--bilevel two --feedback opt {OPT} {c}"})
+    for npc in (4, 10):
+        for sd in (1, 2, 3):
+            c = f"--n_per_class {npc} --seed {sd} --iters {it}"
+            b.insert(0, {"name": f"ebpl_{npc}_s{sd}", "args": f"--bilevel two --feedback exp {EXP} {c}"})
+    for npc in (4, 10):
+        for sd in (1, 2, 3, 4, 5):
+            c = f"--n_per_class {npc} --seed {sd} --iters {it}"
+            a.append({"name": f"fixmatch_{npc}_s{sd}", "args": f"--base fixmatch {c}"})
+    for npc in (4, 10):
+        for sd in (1, 2, 3):
+            c = f"--n_per_class {npc} --seed {sd} --iters {it}"
+            a.append({"name": f"flexmatch_{npc}_s{sd}", "args": f"--base flexmatch {c}"})
+            a.append({"name": f"sup_{npc}_s{sd}", "args": f"--base sup {c}"})
+            b.append({"name": f"meanteacher_{npc}_s{sd}", "args": f"--base meanteacher --lam_u 50 {c}"})
+            b.append({"name": f"pseudolabel_{npc}_s{sd}", "args": f"--base pseudolabel {c}"})
+    write("fmnist-ssl-main-a", a, 11.5)
+    write("fmnist-ssl-main-b", b, 11.5)
+
+
+def ablations(it=20000):
+    """Phase 2b: ablations (40 labels, seeds 1-3) + diagnostics."""
+    a, b = [], []
+    for sd in (1, 2, 3):
+        c = f"--n_per_class 4 --seed {sd} --iters {it}"
+        a.append({"name": f"abl_self_4_s{sd}", "args": f"--bilevel self --feedback pess {PESS} {c}"})
+        a.append({"name": f"abl_samfb_4_s{sd}", "args": f"--bilevel two --feedback sam {PESS} {c}"})
+        b.append({"name": f"abl_pbplflex_4_s{sd}", "args": f"--base flexmatch --bilevel two --feedback pess {PESS} {c}"})
+        b.append({"name": f"abl_fibersam_4_s{sd}", "args": f"--lab_reg fibersam --radius 0.1 {c}"})
+        b.append({"name": f"abl_labsam_4_s{sd}", "args": f"--lab_reg sam --radius 0.1 {c}"})
+    a.append({"name": "degeneracy_static", "script": "degeneracy_static.py",
+              "args": "--out /kaggle/working/results/degeneracy_static.json --device cuda"})
+    b.append({"name": "figure1", "script": "figure1_fmnist.py",
+              "args": "--out /kaggle/working/results/figure1.json --device cuda"})
+    files = ["checks/figure1_fmnist.py", "checks/degeneracy_static.py"]
+    write("fmnist-ssl-ablate-a", a, 11.5, files=files)
+    write("fmnist-ssl-ablate-b", b, 11.5, files=files)
+
+
 def tune(it=20000):
     """Hyper-parameter search on the validation split (seed 0, 4 labels/class)."""
     common = f"--n_per_class 4 --seed 0 --iters {it}"
