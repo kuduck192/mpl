@@ -110,6 +110,18 @@ $\|Av_{\rm opt}\|=2.9\cdot10^{-9}$, $\|Av_{\rm pess}\|/r=0.125,0.126,0.128,0.133
 $r=0.02,0.05,0.1,0.2$ against the predicted slope $\|AHu\|=0.124$;
 $\|Av_{\rm exp}\|/s^2=0.36,0.43,0.59$ for $s=0.025,0.05,0.1$.
 
+\paragraph{Check on the real network.} A 0.157M-parameter CNN trained on 100 labeled
+FashionMNIST images only; supervised-only pairs at checkpoints $w_k$, 448 unlabeled inputs
+disjoint from the labeled set, batch-statistics BatchNorm as in training, three seeds. As
+$L_l(w_k)$ decreases from $2\cdot10^{-2}$ to $10^{-4}$, the optimistic meta-gradient norm
+decreases from $0.16$--$0.71$ to $0.003$--$0.03$, while the pessimistic one at $r=0.1$, taken
+over admissible solver iterates only (mean KL to the anchor at most $2\cdot10^{-3}$), is
+$24$--$679$ times larger (median $134$) at $14$ of the $15$ (seed, checkpoint) pairs after the
+first checkpoint; the exception is a checkpoint at which only $7\%$ of the solver iterates
+stayed on the fiber. The expected rule at $s=3$ is a median $2.4$ times the optimistic one.
+At $r=0.3$ the ascent-then-retract solver with $K=5$ does not stay on the fiber ($\le8\%$
+admissible iterates), so that radius does not test Proposition~N2(b).
+
 \begin{remark}[Lazy regime]
 With linear features and the minimum-norm student anchor, $V_r(a(z))=\log(1+e^{r\omega-m(z)})$
 and $E_s(a(z))\approx\log(1+e^{s^2\omega^2/2-m(z)})$ for large margins: both are logistic

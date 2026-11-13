@@ -178,6 +178,17 @@ $\lambda_{\max}(\Pi H\Pi)=0.077$, $\|(I-\Pi)Hu\|=0.32$, độ dốc dự đoán 
 EBPL (Monte Carlo 400 cặp antithetic): $\|A v_{\rm exp}\|/s^2 = 0.36,\ 0.43,\ 0.59$ tại
 $s=0.025, 0.05, 0.1$ — bậc $s^2$ như (d), hằng số chưa hội tụ hẳn do số hạng bậc cao.
 
+**Kiểm chứng trên CNN thật** (`checks/degeneracy_static.py`, `docs/report.md` Mục 5): CNN
+0.157M tham số chỉ huấn luyện trên 100 ảnh có nhãn, cặp supervised-only tại các checkpoint,
+448 ảnh không nhãn không giao tập có nhãn, BN theo batch như lúc huấn luyện, 3 seed. Khi
+$L_l(w_k)$ giảm từ $2\cdot10^{-2}$ xuống $10^{-4}$, $\|g_T\|$ optimistic giảm từ 0.16–0.71
+xuống 0.003–0.03 (N2(a)). $\|g_T\|$ pessimistic ($r=0.1$, chỉ lấy iterate có KL tới anchor
+$\le2\cdot10^{-3}$) lớn hơn 24–679 lần (trung vị 134) ở 14/15 cặp (seed, checkpoint) sau vòng
+250 (N2(b)). Ngoại lệ là một checkpoint mà chỉ 7% iterate của bộ giải ở lại trên fiber.
+Expected ($s=3$) chỉ lớn hơn trung vị 2.4 lần (bậc $s^2$, N2(d)). Ở $r=0.3$, bộ giải
+ascent-rồi-co với $K=5$ không ở lại được trên fiber (≤ 8% iterate hợp lệ), nên bán kính đó
+không kiểm định được N2(b).
+
 ### 2.4 Dạng bậc một: feedback = MPL + gradient alignment
 
 **Proposition N3.** If $\Pi_\theta\nabla L_l(\theta)\neq0$ and $J_u$ has constant rank near
