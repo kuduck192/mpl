@@ -261,5 +261,28 @@ def replication(it=20000):
     write("fmnist-ssl-rep-c", c, float(os.environ.get("REPC_HOURS", 4.0)))
 
 
+def remainder():
+    """python sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dir> [...]
+    Writes a sweep with the jobs of <sweep.json> that have no complete result in the given
+    results directories (a run stopped by the budget guard counts as missing)."""
+    src, slug, hours, dirs = sys.argv[2], sys.argv[3], float(sys.argv[4]), sys.argv[5:]
+    sw = json.load(open(src))
+    done = set()
+    for d in dirs:
+        for root, _, fs in os.walk(d):
+            for f in fs:
+                if not f.endswith(".json"):
+                    continue
+                try:
+                    r = json.load(open(os.path.join(root, f)))
+                except Exception:
+                    continue
+                if "final" in r and "args" in r and not r.get("stopped_early") \
+                        and r["final"].get("iter", 0) >= r["args"].get("iters", 1):
+                    done.add(r["args"]["name"])
+    jobs = [j for j in sw["jobs"] if j["name"] not in done]
+    write(slug, jobs, hours, sw.get("files", ()))
+
+
 if __name__ == "__main__":
     globals()[sys.argv[1]]()
