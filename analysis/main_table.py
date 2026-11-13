@@ -15,10 +15,10 @@ from collections import defaultdict
 import numpy as np
 from scipy import stats
 
-ORDER = ["sup", "pseudolabel", "meanteacher", "fixmatch", "flexmatch", "mpl", "ebpl", "pbpl",
+ORDER = ["sup", "pseudolabel", "meanteacher", "fixmatch", "fmtuned", "flexmatch", "mpl", "ebpl", "pbpl",
          "abl_samfb", "abl_self", "abl_fibersam", "abl_labsam", "abl_pbplflex"]
 LABEL = {"sup": "Supervised", "pseudolabel": "Pseudo-Label", "meanteacher": "Mean Teacher",
-         "fixmatch": "FixMatch", "flexmatch": "FlexMatch", "mpl": "MPL + FixMatch (optimistic)",
+         "fixmatch": "FixMatch", "fmtuned": "FixMatch, tuned (λ_u = 2)", "flexmatch": "FlexMatch", "mpl": "MPL + FixMatch (optimistic)",
          "ebpl": "**EBPL + FixMatch (expected)**", "pbpl": "**PBPL + FixMatch (pessimistic)**",
          "abl_samfb": "PBPL, ε reset each step (= SAM step, blind to X_u)",
          "abl_self": "PBPL, one network (look-ahead student)",
@@ -46,6 +46,9 @@ def load(dirs, key, select="final", seeds=None):
             meth, npc, sd = m.group(1), int(m.group(2)), int(m.group(3))
             if seeds and sd not in seeds:
                 continue
+            if r.get("stopped_early") or r["final"].get("iter", 0) < r["args"].get("iters", 0):
+                print(f"[skip] {r['args']['name']}: stopped at iter {r['final'].get('iter')} (budget)")
+                continue
             if select == "val":
                 h = [d for d in r["hist"] if key in d and key.replace("test", "val") in d]
                 res[(meth, npc)][sd] = max(h, key=lambda d: d[key.replace("test", "val")])[key]
@@ -68,6 +71,7 @@ def main():
     ap.add_argument("--select", default="final", choices=["final", "val"])
     ap.add_argument("--seeds", default="", help="e.g. 1-5 or 6-10 (default: all)")
     ap.add_argument("--no_cost", action="store_true")
+    ap.add_argument("--ref", default="fixmatch", help="reference method for the paired table")
     args = ap.parse_args()
     seeds = None
     if args.seeds:
@@ -84,13 +88,14 @@ def main():
             cells.append(f"{fmt(list(v.values()))} (n={len(v)})" if v else "—")
         if any(c != "—" for c in cells):
             lines.append(f"| {LABEL.get(meth, meth)} | " + " | ".join(cells) + " |")
-    lines += ["", "Paired difference against FixMatch on common seeds (percentage points):", "",
+    ref = args.ref
+    lines += ["", f"Paired difference against {LABEL.get(ref, ref).strip('*')} on common seeds (percentage points):", "",
               "| method | labels | seeds | mean diff | wins | paired t p-value |", "|---|---|---|---|---|---|"]
     for meth in ORDER:
-        if meth == "fixmatch":
+        if meth == ref:
             continue
         for n in npcs:
-            a, b = res.get((meth, n), {}), res.get(("fixmatch", n), {})
+            a, b = res.get((meth, n), {}), res.get((ref, n), {})
             common = sorted(set(a) & set(b))
             if len(common) < 2:
                 continue

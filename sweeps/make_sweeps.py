@@ -110,6 +110,7 @@ def phase2(pess="--lam_m 0.3 --radius 0.3", exp="--lam_m 0.3 --radius 3.0", opt=
 PESS = "--lam_m 0.1 --radius 0.1"   # selected on the validation screen (seed 0)
 EXP = "--lam_m 0.3 --radius 3.0"
 OPT = "--lam_m 0.1"
+FMT = "--base fixmatch --tau 0.95 --lam_u 2.0"  # best FixMatch of the ablate-a grid (screen val)
 
 
 def main_table(it=20000):
@@ -223,14 +224,26 @@ def replication(it=20000):
     a, b = [], []
     for sd in (6, 7, 8, 9, 10):
         a.append({"name": f"pbpl_4_s{sd}", "args": f"--bilevel two --feedback pess {PESS} --n_per_class 4 --seed {sd} --iters {it}"})
-        b.append({"name": f"pbpl_10_s{sd}", "args": f"--bilevel two --feedback pess {PESS} --n_per_class 10 --seed {sd} --iters {it}"})
     for sd in (6, 7, 8, 9, 10):
         a.append({"name": f"mpl_4_s{sd}", "args": f"--bilevel two --feedback opt {OPT} --n_per_class 4 --seed {sd} --iters {it}"})
+    write("fmnist-ssl-rep-a", a, 4.5)
+    # rep-b was rewritten after the FixMatch grid of ablate-a: on the screen protocol (seed 0,
+    # 40 labels, best validation accuracy) FixMatch with lam_u = 2 beat the selected PBPL
+    # config (val 78.04 vs 76.50).  The tuned FixMatch is therefore run on seeds 1-10 under
+    # the main protocol.  Jobs are in priority order (the budget guard skips the tail):
+    # 40-label controls first, then the 100-label replication.
+    b = []
     for sd in (6, 7, 8, 9, 10):
         b.append({"name": f"fixmatch_4_s{sd}", "args": f"--base fixmatch --n_per_class 4 --seed {sd} --iters {it}"})
+    for sd in range(1, 11):
+        b.append({"name": f"fmtuned_4_s{sd}", "args": f"{FMT} --n_per_class 4 --seed {sd} --iters {it}"})
+    for sd in (6, 7, 8, 9, 10):
+        b.append({"name": f"pbpl_10_s{sd}", "args": f"--bilevel two --feedback pess {PESS} --n_per_class 10 --seed {sd} --iters {it}"})
+    for sd in (6, 7, 8, 9, 10):
         b.append({"name": f"fixmatch_10_s{sd}", "args": f"--base fixmatch --n_per_class 10 --seed {sd} --iters {it}"})
-    write("fmnist-ssl-rep-a", a, 4.5)
-    write("fmnist-ssl-rep-b", b, 4.5)
+    for sd in (1, 2, 3, 4, 5):
+        b.append({"name": f"fmtuned_10_s{sd}", "args": f"{FMT} --n_per_class 10 --seed {sd} --iters {it}"})
+    write("fmnist-ssl-rep-b", b, float(os.environ.get("REPB_HOURS", 4.3)))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,57 @@
+[
+ {
+  "name": "abl_samfb_4_s1",
+  "rc": 0,
+  "minutes": 29.25153389374415
+ },
+ {
+  "name": "abl_self_4_s1",
+  "rc": 0,
+  "minutes": 39.47776252031326
+ },
+ {
+  "name": "abl_self_4_s2",
+  "rc": 0,
+  "minutes": 38.645722436904904
+ },
+ {
+  "name": "abl_samfb_4_s2",
+  "rc": 0,
+  "minutes": 29.298003538449606
+ },
+ {
+  "name": "abl_samfb_4_s3",
+  "rc": 0,
+  "minutes": 29.247188488642376
+ },
+ {
+  "name": "scr_fm_tau0.8_lu1.0",
+  "rc": 0,
+  "minutes": 5.547570856412252
+ },
+ {
+  "name": "abl_self_4_s3",
+  "rc": 0,
+  "minutes": 38.6779324054718
+ },
+ {
+  "name": "scr_fm_tau0.8_lu2.0",
+  "rc": 0,
+  "minutes": 5.6556244452794395
+ },
+ {
+  "name": "scr_fm_tau0.9_lu1.0",
+  "rc": 0,
+  "minutes": 5.762045554320017
+ },
+ {
+  "name": "scr_fm_tau0.9_lu2.0",
+  "rc": 0,
+  "minutes": 5.857528821627299
+ },
+ {
+  "name": "scr_fm_tau0.95_lu2.0",
+  "rc": 0,
+  "minutes": 5.725844399134318
+ }
+]
