@@ -43,6 +43,41 @@ PBPL + FlexMatch.
 (cặp supervised-only), tắt FixMatch, student nhìn đúng ảnh augment yếu của teacher, feedback
 không chuẩn hóa; đo $\|\phi_t-\phi_0\|$, tỉ lệ pseudo-label đổi, accuracy pseudo-label.
 
-## 2. Kết quả
+## 2. Pilot và hai lỗi thiết kế được phát hiện
+
+1. **Feedback không held-out.** Bản đầu cho student dùng toàn bộ tập không nhãn (chứa cả 40
+   ảnh có nhãn, theo quy ước FixMatch). Student học thuộc chúng qua pseudo-label đúng của
+   teacher, labeled loss của student xuống 0.015 và feedback MPL triệt tiêu; ảnh có nhãn
+   cũng ghim fiber nên PBPL mất "khoảng pessimistic". Kết quả (40 nhãn, seed 0, 20k vòng):
+   FixMatch 72.5%, MPL 71.4%, PBPL 68.3%. Sửa: nhánh student loại ảnh có nhãn
+   (`--stu_excl_lab 1`, Remark 2.6 trong `docs/theory.md`).
+2. **Bộ giải bài toán trong.** Một bước ascent chuẩn hóa trên $L_l-\beta\,\mathrm{KL}$ không
+   tìm được nghiệm trên fiber: trên toy MLP, cos với hướng nghiệm đúng chỉ 0.10–0.46 (β = 10…1000).
+   Bộ giải "ascent rồi co về fiber" (K bước giảm KL với bước Rayleigh) đạt cos 0.61–0.68 với
+   KL tới anchor 6·10⁻⁶ (`checks/check_nondegeneracy.py`).
+
+## 3. Chọn siêu tham số (validation, seed 0, 40 nhãn, 10k vòng)
+
+| cấu hình | val | test | pseudo-label đúng (trong mask) |
+|---|---|---|---|
+| FixMatch | 74.08 | 74.87 | 78.4 |
+| FlexMatch | 73.48 | 73.57 | 75.4 |
+| MPL, λ_m = 0.1 (tốt nhất trong 6 cấu hình) | 73.80 | 74.08 | 79.9 |
+| **PBPL, λ_m = 0.1, r = 0.1 (tốt nhất trong 12)** | **76.50** | **75.12** | **80.6** |
+| EBPL, λ_m = 0.3, r = 3 (tốt nhất trong 6) | 73.40 | 72.10 | 77.5 |
+
+Xu hướng rõ nhất: λ_m ≥ 0.3 làm hại cả ba biến thể (ví dụ PBPL r = 0.3: 73.9 → 72.3 → 68.5 khi
+λ_m = 0.1 → 0.3 → 1.0); thang meta-gradient chính xác (không chuẩn hóa) kém hơn chuẩn hóa
+RMS chạy. Bán kính quá lớn (r = 1) đẩy adversary ra khỏi fiber (KL 0.1–0.2, labeled loss của
+student pessimistic tăng tới 3.4). Trên một seed, ưu thế của PBPL trên test chỉ +0.25 điểm;
+vì vậy bảng chính dùng 5 seed và so sánh cặp.
+
+Chẩn đoán khớp lý thuyết: với PBPL, labeled loss held-out của anchor giảm 0.86 → 0.10 trong
+khi labeled loss của student pessimistic ($r=0.1$) dừng ở ≈ 0.30 — feedback optimistic gần
+như tắt, feedback pessimistic thì không. Với EBPL ($r=3$) nhiễu ngẫu nhiên gần như không đổi
+labeled loss (0.04 so với 0.04) và feedback gần trùng MPL (cos 0.90): biến thể expected yếu
+như dự đoán bậc $s^2$.
+
+## 4. Kết quả chính
 
 _(điền sau khi các kernel hoàn tất)_
