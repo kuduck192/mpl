@@ -44,6 +44,12 @@ from torch.func import functional_call, jvp
 
 MEAN, STD = 0.2860, 0.3530
 NUM_CLASSES = 10
+AMP = False          # fp16 autocast inside every network forward (set in main, CUDA only)
+GRAD_SCALE = 1024.0  # static loss scale for torch.autograd.grad calls under AMP
+
+
+def amp_ctx():
+    return torch.autocast(device_type="cuda", dtype=torch.float16, enabled=AMP)
 
 
 # ----------------------------------------------------------------------------
@@ -338,9 +344,11 @@ class ConvNet(nn.Module):
                 nn.init.zeros_(m.bias)
 
     def forward(self, x):
-        h = self.features(x)
-        h = F.adaptive_avg_pool2d(h, 1).flatten(1)
-        return self.fc(h)
+        with amp_ctx():
+            h = self.features(x)
+            h = F.adaptive_avg_pool2d(h, 1).flatten(1)
+            out = self.fc(h)
+        return out.float() if out.dtype == torch.float16 else out
 
 
 class bn_frozen_stats:
@@ -431,8 +439,9 @@ def kl_anchor(p_anchor, logits):
 
 
 def grads_of(loss, params_dict):
-    g = torch.autograd.grad(loss, list(params_dict.values()), allow_unused=True)
-    return {k: (gi if gi is not None else torch.zeros_like(v)) for (k, v), gi in zip(params_dict.items(), g)}
+    sc = GRAD_SCALE if AMP else 1.0
+    g = torch.autograd.grad(loss * sc, list(params_dict.values()), allow_unused=True)
+    return {k: (gi / sc if gi is not None else torch.zeros_like(v)) for (k, v), gi in zip(params_dict.items(), g)}
 
 
 def leaf(d):
@@ -499,7 +508,7 @@ class Feedback:
         with bn_frozen_stats(self.net):
             return functional_call(self.net, params, (x,))
 
-    def feedback(self, theta, theta_p, xs_in, xl, yl, diag=False):
+    def feedback(self, theta, theta_p, xs_in, xl, yl, diag=False, w=None):
         """theta: student params before its step, theta_p: after one SGD step on
         the pseudo-labels.  Returns c (B_u x C) and diagnostics.  With diag=True
         the optimistic (MPL) feedback at the same anchor is also computed and
@@ -507,6 +516,7 @@ class Feedback:
         a = self.a
         st = {}
         mode = a.feedback
+        self.w = w
         if mode == "opt":
             eps = dzeros(theta_p)
         elif mode == "sam":
@@ -562,11 +572,17 @@ class Feedback:
                 v0 = grads_of(l0, p0)
                 _, c0 = jvp(lambda q: self._f(q, xs_in), (theta,), (v0,))
                 cc, c0c = c - c.mean(1, keepdim=True), c0 - c0.mean(1, keepdim=True)
+                if self.w is not None:
+                    cc, c0c = cc * self.w[:, None], c0c * self.w[:, None]
                 st["lab_loss_anchor"] = l0.item()
                 st["c_opt_norm"] = c0.norm().item() / math.sqrt(c0.shape[0])
                 st["cos_c_copt"] = ((cc * c0c).sum() / (cc.norm() * c0c.norm() + 1e-12)).item()
         self.stats = st
         return c.detach(), st
+
+    def _wmean(self, x):
+        w = getattr(self, "w", None)
+        return x.mean() if w is None else (x * w).sum() / w.sum().clamp_min(1.0)
 
     def _retract(self, theta_p, eps, xs_in, K, st, diag=False):
         """K descent steps on D(eps) = KL(p_anchor(x) || p_{anchor+eps}(x)) over the
@@ -576,7 +592,7 @@ class Feedback:
             anchor = F.softmax(self._f(theta_p, xs_in), 1)
         for _ in range(K):
             p = leaf(dadd(theta_p, eps))
-            D = kl_anchor(anchor, self._f(p, xs_in)).mean()
+            D = self._wmean(kl_anchor(anchor, self._f(p, xs_in)))
             gD = grads_of(D, p)
             step = (2.0 * D.detach()) / (ddot(gD, gD) + 1e-20)
             eps = {k: eps[k] - step * gD[k] for k in eps}
@@ -584,7 +600,7 @@ class Feedback:
                 st["fiber_kl_before"] = D.item()
         if diag:
             with torch.no_grad():
-                st["fiber_kl"] = kl_anchor(anchor, self._f(dadd(theta_p, eps), xs_in)).mean().item()
+                st["fiber_kl"] = self._wmean(kl_anchor(anchor, self._f(dadd(theta_p, eps), xs_in))).item()
         return eps
 
     def _sample_fiber_noise(self, theta_p, xs_in, st, diag=False):
@@ -602,6 +618,47 @@ class Feedback:
 # ----------------------------------------------------------------------------
 # training
 # ----------------------------------------------------------------------------
+def check_amp(args, dev):
+    """Compare the meta feedback computed with and without fp16 autocast on one batch."""
+    global AMP
+    xtr, ytr, _, _ = load_fmnist(args.data_dir)
+    X = torch.from_numpy(xtr[:2000]).to(dev)
+    Y = torch.from_numpy(ytr[:2000]).to(dev)
+    torch.manual_seed(0)
+    teacher, student = ConvNet(args.width).to(dev), ConvNet(args.width).to(dev)
+    opt = make_sgd(teacher, 0.03, 5e-4)
+    for _ in range(200):  # make the networks non-trivial
+        i = torch.randint(0, 2000, (128,), device=dev)
+        loss = F.cross_entropy(teacher(weak_aug(X[i])), Y[i])
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+    student.load_state_dict(teacher.state_dict())
+    xl, yl = weak_aug(X[:64]), Y[:64]
+    xs = strong_aug(X[64:512])
+    res = {}
+    for amp in [False, True]:
+        AMP = amp
+        fb = Feedback(args, student)
+        torch.manual_seed(1)
+        t = F.softmax(teacher(xs), 1).detach()
+        l_stu = soft_ce(student(xs), t).mean()
+        g = grads_of(l_stu, dict(student.named_parameters()))
+        theta = pdict(student)
+        theta_p = {n: theta[n] - 0.03 * g[n] for n in theta}
+        c, _ = fb.feedback(theta, theta_p, xs, xl, yl)
+        res[amp] = (c, g)
+    c0, g0 = res[False]
+    c1, g1 = res[True]
+    rel_c = ((c1 - c0).norm() / c0.norm()).item()
+    rel_g = (dnorm(dadd(g1, g0, -1.0)) / dnorm(g0)).item()
+    cos = (F.cosine_similarity((c1 - c1.mean(1, keepdim=True)).flatten(), (c0 - c0.mean(1, keepdim=True)).flatten(), 0)).item()
+    print(json.dumps({"check_amp": args.feedback, "rel_err_c": rel_c, "cos_c": cos, "rel_err_grad_student": rel_g}), flush=True)
+    os.makedirs(args.out_dir, exist_ok=True)
+    with open(os.path.join(args.out_dir, f"{args.name}.json"), "w") as f:
+        json.dump({"args": vars(args), "final": {"rel_err_c": rel_c, "cos_c": cos, "rel_err_grad_student": rel_g}, "hist": []}, f)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", default="run")
@@ -625,11 +682,14 @@ def main(argv=None):
     ap.add_argument("--bilevel", default="none", choices=["none", "two", "self"])
     ap.add_argument("--feedback", default="pess", choices=["opt", "pess", "exp", "sam"])
     ap.add_argument("--lam_m", type=float, default=0.3)
-    ap.add_argument("--meta_norm", type=int, default=1)
+    ap.add_argument("--meta_norm", type=int, default=2, help="0 exact scale, 1 per-batch RMS, 2 running RMS")
+    ap.add_argument("--meta_rms_decay", type=float, default=0.99)
+    ap.add_argument("--stu_excl_lab", type=int, default=1, help="student path never sees labeled images")
     ap.add_argument("--meta_warmup", type=int, default=0, help="iters before L_meta is switched on")
     ap.add_argument("--T_s", type=float, default=1.0, help="temperature of teacher soft pseudo-labels")
     ap.add_argument("--stu_view", default="strong", choices=["strong", "weak", "clean"])
     ap.add_argument("--stu_lr", type=float, default=-1.0)
+    ap.add_argument("--stu_bs", type=int, default=0, help="unlabeled batch of the student path (0 = all)")
     ap.add_argument("--radius", type=float, default=0.3)
     ap.add_argument("--beta", type=float, default=10.0)
     ap.add_argument("--alpha", type=float, default=0.5)
@@ -646,7 +706,15 @@ def main(argv=None):
     ap.add_argument("--max_minutes", type=float, default=1e9)
     ap.add_argument("--eval_max", type=int, default=0, help="subsample eval sets (smoke tests)")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--amp", type=int, default=1, help="fp16 autocast (CUDA only)")
+    ap.add_argument("--channels_last", type=int, default=1)
+    ap.add_argument("--check_amp", type=int, default=0)
     args = ap.parse_args(argv)
+    global AMP
+    AMP = bool(args.amp) and args.device.startswith("cuda") and torch.cuda.is_available()
+    scaler = torch.amp.GradScaler("cuda", enabled=AMP)
+    if args.check_amp:
+        return check_amp(args, torch.device(args.device))
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -675,12 +743,13 @@ def main(argv=None):
         Xv, Yv = Xv[:args.eval_max], Yv[:args.eval_max]
         Xu_ev, Yu_ev = Xu[:args.eval_max], Yu_true[:args.eval_max]
 
-    teacher = ConvNet(args.width).to(dev).to(memory_format=torch.channels_last)
+    mf = torch.channels_last if args.channels_last else torch.contiguous_format
+    teacher = ConvNet(args.width).to(dev).to(memory_format=mf)
     t_opt = make_sgd(teacher, args.lr, args.wd)
     t_ema = EMA(teacher, args.ema)
     student = s_opt = s_ema = None
     if args.bilevel == "two":
-        student = ConvNet(args.width).to(dev).to(memory_format=torch.channels_last)
+        student = ConvNet(args.width).to(dev).to(memory_format=mf)
         s_opt = make_sgd(student, args.stu_lr if args.stu_lr > 0 else args.lr, args.wd)
         s_ema = EMA(student, args.ema)
     fb = None
@@ -689,6 +758,13 @@ def main(argv=None):
     elif args.bilevel == "self":
         fb = Feedback(args, teacher)
     flex = FlexState(nu, dev, args.tau) if args.base == "flexmatch" else None
+    # labeled examples are part of the unlabeled pool (standard for FixMatch); the
+    # student path excludes them so that its labeled loss is a held-out signal and the
+    # fiber does not pin the labeled predictions
+    is_lab_u = torch.zeros(nu, dtype=torch.bool, device=dev)
+    if args.stu_excl_lab:
+        is_lab_u[torch.searchsorted(unl_t, lab_t)] = True
+    meta_rms = None
     lab_eps = None  # persistent eps for fibersam
     lab_fb = Feedback(args, teacher) if args.lab_reg == "fibersam" else None
     teacher0 = None
@@ -700,8 +776,9 @@ def main(argv=None):
             il = torch.randint(0, nl, (args.bl,), device=dev)
             loss = F.cross_entropy(teacher(weak_aug(Xl[il])), Yl[il])
             t_opt.zero_grad(set_to_none=True)
-            loss.backward()
-            t_opt.step()
+            scaler.scale(loss).backward()
+            scaler.step(t_opt)
+            scaler.update()
         t_ema = EMA(teacher, args.ema)
         if student is not None:
             student.load_state_dict(teacher.state_dict())
@@ -754,8 +831,9 @@ def main(argv=None):
         if args.base == "sup":
             loss = F.cross_entropy(teacher(xl_w), yl)
             t_opt.zero_grad(set_to_none=True)
-            loss.backward()
-            t_opt.step()
+            scaler.scale(loss).backward()
+            scaler.step(t_opt)
+            scaler.update()
             t_ema.update(teacher)
         else:
             if pu + bu > nu:
@@ -772,7 +850,7 @@ def main(argv=None):
             else:  # pseudolabel: target and prediction on the same weak view
                 xu_s = None
             parts = [xl_w, xu_w] + ([xu_s] if xu_s is not None else [])
-            logits = teacher(torch.cat(parts).contiguous(memory_format=torch.channels_last))
+            logits = teacher(torch.cat(parts).contiguous(memory_format=mf))
             if xu_s is None:
                 zl, zw = logits.split([args.bl, bu])
                 zs = zw
@@ -807,18 +885,20 @@ def main(argv=None):
 
             # ---- bilevel pseudo-labeling regularizer --------------------------------
             if fb is not None:
-                t_soft = F.softmax(zw / args.T_s, 1)
+                nb = args.stu_bs if 0 < args.stu_bs < bu else bu  # unlabeled examples used by the student path
+                w_s = (~is_lab_u[iu[:nb]]).float()
+                t_soft = F.softmax(zw[:nb] / args.T_s, 1)
                 if args.stu_view == "strong":
-                    xs_in = xu_s if xu_s is not None else strong_aug(xu_raw)
+                    xs_in = (xu_s if xu_s is not None else strong_aug(xu_raw))[:nb]
                 elif args.stu_view == "weak":
-                    xs_in = xu_w
+                    xs_in = xu_w[:nb]
                 else:
-                    xs_in = clean(xu_raw)
+                    xs_in = clean(xu_raw[:nb])
                 if args.bilevel == "two":
                     eta = cosine_lr(args.stu_lr if args.stu_lr > 0 else args.lr, k, args.iters)
                     set_lr(s_opt, eta)
                     s_logits = student(xs_in)
-                    l_stu = soft_ce(s_logits, t_soft.detach()).mean()
+                    l_stu = (soft_ce(s_logits, t_soft.detach()) * w_s).sum() / w_s.sum().clamp_min(1.0)
                     sp = dict(student.named_parameters())
                     g_stu = grads_of(l_stu, sp)
                     theta = pdict(student)
@@ -829,18 +909,23 @@ def main(argv=None):
                     theta = pdict(teacher)
                     pl_ = leaf(theta)
                     with bn_frozen_stats(teacher):
-                        l_look = soft_ce(functional_call(teacher, pl_, (xs_in,)), t_soft.detach()).mean()
+                        l_look = (soft_ce(functional_call(teacher, pl_, (xs_in,)), t_soft.detach()) * w_s).sum() \
+                            / w_s.sum().clamp_min(1.0)
                     g_stu = grads_of(l_look, pl_)
                     if log_now:
                         push("stu_loss", l_look.item())
                 theta_p = {n: theta[n] - eta * g_stu[n] for n in theta}
-                c, st = fb.feedback(theta, theta_p, xs_in, xl_w, yl, diag=log_now)
+                c, st = fb.feedback(theta, theta_p, xs_in, xl_w, yl, diag=log_now, w=w_s)
                 for kk, vv in st.items():
                     push(kk, vv)
-                if args.meta_norm:
-                    c = c - c.mean(1, keepdim=True)
-                    c = c / (c.pow(2).mean().sqrt() + 1e-12)
-                else:
+                c = (c - c.mean(1, keepdim=True)) * w_s[:, None]  # labeled examples carry no feedback
+                if args.meta_norm == 1:      # per-batch RMS
+                    c = c / (c.pow(2).sum() / (w_s.sum().clamp_min(1.0) * c.shape[1])).sqrt().clamp_min(1e-12)
+                elif args.meta_norm == 2:    # running RMS (keeps slow changes of the feedback size)
+                    rms = (c.pow(2).sum() / (w_s.sum().clamp_min(1.0) * c.shape[1])).sqrt()
+                    meta_rms = rms if meta_rms is None else args.meta_rms_decay * meta_rms + (1 - args.meta_rms_decay) * rms
+                    c = c / meta_rms.clamp_min(1e-12)
+                else:                        # exact meta-gradient scale (eta / B per example)
                     c = c * eta
                 l_meta = (t_soft * c).sum(1).mean()
                 lam_m = args.lam_m if k >= args.meta_warmup else 0.0
@@ -849,7 +934,7 @@ def main(argv=None):
                     push("meta", l_meta.item())
                     if args.bilevel == "two":
                         with torch.no_grad():
-                            push("stu_pl_agree", (s_logits.argmax(1) == pl).float().mean().item())
+                            push("stu_pl_agree", (s_logits.argmax(1) == pl[:nb]).float().mean().item())
 
             # ---- one-network labeled-loss regularizers (controls) --------------------
             if args.lab_reg != "none":
@@ -874,6 +959,7 @@ def main(argv=None):
                     # deployed network's own predictions on the weak unlabeled views
                     new = dadd(lab_eps, g_adv, args.alpha * args.radius / (dnorm(g_adv) + 1e-12))
                     st_l = {}
+                    lab_fb.w = (~is_lab_u[iu]).float()
                     new = lab_fb._retract(pdict(teacher), new, xu_w, args.k_proj, st_l, log_now)
                     en = dnorm(new)
                     lab_eps = dscale(new, torch.clamp(args.radius / (en + 1e-12), max=1.0))
@@ -882,20 +968,27 @@ def main(argv=None):
                 # replace the labeled CE gradient by the gradient at the perturbed point
                 total = total - l_sup  # labeled term handled through g_adv below
                 t_opt.zero_grad(set_to_none=True)
-                total.backward()
+                scaler.scale(total).backward()
+                sc = scaler.get_scale() if AMP else 1.0
                 for n, p in teacher.named_parameters():
-                    p.grad = g_adv[n] if p.grad is None else p.grad + g_adv[n]
-                t_opt.step()
+                    p.grad = g_adv[n] * sc if p.grad is None else p.grad + g_adv[n] * sc
+                scaler.step(t_opt)
+                scaler.update()
             else:
                 t_opt.zero_grad(set_to_none=True)
-                total.backward()
-                t_opt.step()
+                scaler.scale(total).backward()
+                scaler.step(t_opt)
+                scaler.update()
             t_ema.update(teacher)
 
             if args.bilevel == "two":
-                for n, p in student.named_parameters():
-                    p.grad = g_stu[n]
-                s_opt.step()
+                ok = torch.stack([torch.isfinite(g).all() for g in g_stu.values()]).all()
+                if bool(ok):
+                    for n, p in student.named_parameters():
+                        p.grad = g_stu[n]
+                    s_opt.step()
+                else:
+                    push("stu_nonfinite", 1.0)
                 s_ema.update(student)
 
         if (k + 1) % args.eval_every == 0 or k + 1 == args.iters:

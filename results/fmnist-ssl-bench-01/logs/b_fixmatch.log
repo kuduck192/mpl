@@ -1,0 +1,5 @@
+/kaggle/working/ssl_fmnist.py:661: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  Xtr = torch.from_numpy(xtr).to(dev)
+[b_fixmatch] labeled=40 unlabeled=55000 val=5000 params=157098 dev=cuda
+{"name": "b_fixmatch", "iter": 1000, "test_ema": 0.4556, "test": 0.723, "val_ema": 0.4668, "unl_ema": 0.4557, "minutes": 1.6089, "mask": 0.5895, "pl_acc_masked": 0.751, "pl_acc_all": 0.6498, "ent_u": 0.4773}
+[b_fixmatch] done in 1.6 min; final={"iter": 1000, "test_ema": 0.4556, "test": 0.723, "val_ema": 0.4668, "unl_ema": 0.4557272727272727, "minutes": 1.6088621020317078, "mask": 0.5895089596509934, "pl_acc_masked": 0.7509986868398931, "pl_acc_all": 0.6497768193483353, "ent_u": 0.4773392707109451}

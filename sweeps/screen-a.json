@@ -1,0 +1,78 @@
+{
+ "slug": "fmnist-ssl-screen-a",
+ "budget_hours": 11.0,
+ "jobs": [
+  {
+   "name": "scr_pess_lm0.1_r0.1",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pess_lm0.1_r0.3",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.3 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pess_lm0.1_r1.0",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 1.0 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pess_lm0.3_r0.1",
+   "args": "--bilevel two --feedback pess --lam_m 0.3 --radius 0.1 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pess_lm0.3_r0.3",
+   "args": "--bilevel two --feedback pess --lam_m 0.3 --radius 0.3 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pess_lm0.3_r1.0",
+   "args": "--bilevel two --feedback pess --lam_m 0.3 --radius 1.0 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pess_lm1.0_r0.1",
+   "args": "--bilevel two --feedback pess --lam_m 1.0 --radius 0.1 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pess_lm1.0_r0.3",
+   "args": "--bilevel two --feedback pess --lam_m 1.0 --radius 0.3 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pess_lm1.0_r1.0",
+   "args": "--bilevel two --feedback pess --lam_m 1.0 --radius 1.0 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pessraw_lm10_r0.3",
+   "args": "--bilevel two --feedback pess --meta_norm 0 --lam_m 10 --radius 0.3 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pessraw_lm30_r0.3",
+   "args": "--bilevel two --feedback pess --meta_norm 0 --lam_m 30 --radius 0.3 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "scr_pessraw_lm100_r0.3",
+   "args": "--bilevel two --feedback pess --meta_norm 0 --lam_m 100 --radius 0.3 --n_per_class 4 --seed 0 --iters 10000"
+  },
+  {
+   "name": "degen_opt_s1",
+   "args": "--bilevel two --feedback opt --radius 0.3 --warm_sup_iters 3000 --lam_u 0 --stu_view weak --meta_norm 0 --lam_m 30 --n_per_class 10 --seed 1 --iters 4000 --eval_every 250 --log_every 50"
+  },
+  {
+   "name": "degen_pess_s1",
+   "args": "--bilevel two --feedback pess --radius 0.3 --warm_sup_iters 3000 --lam_u 0 --stu_view weak --meta_norm 0 --lam_m 30 --n_per_class 10 --seed 1 --iters 4000 --eval_every 250 --log_every 50"
+  },
+  {
+   "name": "degen_opt_s2",
+   "args": "--bilevel two --feedback opt --radius 0.3 --warm_sup_iters 3000 --lam_u 0 --stu_view weak --meta_norm 0 --lam_m 30 --n_per_class 10 --seed 2 --iters 4000 --eval_every 250 --log_every 50"
+  },
+  {
+   "name": "degen_pess_s2",
+   "args": "--bilevel two --feedback pess --radius 0.3 --warm_sup_iters 3000 --lam_u 0 --stu_view weak --meta_norm 0 --lam_m 30 --n_per_class 10 --seed 2 --iters 4000 --eval_every 250 --log_every 50"
+  },
+  {
+   "name": "degen_opt_s3",
+   "args": "--bilevel two --feedback opt --radius 0.3 --warm_sup_iters 3000 --lam_u 0 --stu_view weak --meta_norm 0 --lam_m 30 --n_per_class 10 --seed 3 --iters 4000 --eval_every 250 --log_every 50"
+  },
+  {
+   "name": "degen_pess_s3",
+   "args": "--bilevel two --feedback pess --radius 0.3 --warm_sup_iters 3000 --lam_u 0 --stu_view weak --meta_norm 0 --lam_m 30 --n_per_class 10 --seed 3 --iters 4000 --eval_every 250 --log_every 50"
+  }
+ ]
+}

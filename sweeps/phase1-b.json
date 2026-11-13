@@ -1,0 +1,58 @@
+{
+ "slug": "fmnist-ssl-phase1-b",
+ "budget_hours": 11.0,
+ "jobs": [
+  {
+   "name": "tune_exp_lm0.3_r1.0",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 1.0 --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "tune_exp_lm0.3_r3.0",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "tune_exp_lm0.3_r10.0",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 10.0 --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "tune_exp_lm1.0_r1.0",
+   "args": "--bilevel two --feedback exp --lam_m 1.0 --radius 1.0 --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "tune_exp_lm1.0_r3.0",
+   "args": "--bilevel two --feedback exp --lam_m 1.0 --radius 3.0 --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "tune_exp_lm1.0_r10.0",
+   "args": "--bilevel two --feedback exp --lam_m 1.0 --radius 10.0 --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "tune_opt_lm0.1",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "tune_opt_lm0.3",
+   "args": "--bilevel two --feedback opt --lam_m 0.3 --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "tune_opt_lm1.0",
+   "args": "--bilevel two --feedback opt --lam_m 1.0 --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "tune_fixmatch_s0",
+   "args": "--base fixmatch --n_per_class 4 --seed 0 --iters 20000"
+  },
+  {
+   "name": "degen_exp_s1",
+   "args": "--bilevel two --feedback exp --radius 3.0 --warm_sup_iters 3000 --lam_u 0 --stu_view weak --meta_norm 0 --lam_m 30 --n_per_class 10 --seed 1 --iters 4000 --eval_every 250 --log_every 50"
+  },
+  {
+   "name": "degen_exp_s2",
+   "args": "--bilevel two --feedback exp --radius 3.0 --warm_sup_iters 3000 --lam_u 0 --stu_view weak --meta_norm 0 --lam_m 30 --n_per_class 10 --seed 2 --iters 4000 --eval_every 250 --log_every 50"
+  },
+  {
+   "name": "degen_exp_s3",
+   "args": "--bilevel two --feedback exp --radius 3.0 --warm_sup_iters 3000 --lam_u 0 --stu_view weak --meta_norm 0 --lam_m 30 --n_per_class 10 --seed 3 --iters 4000 --eval_every 250 --log_every 50"
+  }
+ ]
+}

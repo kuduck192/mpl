@@ -1,0 +1,9 @@
+/kaggle/working/ssl_fmnist.py:606: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  Xtr = torch.from_numpy(xtr).to(dev)
+[sup4_s0] labeled=40 unlabeled=55000 val=5000 params=157098 dev=cuda
+{"name": "sup4_s0", "iter": 1000, "test_ema": 0.1962, "test": 0.5998, "val_ema": 0.2064, "unl_ema": 0.1957, "minutes": 0.2618}
+{"name": "sup4_s0", "iter": 2000, "test_ema": 0.5233, "test": 0.6116, "val_ema": 0.529, "unl_ema": 0.5329, "minutes": 0.4072}
+{"name": "sup4_s0", "iter": 3000, "test_ema": 0.5082, "test": 0.6156, "val_ema": 0.5122, "unl_ema": 0.5159, "minutes": 0.5531}
+{"name": "sup4_s0", "iter": 4000, "test_ema": 0.5218, "test": 0.6224, "val_ema": 0.5232, "unl_ema": 0.5233, "minutes": 0.6969}
+{"name": "sup4_s0", "iter": 5000, "test_ema": 0.5581, "test": 0.6222, "val_ema": 0.563, "unl_ema": 0.5634, "minutes": 0.8399}
+[sup4_s0] done in 0.8 min; final={"iter": 5000, "test_ema": 0.5581, "test": 0.6222, "val_ema": 0.563, "unl_ema": 0.5634, "minutes": 0.8399020314216614}

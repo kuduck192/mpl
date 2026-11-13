@@ -1,0 +1,121 @@
+% Paste-ready LaTeX for the new material (complements pbpl_sections.tex of the review).
+% Assumes the notation of the review: L_l, L_u, p_w, J_u(\theta), \Pi_\theta, H, S(\hat Y_u).
+
+\subsection{Self-anchored admissible students}
+
+\begin{definition}[Self-anchored admissible set]\label{def:selfanchored}
+Let $X$ be the set of inputs the student is trained on (the unlabeled inputs, or a fixed
+sample of their augmented views). For an anchor $\theta$ and $r>0$ let
+\[
+\mathcal F_X(\theta):=\{\theta' : p_{\theta'}(X)=p_\theta(X)\},\qquad
+S_r(\theta):=\mathcal F_X(\theta)\cap\bar B(\theta,r).
+\]
+\end{definition}
+
+\begin{lemma}[Exact value function at every anchor]\label{lem:selfanchored}
+Let $D_X(\theta,\theta'):=\frac1{|X|}\sum_{x\in X}\mathrm{KL}\big(p_\theta(x)\,\|\,p_{\theta'}(x)\big)$.
+Then $D_X\ge 0$, $D_X(\theta,\theta')=0$ iff $\theta'\in\mathcal F_X(\theta)$, and
+$\min_{\theta'}D_X(\theta,\theta')=0$ is attained at $\theta'=\theta$, for every $\theta$
+regardless of the pseudo-labels, the augmentation and the procedure that produced
+$\theta$. If $p_\theta(X)=\hat Y$, then $\mathcal F_X(\theta)=S(\hat Y)$.
+\end{lemma}
+
+\begin{remark}
+Lemma~1 of the main text ($f^\star\equiv0$, the teacher is feasible) fails with
+student-side augmentation and hard pseudo-labels. Anchoring the admissible set at the
+student's own predictions restores $f^\star\equiv0$ in those settings without an
+auxiliary estimate of $f^\star$; the admissible students are those indistinguishable
+from the anchor on $X$, hence exactly as good at fitting the pseudo-labels as the anchor.
+\end{remark}
+
+\begin{definition}[Pessimistic and expected trust-region values]\label{def:values}
+\[
+V_r(\theta):=\max_{\theta'\in S_r(\theta)}L_l(\theta'),\qquad
+E_s(\theta):=\mathbb E_{\xi\sim\mathcal N(0,s^2I)}\,L_l\big(R_\theta(\theta+\xi)\big),
+\]
+where $R_\theta$ is the nearest-point retraction onto $\mathcal F_X(\theta)$, defined near
+$\theta$ when $J_u$ has constant rank there.
+\end{definition}
+
+\begin{proposition}[Expansions]\label{prop:expansions}
+Assume $J_u$ has constant rank near $\theta$, and write $\Pi=\Pi_\theta$, $H=\nabla^2L_l(\theta)$.
+\begin{enumerate}
+\item[(i)] $V_r(\theta)=L_l(\theta)+r\|\Pi\nabla L_l(\theta)\|+O(r^2)$, and if
+$\nabla L_l(\theta)=0$, $V_r(\theta)=L_l(\theta)+\frac{r^2}{2}\max\{0,\lambda_{\max}(\Pi H\Pi)\}+o(r^2)$.
+\item[(ii)] $E_s(\theta)=L_l(\theta)+s^2\langle\nabla L_l(\theta),m_\theta\rangle
++\frac{s^2}{2}\operatorname{tr}(\Pi H\Pi)+O(s^3)$ with $m_\theta=\frac12\operatorname{tr}D^2R_\theta(\theta)$;
+$m_\theta=0$ when the fiber is affine.
+\end{enumerate}
+\end{proposition}
+
+\subsection{Supervised-only pairs are not fixed points of trust-region feedback}
+
+Consider the one-step dynamics with soft pseudo-labels, full batch and the same inputs for
+teacher and student,
+\[
+\theta^+=\theta-\eta\nabla_\theta L_u(p_\phi(X),\theta),\qquad
+\phi^+=\phi-\eta_\phi A(\phi,\theta)\,v(\theta^+),\qquad
+A(\phi,\theta):=\tfrac{\eta}{N_u}J_u(\phi)^\top\operatorname{diag}(p_\theta(X))^{-1}J_u(\theta),
+\]
+where $A(\phi,\theta)v=\nabla_\phi L_l(\theta^+(\phi)+\varepsilon)$ for fixed $\varepsilon$, and
+$v_{\rm opt}(\theta)=\nabla L_l(\theta)$,
+$v_{\rm pess}(\theta)=\nabla L_l(\theta+\varepsilon^\star(\theta))$ with
+$\theta+\varepsilon^\star(\theta)\in\arg\max_{S_r(\theta)}L_l$,
+$v_{\rm exp}(\theta)=\mathbb E\,\nabla L_l(R_\theta(\theta+\xi))$.
+
+\begin{proposition}[Fixed points]\label{prop:fixedpoints}
+Let $\nabla L_l(w)=0$, let $J_u$ have constant rank near $w$, and consider the
+supervised-only pair $(\phi,\theta)=(w,w)$. Then $\theta^+=w$, $A:=A(w,w)\succeq0$ and
+$Av=0$ iff $J_u(w)v=0$. Moreover:
+\begin{enumerate}
+\item[(a)] $Av_{\rm opt}(w)=0$: the pair is a fixed point of meta pseudo-labeling.
+\item[(b)] If $\lambda:=\lambda_{\max}(\Pi H\Pi)>0$ is simple with unit eigenvector $u$, then
+$Av_{\rm pess}(w)=\pm r\,A(I-\Pi)Hu+o(r)$; the pair is not a fixed point for all small
+$r>0$ iff $(I-\Pi)Hu\neq0$.
+\item[(c)] If the hard radius is replaced by the proximity penalty $\|\varepsilon\|^2/(2\gamma)$
+with $\gamma<1/\lambda_{\max}(H)$ and a penalty $\beta D_X$, the inner maximizer is
+$\varepsilon^\star=0$ and the pair is a fixed point.
+\item[(d)] $Av_{\rm exp}(w)=s^2A\big(Hm_w+\tfrac12\nabla^3L_l(w)[\Pi]\big)+O(s^3)$, where
+$\nabla^3L_l(w)[\Pi]=\nabla_\theta\operatorname{tr}(\Pi\nabla^2L_l(\theta))|_{\theta=w}$ with $\Pi$
+frozen.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+$A=\frac{\eta}{N_u}J^\top\operatorname{diag}(p)^{-1}J\succeq0$, so $Av=0$ iff $v^\top Av=0$ iff $Jv=0$.
+(a) is immediate. (b) On the $C^2$ fiber, $\varepsilon=\Pi\varepsilon+O(\|\varepsilon\|^2)$ and
+$L_l(w+\varepsilon)=L_l(w)+\frac12\varepsilon^\top H\varepsilon+O(r^3)$; the maximum over $S_r(w)$
+is $\frac{r^2}{2}\lambda+O(r^3)$ and, $\lambda$ being simple and positive, every maximizer has
+norm $r(1-o(1))$ and direction $\pm u+o(1)$. Hence $v_{\rm pess}=H\varepsilon^\star+O(r^2)=\pm rHu+o(r)$,
+and $JHu=J(I-\Pi)Hu$ since $J\Pi=0$, while $J$ is injective on
+$\operatorname{range}(I-\Pi)$. (c) The inner objective is strictly concave with zero gradient
+at $0$. (d) Expand $\nabla L_l(R_w(w+\xi))$ to second order and take expectations as in
+Proposition~\ref{prop:expansions}.
+\end{proof}
+
+\begin{proposition}[First-order form of the pessimistic feedback]\label{prop:firstorder}
+If $\Pi_\theta\nabla L_l(\theta)\neq0$ and $J_u$ has constant rank near $\theta$, then as $r\to0$
+\[
+v_{\rm pess}(\theta)=\nabla L_l(\theta)+r\,\nabla_\theta\big\|\Pi\nabla L_l(\theta)\big\|\Big|_{\Pi\ \text{frozen}}+o(r),
+\]
+and $\|\Pi\nabla L_l\|^2=q^\top\big(K_{ll}-K_{lu}K_{uu}^\dagger K_{lu}^\top\big)q$ with $q$ the labeled
+residual and $K$ the tangent kernels. The teacher step is the meta pseudo-labels step
+plus $r$ times the gradient of the part of the labeled gradient that the unlabeled
+predictions cannot account for.
+\end{proposition}
+
+\paragraph{Numerical check.} One-hidden-layer tanh network ($d=131$, $C=3$, $N_l=6$ with
+soft labels, $N_u=25$, $\dim\ker J_u=81$) at $w$ with $\|\nabla L_l(w)\|=6\cdot10^{-9}$:
+$\|Av_{\rm opt}\|=2.9\cdot10^{-9}$, $\|Av_{\rm pess}\|/r=0.125,0.126,0.128,0.133$ for
+$r=0.02,0.05,0.1,0.2$ against the predicted slope $\|AHu\|=0.124$;
+$\|Av_{\rm exp}\|/s^2=0.36,0.43,0.59$ for $s=0.025,0.05,0.1$.
+
+\begin{remark}[Lazy regime]
+With linear features and the minimum-norm student anchor, $V_r(a(z))=\log(1+e^{r\omega-m(z)})$
+and $E_s(a(z))\approx\log(1+e^{s^2\omega^2/2-m(z)})$ for large margins: both are logistic
+losses of the same margin as the optimistic feedback. With several labeled points the
+teacher is pushed towards label-propagation pseudo-labels in both cases, PBPL weighting
+labeled point $j$ by $\sigma(r\omega_j-m_j)$ instead of $\sigma(-m_j)$, i.e. by roughly
+$e^{r\omega_j}$ more when $x_j$ lies far from the span of the unlabeled features. Gains beyond
+this reweighting must come from feature learning, which is what the experiments test.
+\end{remark}

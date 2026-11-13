@@ -1,0 +1,67 @@
+[
+ {
+  "name": "ca_pess",
+  "rc": 0,
+  "minutes": 0.3873424013455709
+ },
+ {
+  "name": "ca_exp",
+  "rc": 0,
+  "minutes": 0.38842426538467406
+ },
+ {
+  "name": "ca_opt",
+  "rc": 0,
+  "minutes": 0.10534143447875977
+ },
+ {
+  "name": "p_fm_amp",
+  "rc": 0,
+  "minutes": 0.802160632610321
+ },
+ {
+  "name": "p_fm_amp_cl",
+  "rc": 0,
+  "minutes": 0.6398621877034505
+ },
+ {
+  "name": "p_fm_fp32",
+  "rc": 0,
+  "minutes": 1.3434044957160949
+ },
+ {
+  "name": "p_pess_amp_bs192",
+  "rc": 0,
+  "minutes": 0.8800309181213379
+ },
+ {
+  "name": "p_pess_amp",
+  "rc": 0,
+  "minutes": 1.350016454855601
+ },
+ {
+  "name": "p_exp_amp",
+  "rc": 0,
+  "minutes": 1.2946818749109903
+ },
+ {
+  "name": "p_opt_amp",
+  "rc": 0,
+  "minutes": 0.9841330091158549
+ },
+ {
+  "name": "p_fibersam_amp",
+  "rc": 0,
+  "minutes": 0.8532755494117736
+ },
+ {
+  "name": "p_sup_amp",
+  "rc": 0,
+  "minutes": 0.1945996125539144
+ },
+ {
+  "name": "p_self_amp",
+  "rc": 0,
+  "minutes": 1.298190669218699
+ }
+]

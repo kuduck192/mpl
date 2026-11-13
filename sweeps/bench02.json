@@ -1,0 +1,58 @@
+{
+ "slug": "fmnist-ssl-bench-02",
+ "budget_hours": 1.0,
+ "jobs": [
+  {
+   "name": "ca_pess",
+   "args": "--check_amp 1 --bilevel two --feedback pess"
+  },
+  {
+   "name": "ca_exp",
+   "args": "--check_amp 1 --bilevel two --feedback exp"
+  },
+  {
+   "name": "ca_opt",
+   "args": "--check_amp 1 --bilevel two --feedback opt"
+  },
+  {
+   "name": "p_fm_amp",
+   "args": "--base fixmatch --amp 1 --n_per_class 4 --iters 1000 --eval_every 1000 --log_every 100"
+  },
+  {
+   "name": "p_fm_fp32",
+   "args": "--base fixmatch --amp 0 --n_per_class 4 --iters 1000 --eval_every 1000 --log_every 100"
+  },
+  {
+   "name": "p_fm_amp_cl",
+   "args": "--base fixmatch --amp 1 --channels_last 1 --n_per_class 4 --iters 1000 --eval_every 1000 --log_every 100"
+  },
+  {
+   "name": "p_pess_amp",
+   "args": "--bilevel two --feedback pess --amp 1 --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "p_pess_amp_bs192",
+   "args": "--bilevel two --feedback pess --amp 1 --stu_bs 192 --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "p_exp_amp",
+   "args": "--bilevel two --feedback exp --amp 1 --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "p_opt_amp",
+   "args": "--bilevel two --feedback opt --amp 1 --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "p_self_amp",
+   "args": "--bilevel self --feedback pess --amp 1 --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "p_fibersam_amp",
+   "args": "--lab_reg fibersam --amp 1 --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "p_sup_amp",
+   "args": "--base sup --amp 1 --n_per_class 4 --iters 1000 --eval_every 1000 --log_every 100"
+  }
+ ]
+}

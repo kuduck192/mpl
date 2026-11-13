@@ -1,0 +1,42 @@
+[
+ {
+  "name": "b_sup",
+  "rc": 0,
+  "minutes": 0.4953417738278707
+ },
+ {
+  "name": "b_fixmatch",
+  "rc": 0,
+  "minutes": 1.6614497621854147
+ },
+ {
+  "name": "b_two_opt",
+  "rc": 0,
+  "minutes": 1.8095435619354248
+ },
+ {
+  "name": "b_two_pess",
+  "rc": 0,
+  "minutes": 2.631225534280141
+ },
+ {
+  "name": "b_two_exp",
+  "rc": 0,
+  "minutes": 2.6614065249760945
+ },
+ {
+  "name": "b_fibersam",
+  "rc": 0,
+  "minutes": 1.8130549351374308
+ },
+ {
+  "name": "b_self_pess",
+  "rc": 0,
+  "minutes": 2.679961391290029
+ },
+ {
+  "name": "b_flexmatch",
+  "rc": 0,
+  "minutes": 1.6619434158007305
+ }
+]

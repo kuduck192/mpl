@@ -1,0 +1,11 @@
+[{"stream_name":"stdout","time":17.823779971,"data":"GPUs: 2 ['Tesla T4', 'Tesla T4']\n"}
+,{"stream_name":"stdout","time":3939.117563776,"data":"[gpu1] two_opt_4_s0 rc=0 65.4 min :: [two_opt_4_s0] done in 65.2 min; final={\"iter\": 20000, \"test_ema\": 0.714, \"test\": 0.7078, \"val_ema\": 0.7214, \"unl_ema\": 0.7204545454545455, \"minutes\": 65.15958959261576, \"stu_test_ema\": 0.7186, \"stu_test\": 0.7087, \"stu_val_ema\": 0.7298, \"mask\": 0.8780424529910088, \"pl_acc_masked\": 0.7567664092635623, \"pl_acc_all\": 0.7162321771979332, \"ent_u\": 0.07984167855232954, \"stu_loss\": 0.22994993701577188, \"\n"}
+,{"stream_name":"stdout","time":5333.432270317,"data":"[gpu0] two_pess_4_s0 rc=0 88.6 min :: [two_pess_4_s0] done in 88.5 min; final={\"iter\": 20000, \"test_ema\": 0.6825, \"test\": 0.68, \"val_ema\": 0.6948, \"unl_ema\": 0.6924363636363636, \"minutes\": 88.53365596930186, \"stu_test_ema\": 0.692, \"stu_test\": 0.6774, \"stu_val_ema\": 0.7098, \"mask\": 0.8568080756664276, \"pl_acc_masked\": 0.7301286081159986, \"pl_acc_all\": 0.6868437823653221, \"ent_u\": 0.09181024470925331, \"stu_loss\": 0.24891139252483846, \"l\n"}
+,{"stream_name":"stdout","time":5333.432889765,"data":"ALL DONE in 88.9 min\n"}
+,{"stream_name":"stderr","time":5336.836146761,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":5336.836182713,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":5337.326990884,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":5337.327018715,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":5338.464971467,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":5339.922828069,"data":"[NbConvertApp] Writing 332169 bytes to __results__.html\n"}
+]

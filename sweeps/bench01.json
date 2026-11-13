@@ -1,0 +1,38 @@
+{
+ "slug": "fmnist-ssl-bench-01",
+ "budget_hours": 1.0,
+ "jobs": [
+  {
+   "name": "b_fixmatch",
+   "args": "--base fixmatch --n_per_class 4 --iters 1000 --eval_every 1000 --log_every 100"
+  },
+  {
+   "name": "b_sup",
+   "args": "--base sup --n_per_class 4 --iters 1000 --eval_every 1000 --log_every 100"
+  },
+  {
+   "name": "b_two_opt",
+   "args": "--bilevel two --feedback opt --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "b_two_pess",
+   "args": "--bilevel two --feedback pess --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "b_two_exp",
+   "args": "--bilevel two --feedback exp --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "b_self_pess",
+   "args": "--bilevel self --feedback pess --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "b_fibersam",
+   "args": "--lab_reg fibersam --n_per_class 4 --iters 500 --eval_every 500 --log_every 100"
+  },
+  {
+   "name": "b_flexmatch",
+   "args": "--base flexmatch --n_per_class 4 --iters 1000 --eval_every 1000 --log_every 100"
+  }
+ ]
+}

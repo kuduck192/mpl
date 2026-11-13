@@ -1,0 +1,67 @@
+[
+ {
+  "name": "fm10_s0",
+  "rc": 0,
+  "minutes": 30.437696464856465
+ },
+ {
+  "name": "fm4_s0",
+  "rc": 0,
+  "minutes": 31.324607396125792
+ },
+ {
+  "name": "sup4_s0",
+  "rc": 0,
+  "minutes": 0.8869632363319397
+ },
+ {
+  "name": "sup10_s0",
+  "rc": 0,
+  "minutes": 0.8819967269897461
+ },
+ {
+  "name": "t_two_opt",
+  "rc": 0,
+  "minutes": 7.101628645261129
+ },
+ {
+  "name": "t_two_pess",
+  "rc": 0,
+  "minutes": 8.862841204802196
+ },
+ {
+  "name": "t_two_exp",
+  "rc": 0,
+  "minutes": 10.403530474503835
+ },
+ {
+  "name": "flex4_s0",
+  "rc": 0,
+  "minutes": 30.440547585487366
+ },
+ {
+  "name": "t_two_sam",
+  "rc": 0,
+  "minutes": 7.250984652837118
+ },
+ {
+  "name": "t_two_pess_r1",
+  "rc": 0,
+  "minutes": 8.56390510002772
+ },
+ {
+  "name": "t_fibersam",
+  "rc": 0,
+  "minutes": 5.252638312180837
+ },
+ {
+  "name": "t_self_pess",
+  "rc": 0,
+  "minutes": 8.835523851712544
+ },
+ {
+  "name": "t_sam",
+  "rc": 0,
+  "minutes": 3.7335922002792357
+ }
+]
