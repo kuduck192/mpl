@@ -286,10 +286,11 @@ def wave3(it=20000):
     rep-c: EBPL and the one-network optimistic / pessimistic pair to 5 seeds, SAM-feedback to
            5 seeds, then EBPL on seeds 6-10.
     rep-d: fiber-SAM and labeled-loss SAM (the strongest controls) on seeds 4-10, the
-           one-network optimistic control on seeds 6-10, and a screen (seed 0, 10k iterations,
-           validation) of the one-network pair at the exact meta-gradient scale
+           a screen (seed 0, 10k iterations, validation) of the one-network pair with the
+           running-RMS normalisation of the main runs and at the exact meta-gradient scale
            (--meta_norm 0), where the optimistic feedback really vanishes as the anchor fits
-           the labels (the running-RMS normalisation of the main runs rescales it back up).
+           the labels (the normalisation rescales it back up), then the one-network pair on
+           seeds 6-10.
            Jobs at the end of a queue are skipped by the runner when they no longer fit.
     python sweeps/make_sweeps.py wave3"""
     def job(name, a, sd, est):
@@ -308,13 +309,17 @@ def wave3(it=20000):
     write("fmnist-ssl-rep-c", c, float(os.environ.get("REPC_HOURS", 4.5)))
     d = [job("abl_fibersam", FIBSAM, sd, 25) for sd in range(4, 11)]
     d += [job("abl_labsam", LABSAM, sd, 15) for sd in range(4, 11)]
-    d += [job("abl_selfopt", SELF_O, sd, 30) for sd in range(6, 11)]
-    scr = "--n_per_class 4 --seed 0 --iters 10000 --meta_norm 0"
+    # screen of the one-network pair (seed 0, 10k iterations, validation): running-RMS
+    # normalisation (as in the main runs) and exact meta-gradient scale
+    scr = "--n_per_class 4 --seed 0 --iters 10000"
+    d.append({"name": "scr_selfopt_lm0.1", "args": f"{SELF_O} {scr}", "est_min": 16})
+    d.append({"name": "scr_selfpess_lm0.1", "args": f"{SELF_P} {scr}", "est_min": 22})
     for lm in (3, 10):
-        d.append({"name": f"scr_selfopt_raw_lm{lm}", "args": f"--bilevel self --feedback opt --lam_m {lm} {scr}", "est_min": 16})
-        d.append({"name": f"scr_selfpess_raw_lm{lm}", "args": f"--bilevel self --feedback pess --lam_m {lm} --radius 0.1 {scr}", "est_min": 22})
+        d.append({"name": f"scr_selfopt_raw_lm{lm}", "args": f"--bilevel self --feedback opt --lam_m {lm} --meta_norm 0 {scr}", "est_min": 16})
+        d.append({"name": f"scr_selfpess_raw_lm{lm}", "args": f"--bilevel self --feedback pess --lam_m {lm} --radius 0.1 --meta_norm 0 {scr}", "est_min": 22})
+    d += [job("abl_selfopt", SELF_O, sd, 30) for sd in range(6, 11)]
     d += [job("abl_self", SELF_P, sd, 41) for sd in range(6, 11)]
-    write("fmnist-ssl-rep-d", d, float(os.environ.get("REPD_HOURS", 4.5)))
+    write("fmnist-ssl-rep-d", d, float(os.environ.get("REPD_HOURS", 5.0)))
 
 
 def remainder():
