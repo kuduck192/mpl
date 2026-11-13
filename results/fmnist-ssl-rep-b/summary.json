@@ -1,0 +1,87 @@
+[
+ {
+  "name": "fixmatch_4_s6",
+  "rc": 0,
+  "minutes": 10.974166663487752
+ },
+ {
+  "name": "fixmatch_4_s7",
+  "rc": 0,
+  "minutes": 11.30570236047109
+ },
+ {
+  "name": "fixmatch_4_s8",
+  "rc": 0,
+  "minutes": 10.658734794457754
+ },
+ {
+  "name": "fixmatch_4_s9",
+  "rc": 0,
+  "minutes": 11.152832980950674
+ },
+ {
+  "name": "fixmatch_4_s10",
+  "rc": 0,
+  "minutes": 10.640334943930307
+ },
+ {
+  "name": "fmtuned_4_s1",
+  "rc": 0,
+  "minutes": 11.125202985604604
+ },
+ {
+  "name": "fmtuned_4_s2",
+  "rc": 0,
+  "minutes": 10.729883054892221
+ },
+ {
+  "name": "fmtuned_4_s3",
+  "rc": 0,
+  "minutes": 11.18638877471288
+ },
+ {
+  "name": "fmtuned_4_s4",
+  "rc": 0,
+  "minutes": 10.774451494216919
+ },
+ {
+  "name": "fmtuned_4_s5",
+  "rc": 0,
+  "minutes": 11.22161183754603
+ },
+ {
+  "name": "fmtuned_4_s6",
+  "rc": 0,
+  "minutes": 10.704462969303131
+ },
+ {
+  "name": "fmtuned_4_s7",
+  "rc": 0,
+  "minutes": 11.144970162709553
+ },
+ {
+  "name": "fmtuned_4_s8",
+  "rc": 0,
+  "minutes": 10.704915010929108
+ },
+ {
+  "name": "fmtuned_4_s9",
+  "rc": 0,
+  "minutes": 11.208484808603922
+ },
+ {
+  "name": "fmtuned_4_s10",
+  "rc": 0,
+  "minutes": 10.734311854839325
+ },
+ {
+  "name": "abl_selfopt_4_s1",
+  "rc": 0,
+  "minutes": 28.345721689860024
+ },
+ {
+  "name": "abl_selfopt_4_s2",
+  "rc": 0,
+  "minutes": 27.03543283144633
+ }
+]
