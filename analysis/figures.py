@@ -164,29 +164,46 @@ def degeneracy():
 
 
 def figure1():
+    """Figure 1 protocol of the review on FashionMNIST.  Cells whose anchor did not fit the
+    pseudo-labels (L_u(anchor) > 0.05) are dropped: there the tolerance 2 L_u(anchor) admits
+    students far from the fiber and the spread is an artefact."""
     f = sorted(glob.glob(os.path.join(ROOT, "results/**/figure1.json"), recursive=True))
     d = json.load(open(f[0]))
     rows = [r for v in d["results"].values() for r in v]
-    fig, ax = plt.subplots(figsize=(4.6, 2.9))
+    ok = [r for r in rows if r["Lu_anchor"] <= 0.05]
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.8))
+    ax = axes[0]
     for k, lab, col, ls in [("Ll_pess", "pessimistic student", SERIES[1], "--"),
                             ("Ll_anchor", "trajectory student (anchor)", SERIES[2], "-"),
                             ("Ll_opt", "optimistic student", SERIES[0], ":")]:
         by = defaultdict(list)
-        for r in rows:
+        for r in ok:
             by[r["rho"]].append(r[k])
         xs = sorted(by)
         m = np.array([np.mean(by[x]) for x in xs])
-        s = np.array([np.std(by[x]) for x in xs])
         ax.plot(xs, m, ls=ls, marker="o", ms=4, color=col, label=lab)
-        ax.fill_between(xs, m - s, m + s, color=col, alpha=0.15, lw=0)
     ax.set_xlabel("pseudo-label error rate ρ")
     ax.set_ylabel("labeled CE")
-    ax.legend(fontsize=7)
-    ax.set_title("Admissible students around the anchor (FashionMNIST CNN, 3 seeds)", fontsize=8, color=INK)
+    ax.legend(fontsize=7, loc="upper left")
+    ax.set_title("Labeled loss of admissible students (the three curves overlap)", fontsize=8, color=INK)
+    ax = axes[1]
+    by = defaultdict(list)
+    for r in ok:
+        by[r["rho"]].append(max(r["Ll_pess"] - r["Ll_opt"], 1e-5))
+    xs = sorted(by)
+    for x in xs:
+        ax.scatter([x] * len(by[x]), by[x], s=12, color=SERIES[1], alpha=0.6, lw=0)
+    ax.plot(xs, [np.mean(by[x]) for x in xs], color=SERIES[1], marker="o", ms=4)
+    ax.set_yscale("log")
+    ax.set_xlabel("pseudo-label error rate ρ")
+    ax.set_ylabel("L_l(pess) − L_l(opt)  (nats)")
+    ax.set_title("Pessimistic–optimistic gap (dots: seeds, line: mean)", fontsize=8, color=INK)
+    fig.suptitle(f"Figure 1 protocol, FashionMNIST CNN, 3 seeds ({len(ok)}/{len(rows)} cells with a fitted anchor)",
+                 fontsize=8, color=INK)
     fig.tight_layout()
     os.makedirs(OUT, exist_ok=True)
     fig.savefig(os.path.join(OUT, "figure1_fmnist.png"))
-    print("wrote", OUT)
+    print("wrote", OUT, len(ok), "/", len(rows), "cells")
 
 
 def main():

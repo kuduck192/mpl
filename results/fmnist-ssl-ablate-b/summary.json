@@ -1,0 +1,52 @@
+[
+ {
+  "name": "abl_fibersam_4_s1",
+  "rc": 0,
+  "minutes": 23.082972288131714
+ },
+ {
+  "name": "abl_labsam_4_s1",
+  "rc": 0,
+  "minutes": 13.524387260278067
+ },
+ {
+  "name": "abl_pbplflex_4_s1",
+  "rc": 0,
+  "minutes": 39.01252115567525
+ },
+ {
+  "name": "abl_fibersam_4_s2",
+  "rc": 0,
+  "minutes": 22.52315311829249
+ },
+ {
+  "name": "abl_labsam_4_s2",
+  "rc": 0,
+  "minutes": 13.514649097124735
+ },
+ {
+  "name": "abl_pbplflex_4_s2",
+  "rc": 0,
+  "minutes": 39.268502867221834
+ },
+ {
+  "name": "abl_fibersam_4_s3",
+  "rc": 0,
+  "minutes": 22.741644930839538
+ },
+ {
+  "name": "abl_labsam_4_s3",
+  "rc": 0,
+  "minutes": 13.846827129522959
+ },
+ {
+  "name": "abl_pbplflex_4_s3",
+  "rc": 0,
+  "minutes": 38.66821231842041
+ },
+ {
+  "name": "figure1",
+  "rc": 0,
+  "minutes": 161.0733869433403
+ }
+]

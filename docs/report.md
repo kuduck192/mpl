@@ -223,9 +223,9 @@ lại trên fiber.
 
 ## 6. Ablation (40 nhãn, seed 1–3)
 
-Dữ liệu `results/fmnist-ssl-ablate-a`; bảng sinh bởi `analysis/ablation_table.py` (đỉnh, mức
-giảm cuối, chẩn đoán trung bình 3 lần đánh giá cuối) và `analysis/main_table.py --ref pbpl`
-(so sánh cặp). Seed 4–5 của hai ablation dưới đây đang chạy trong `rep-b`.
+Dữ liệu `results/fmnist-ssl-ablate-{a,b}`; bảng sinh bởi `analysis/ablation_table.py` (đỉnh,
+mức giảm cuối, chẩn đoán trung bình 3 lần đánh giá cuối) và `analysis/main_table.py --ref pbpl`
+(so sánh cặp). Seed 4–5 của SAM-feedback và PBPL một mạng đang chạy trong `rep-b`.
 
 | biến thể (40 nhãn, seed 1–3) | cuối | đỉnh | giảm cuối | chọn theo val | − FixMatch (cặp) | − PBPL (cặp) | $L_l$ student bị đẩy | cos(c, c_opt) | phút/run |
 |---|---|---|---|---|---|---|---|---|---|
@@ -234,6 +234,9 @@ giảm cuối, chẩn đoán trung bình 3 lần đánh giá cuối) và `analys
 | **PBPL** | 73.01 | 74.02 | 1.01 | 73.98 | +2.36 ± 1.32, 3/3, p = 0.09 | — | 0.271 (anchor 0.124) | 0.83 | 40.5 |
 | SAM-feedback ($\varepsilon=r\,g/\|g\|$ reset mỗi bước, không co về fiber) | 74.06 | 74.18 | 0.12 | 74.14 | +3.41 ± 0.41, 3/3, p = 0.005 | +1.05 ± 1.37, 2/3, p = 0.31 | 0.457 (anchor 0.150) | 0.80 | 29.2 |
 | PBPL một mạng (look-ahead của chính teacher) | 73.37 | 74.37 | 1.00 | 74.37 | +2.72 ± 1.39, 3/3, p = 0.08 | +0.36 ± 0.72, 2/3, p = 0.47 | 0.057 (anchor 0.0016) | 0.33 | 38.9 |
+| FixMatch + SAM trên labeled loss (một mạng, không bilevel, $r=0.1$) | 74.74 | 74.83 | 0.08 | 74.62 | +4.10 ± 4.95, 2/3, p = 0.29 | +1.74 ± 5.01, 2/3, p = 0.61 | teacher 0.0017 | — | 13.6 |
+| FixMatch + fiber-SAM (bước pessimistic trên fiber, tâm tại teacher, không student) | 75.09 | 75.18 | 0.10 | 75.08 | +4.44 ± 6.17, 2/3, p = 0.34 | +2.08 ± 6.07, 2/3, p = 0.61 | teacher 0.0013 | — | 22.7 |
+| PBPL + FlexMatch (so với FlexMatch 71.11) | 73.59 | 75.06 | 1.46 | 75.02 | +2.48 ± 5.96 so với FlexMatch, 2/3, p = 0.55 | +0.59 ± 3.77, 2/3, p = 0.81 | 0.295 (anchor 0.128) | 0.83 | 38.9 |
 
 Đọc kết quả:
 
@@ -255,8 +258,18 @@ giảm cuối, chẩn đoán trung bình 3 lần đánh giá cuối) và `analys
 - Nếu chọn checkpoint theo validation, mọi biến thể có feedback bị đẩy (PBPL, SAM-feedback,
   một mạng) nằm trong 73.98–74.37, hơn FixMatch 1.4–1.8 điểm (2/3 hoặc 3/3 seed, p ≥ 0.24).
 
-_(Ablation-b — FixMatch + fiber-SAM, FixMatch + SAM trên labeled loss, PBPL + FlexMatch và
-Figure 1 — đang chạy.)_
+- **Một regularizer không bilevel làm được điều tương tự.** SAM trên labeled loss của chính
+  teacher không có student, không có feedback qua pseudo-label, chi phí 1.2× FixMatch. Nó đạt
+  74.74 trung bình và không suy giảm cuối huấn luyện (0.08 điểm), cao hơn PBPL 1.7 điểm. Phương
+  sai lớn: theo seed, so với FixMatch là +4.5 / +8.8 / −1.1 điểm, còn PBPL là +0.8 / +3.3 / +2.9.
+  Fiber-SAM (bước pessimistic có ràng buộc fiber nhưng tâm tại teacher) cho kết quả gần như SAM
+  thường (+4.3 / +10.6 / −1.7). Ba seed không đủ để xếp hạng ba phương pháp. Điều chắc chắn là
+  **dữ liệu không cho phép quy lợi ích của PBPL ở 40 nhãn cho feedback bilevel**: một bước SAM
+  trên labeled loss, rẻ hơn 3 lần, cho lợi ích ít nhất tương đương. Kiểu lợi ích cũng khác nhau.
+  SAM giúp nhiều nhất ở seed FixMatch sụp đổ (seed 2: 65.9 → 74.7), còn PBPL đều hơn giữa các seed.
+  SAM trên labeled loss được chạy thêm seed 4–10 (`rep-c`) để so với PBPL trên 10 seed.
+- **PBPL + FlexMatch** hơn FlexMatch +2.48 ± 5.96 điểm (2/3 seed). Regularizer chuyển được sang
+  base khác, cùng lưu ý về phương sai; ở seed 2 nó kém FlexMatch (66.0 so với 70.4).
 
 ## 7. Tinh chỉnh FixMatch: đối chứng công bằng
 
@@ -281,3 +294,33 @@ nhãn là 3–4 điểm, nên chưa đủ để kết luận. Nhưng nó cho th�
 cạnh FixMatch chưa tinh chỉnh. Cấu hình này ("FixMatch tuned") được chạy theo giao thức chính
 trên seed 1–10 (`rep-b`). PBPL với cùng $\lambda_u=2$ (tức thêm regularizer bilevel vào FixMatch
 đã tinh chỉnh, giữ nguyên $\lambda_m$, $r$) là phép so sánh tiếp theo (`rep-c`).
+
+## 8. Figure 1 của bản thảo theo giao thức của review
+
+`checks/figure1_fmnist.py` (giao thức Sec. 6.2 của review; dữ liệu
+`results/fmnist-ssl-ablate-b/results/figure1.json`; 161 phút trên một T4):
+
+1. pseudo-label = nhãn thật, lật ngẫu nhiên một tỉ lệ ρ, làm mềm (độ tin 0.9);
+2. anchor $a$ huấn luyện *chỉ* trên $L_u$ từ một init cố định (1 500 bước Adam, 2 000 ảnh không nhãn);
+3. student pessimistic / optimistic = projected ascent / descent trên $\pm L_l-\beta L_u$
+   ($\beta=10$) trong $B(a, r)$, $r=0.3\,\|a-\theta_0\|$, 2 lần khởi động × 300 bước;
+4. chỉ nhận iterate có $L_u\le 2\,L_u(a)$.
+
+3 seed × 6 mức ρ. 3/18 ô có anchor không khớp pseudo-label ($L_u(a)$ = 0.14–2.4) bị loại, vì
+ở đó dung sai $2L_u(a)$ nhận cả những student xa fiber.
+
+![figure1](figures/figure1_fmnist.png)
+
+- Labeled loss của anchor tăng đều theo ρ (0.61 → 1.83). Nhiễu pseudo-label truyền sang
+  labeled loss của trajectory student như dự đoán.
+- **Khoảng pessimistic–optimistic gần như bằng 0:** $L_l$(pess) − $L_l$(opt) = 2–7·10⁻³ nats ở
+  mọi ρ, và iterate được nhận cách anchor 0–0.24, tức ≤ 6% bán kính. Với dung sai $2L_u(a)$
+  ($L_u(a)\approx 10^{-3}$), tập chấp nhận được mà bộ giải bậc nhất nhìn thấy gần như chỉ là
+  chính anchor. Hình 1 của bản thảo (khoảng cách lớn giữa student pessimistic và optimistic,
+  tăng theo ρ) **không tái lập được** với giao thức này.
+- Điều này không mâu thuẫn với Mục 5. Không suy biến là về *gradient* của giá trị pessimistic:
+  nó khác 0 với mọi $r>0$, kể cả khi giá trị chỉ tăng chút ít. Mục 5 cũng dùng dung sai lỏng hơn
+  (KL tới anchor ≤ 2·10⁻³ trên batch, BN theo batch) và bộ giải ascent-rồi-co. Ở đây dùng bộ giải
+  penalty của review, bộ giải mà pilot (Mục 2, lỗi 2) đã thấy là không đáng tin. Chưa thử giao
+  thức này với bộ giải ascent-rồi-co.
+
