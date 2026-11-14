@@ -272,6 +272,8 @@ thể sau đó được đưa lên 10 seed (`rep-c` đến `rep-f`); bảng 10 s
   về phía labeled loss cao hơn*, không phải tính chấp nhận được mà định nghĩa pessimistic đòi
   hỏi. Điều này khớp với chẩn đoán tĩnh (Mục 5): SAM-feedback cũng không triệt tiêu tại các cặp
   supervised-only, chỉ là nó rời fiber. Trong huấn luyện, việc rời fiber với $r=0.1$ không gây hại.
+  Trên 5 seed (Mục 9.2), SAM-feedback vẫn ít nhất bằng PBPL (+0.35 ± 2.07, 3/5), nhưng nhận xét
+  "không suy giảm" thì không giữ được: ở seed 5 nó giảm từ 74.0 xuống 66.7.
 - **Một mạng là đủ.** PBPL dạng look-ahead của chính teacher (không có student phụ) ngang PBPL
   hai mạng (+0.36 ± 0.72). Ở đây anchor là teacher đã thấy dữ liệu có nhãn, nên labeled loss
   của anchor chỉ 0.0016: đúng vùng feedback optimistic suy biến (Prop. N2a). Feedback
@@ -303,40 +305,51 @@ thể sau đó được đưa lên 10 seed (`rep-c` đến `rep-f`); bảng 10 s
 
 `abl_selfopt` giống hệt PBPL một mạng (`abl_self`), chỉ khác quy tắc feedback: $v=\nabla
 L_l(\theta')$ thay cho $\nabla L_l(\theta'+\varepsilon)$, cùng $\lambda_m=0.1$ và cùng chuẩn
-hóa. Dữ liệu `results/fmnist-ssl-rep-b`. Chỉ seed 1–2 vừa ngân sách kernel; seed 3–10 chạy
-trong `rep-c`/`rep-d`.
+hóa. Ở cấu hình này anchor là chính teacher, mạng đã thấy dữ liệu có nhãn, nên đây là nơi điều
+kiện của Prop. N2 (anchor khớp nhãn) thực sự xảy ra. Dữ liệu `results/fmnist-ssl-{ablate-a,rep-b,
+rep-c,rep-d}`; PBPL một mạng seed 7–10 đang chạy trong `rep-e`.
 
-| một mạng, 40 nhãn, seed 1–2 | cuối | đỉnh | giảm cuối | chọn theo val | $L_l$ anchor (vòng 20k) | $\|c\|$ thô, vòng 1k → 20k | phút/run |
-|---|---|---|---|---|---|---|---|
-| optimistic (`abl_selfopt`) | 75.90 | 75.98 | 0.08 | 75.86 | 3–7·10⁻⁴ | 8.6 → 0.44 (s1); 7.8 → 0.27 (s2) | 27.6 |
-| pessimistic (`abl_self`) | 72.42 | 73.93 | 1.51 | 73.93 | 5–7·10⁻⁴ | 42 → 32 (s1); 16 → 41 (s2) | 39.0 |
-| FixMatch (tham chiếu) | 70.32 | 73.17 | 2.85 | 73.16 | — | — | 11.3 |
+| một mạng, 40 nhãn | n | cuối | đỉnh | giảm cuối | chọn theo val | − FixMatch (cặp, vòng cuối) | $L_l$ anchor, vòng 20k | $\|c\|$ thô | phút/run |
+|---|---|---|---|---|---|---|---|---|---|
+| optimistic (`abl_selfopt`) | 10 | 74.73 | 75.67 | 0.94 | 75.56 | +1.98 ± 2.64, 7/10, p = 0.041 | 3·10⁻⁴–2·10⁻³ | co 12–39 lần từ vòng 1k đến 20k (trung vị 20) | 27.8 |
+| pessimistic (`abl_self`) | 6 | 72.44 | 73.39 | 0.95 | 73.39 | +1.41 ± 1.90, 5/6, p = 0.13 | 5·10⁻⁴–2·10⁻³ | không co; ở vòng 20k gấp 19–65 lần feedback optimistic trên cùng anchor | 39.5 |
+| FixMatch (tham chiếu) | 10 | 72.75 | 74.58 | 1.84 | 74.52 | — | — | — | 11.1 |
 
-Optimistic − pessimistic = +3.47 ± 0.86 điểm (seed 1: 78.9 so với 76.0; seed 2: 72.9 so với
-68.9).
+Optimistic − pessimistic trên cùng seed: +1.86 ± 2.93 điểm (4/6, p = 0.18).
 
-- **Về độ lớn feedback, lý thuyết đúng.** Ở cấu hình một mạng anchor khớp nhãn (labeled loss
-  3–7·10⁻⁴), và chuẩn feedback optimistic thô giảm 20–30 lần trong lúc huấn luyện, đúng như
-  N2(a). Feedback pessimistic thì không giảm: ở vòng 20k nó lớn gấp 50–65 lần feedback
-  optimistic tính trên cùng anchor.
-- **Về accuracy, kết quả ngược với điều lý thuyết gợi ý.** Bản optimistic hơn bản pessimistic
-  3.47 điểm trên cả 2 seed và gần như không suy giảm cuối huấn luyện (0.08 so với 1.51 điểm).
-  Hai seed là quá ít để xếp hạng, nhưng đủ để thấy feedback optimistic suy biến không làm
-  phương pháp sụp về FixMatch.
+- **Về độ lớn feedback, lý thuyết đúng.** Anchor khớp nhãn (labeled loss 3·10⁻⁴–2·10⁻³ ở vòng
+  20k), và chuẩn feedback optimistic thô co 12–39 lần trong lúc huấn luyện, đúng như N2(a).
+  Feedback pessimistic thì không co: ở vòng 20k nó lớn gấp 19–65 lần feedback optimistic tính
+  trên cùng anchor (N2(b)).
+- **Về accuracy, kết quả ngược với điều lý thuyết gợi ý.** Bản optimistic không kém bản
+  pessimistic mà còn hơn (+1.86 điểm, 6 seed), và là biến thể bilevel duy nhất hơn FixMatch
+  với p < 0.05 (chưa hiệu chỉnh; Mục 9.2). Feedback optimistic suy biến không làm phương pháp
+  sụp về FixMatch.
 - **Giải thích phù hợp với log: chuẩn hóa RMS chạy (`--meta_norm 2`).** Feedback được chia cho
   RMS chạy của chính nó trước khi vào $L_{\rm meta}$. Cách chuẩn hóa này được chọn ở Mục 3 vì
   tốt hơn thang meta-gradient chính xác. Khi feedback optimistic co lại, RMS chạy co theo,
-  nên bước meta vẫn có độ lớn cỡ 1: từ vòng 9k đến 20k, $L_{\rm meta}$ sau chuẩn hóa nằm
-  trong khoảng −0.5 đến +0.1 ở cả hai biến thể (trung vị −0.08 / −0.11 với optimistic,
-  −0.07 / −0.15 với pessimistic, seed 1 / 2), dù chuẩn thô chênh nhau 20–100 lần (optimistic
-  0.27–6.2, pessimistic 8.4–64). Như vậy chuẩn hóa xóa đúng
-  thứ mà N2(a) nói tới (độ lớn tiến về 0). Chỉ còn *hướng* của feedback, và hướng gradient
-  labeled loss tại một mạng gần khớp nhãn vẫn mang thông tin. Với cài đặt này, định lý không
-  suy biến không phân biệt được hai biến thể về accuracy.
-- **Phép thử còn lại.** Ở thang chính xác (`--meta_norm 0`), feedback optimistic thực sự tắt
-  dần. Một lượt sàng lọc cặp một mạng ở thang này (seed 0, 10k vòng, $\lambda_m\in\{3, 10\}$)
-  nằm trong `rep-d`. Ở cấu hình hai mạng, thang chính xác với $\lambda_m$ = 10–100 làm hỏng mọi
-  biến thể (val 0.64–0.69 so với 0.74 của FixMatch, Mục 3), nên cần $\lambda_m$ nhỏ hơn.
+  nên bước meta vẫn có độ lớn cỡ 1. Từ vòng 9k đến 20k, trung vị của $L_{\rm meta}$ sau chuẩn
+  hóa là −0.19 đến −0.02 ở bản optimistic (10 seed) và −0.18 đến +0.01 ở bản pessimistic
+  (6 seed), dù chuẩn thô chênh nhau hàng chục lần (optimistic 0.16–14, pessimistic 6.5–64).
+  Như vậy chuẩn hóa xóa đúng thứ mà N2(a) nói tới, tức độ lớn tiến về 0. Chỉ còn *hướng* của
+  feedback, và hướng gradient labeled loss tại một mạng gần khớp nhãn vẫn mang thông tin. Với
+  cài đặt này, định lý không suy biến không phân biệt được hai biến thể về accuracy.
+- **Thang meta-gradient chính xác (`--meta_norm 0`): sàng lọc trên seed 0.** Ở thang này độ
+  lớn không bị chuẩn hóa, nên bất đối xứng mà định lý dự đoán đi thẳng vào bước meta. Lượt sàng
+  lọc dùng 10k vòng, chọn theo val, cùng giao thức Mục 3 (`results/fmnist-ssl-rep-d`):
+
+  | seed 0, 10k vòng: val / test | optimistic | pessimistic | $\|c\|$ thô ở vòng 10k: optimistic; pessimistic (feedback optimistic trên cùng anchor) |
+  |---|---|---|---|
+  | chuẩn hóa RMS chạy, $\lambda_m=0.1$ | 76.62 / 76.74 | 76.20 / 76.17 | 0.75; 28.6 (1.08) |
+  | thang chính xác, $\lambda_m=3$ | 75.98 / 76.38 | 76.32 / 76.22 | 1.49; 24.7 (0.94) |
+  | thang chính xác, $\lambda_m=10$ | 74.84 / 74.75 | 74.60 / 74.70 | 1.60; 10.4 (0.54) |
+  | FixMatch (cùng giao thức) | 74.08 / 74.87 | | |
+
+  Ở thang chính xác với $\lambda_m=3$, bước meta của bản pessimistic lớn gấp khoảng 16 lần bản
+  optimistic ở vòng 10k. Dù vậy, bốn cấu hình với $\lambda_m\le 3$ cách nhau không quá 0.7 điểm
+  val (75.98–76.62) và đều hơn FixMatch khoảng 2 điểm. $\lambda_m=10$ làm hại cả hai như nhau.
+  Trên một seed, giữ nguyên độ lớn feedback không làm bản pessimistic tốt hơn. Phép thử trên
+  seed 1–5 ($\lambda_m=3$, cả hai quy tắc) đang chạy trong `rep-f`.
 
 ## 7. Tinh chỉnh FixMatch: đối chứng công bằng
 

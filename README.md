@@ -58,7 +58,7 @@ python3 analysis/main_table.py results/fmnist-ssl-main-a results/fmnist-ssl-main
 ```
 
 The same for `ablations` (`ablate-a.json`, `ablate-b.json`), `replication` (`rep-a.json`,
-`rep-b.json`) and `wave3` (`rep-c.json`, `rep-d.json`; it reads `results/fmnist-ssl-rep-b`).
+`rep-b.json`), `wave3` (`rep-c.json`, `rep-d.json`) and `wave4` (`rep-e.json`, `rep-f.json`).
 `python3 sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dirs...>`
 writes the jobs of a sweep that have no complete result.  Paired tables on any seed range or
 reference, and the ablation diagnostics:
@@ -71,6 +71,12 @@ python3 analysis/main_table.py results/fmnist-ssl-* --seeds 1-10 --ref fixmatch 
 python3 analysis/ablation_table.py results/fmnist-ssl-* --seeds 1-3
 ```
 
+Every 40-label variant on seeds 1-10, paired to FixMatch with t-test, Wilcoxon and Holm:
+
+```bash
+python3 analysis/tenseed_table.py results/fmnist-ssl-*
+```
+
 `checks/degeneracy_static.py`
 (Prop. N2 on the real CNN) runs on CPU in about an hour; `analysis/figures.py` renders the
 figures in `docs/figures/`.
@@ -79,14 +85,19 @@ figures in `docs/figures/`.
 
 The non-degeneracy result holds where it applies: at supervised-only pairs on the real CNN
 the pessimistic feedback on the fiber is a median 134 times the optimistic one and does not
-shrink as the network fits the labels (report §5). It does not translate into accuracy. At 40
-labels over seeds 1-10 (final iterate, EMA model), FixMatch 72.75, tuned FixMatch 73.71, MPL
-73.28 and PBPL 73.32: PBPL − FixMatch = +0.58 ± 3.10 points (7/10 seeds, paired t p = 0.57),
-PBPL − MPL = +0.04 ± 3.47. The gain on seeds 1-5 (+2.02, p = 0.019) did not replicate on
-seeds 6-10 (−0.87). Non-bilevel SAM-type controls (SAM on the labeled loss, 1.2× the cost of
-FixMatch) match or exceed PBPL on three seeds, and the one-network optimistic look-ahead beats
-the pessimistic one on two seeds because the running-RMS normalisation of the feedback undoes
-the vanishing magnitude that the theory is about (report §6.1).  PBPL costs 3.6× FixMatch.
+shrink as the network fits the labels (report §5); in one-network training the raw optimistic
+feedback shrinks 12-39 times while the pessimistic one stays 19-65 times larger (report §6.1).
+It does not translate into accuracy. At 40 labels over seeds 1-10 (final iterate, EMA model):
+FixMatch 72.75, tuned FixMatch 73.71, MPL 73.28, PBPL 73.32, EBPL 72.74. PBPL − FixMatch =
++0.58 ± 3.10 points (7/10 seeds, paired t p = 0.57), EBPL − FixMatch = −0.01, PBPL − MPL =
++0.04; the gain of PBPL on seeds 1-5 (+2.02, p = 0.019) did not replicate. The two variants
+ahead of FixMatch at p < 0.05 (uncorrected) are not pessimistic: SAM on the labeled loss, no
+bilevel, 1.25x the cost of FixMatch (75.79, +3.05, p = 0.014; +2.59 on the seeds run after the
+decision to test it) and the one-network optimistic look-ahead (74.73, +1.98, p = 0.041). After
+Holm correction over the nine comparisons none is significant at 5%. In the one-network
+setting the running-RMS normalisation of the feedback undoes the vanishing magnitude that the
+theory is about; at the exact meta-gradient scale a one-seed screen shows no difference either
+(report §6.1, §9.2). PBPL costs 3.6x FixMatch.
 
 Kaggle: put your username in `.kaggle_user` (untracked) and your API token in
 `~/.kaggle/access_token`; never commit either.

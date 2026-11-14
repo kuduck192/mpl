@@ -126,10 +126,13 @@ admissible iterates), so that radius does not test Proposition~N2(b).
 the anchor fits the labeled data. With a held-out two-network student such pairs are not
 reached in training: the student's labeled loss stays above $0.05$ after $20$k iterations and the
 optimistic feedback does not vanish. Consistently, over ten seeds at $40$ labels the pessimistic
-rule does not improve on the optimistic one (difference $+0.04\pm3.47$ points). The
-non-admissible controls that the construction rules out (one ascent step from zero, i.e.\ a
-SAM step blind to $X_u$, and SAM on the deployed network's labeled loss) match the pessimistic
-rule in accuracy. The theory therefore guarantees that the pessimistic feedback is non-zero and
+rule does not improve on the optimistic one (difference $+0.04\pm3.47$ points), and neither
+does the expected rule ($-0.54$). The non-admissible controls that the construction rules out
+match or exceed the pessimistic rule: one ascent step from zero, i.e.\ a SAM step blind to
+$X_u$, is within noise of it ($+0.35$ points on five seeds), and SAM on the deployed network's
+labeled loss, with no student and no fiber, is the most accurate variant over ten seeds
+($+3.05\pm3.19$ points over FixMatch, $p=0.014$ before correction for multiple comparisons;
+$+2.47$ over the pessimistic rule). The theory therefore guarantees that the pessimistic feedback is non-zero and
 differs from the optimistic one where the latter degenerates; it does not imply, and the
 experiments do not show, an accuracy gain where the optimistic feedback is not degenerate.
 Nor does the pessimistic rule improve on the default FixMatch base itself over ten seeds
@@ -137,16 +140,21 @@ Nor does the pessimistic rule improve on the default FixMatch base itself over t
 replicate).
 
 The one-network look-ahead, where the anchor fits the labels (labeled loss
-$3$--$7\cdot10^{-4}$), is the configuration in which the proposition applies, and there the
-magnitudes behave as predicted. The raw optimistic feedback shrinks by a factor of $20$--$30$
-during training, while the pessimistic one does not ($50$--$65$ times larger at $20$k
-iterations). The optimistic look-ahead is nevertheless the more accurate of the two
-($+3.47$ points on both of two seeds). The feedback is divided by its own running RMS before
-it enters the teacher loss, so the vanishing magnitude of N2(a) is normalised away and the two
-meta steps have the same size. What remains is the direction, on which N2 is silent and N3 only
-identifies the extra component, not its value for generalisation. For the proposition to
-have practical consequences, the feedback magnitude has to survive the implementation: exact
-meta-gradient scale, or one normalisation shared by all rules.
+$3\cdot10^{-4}$--$2\cdot10^{-3}$), is the configuration in which the proposition applies, and
+there the magnitudes behave as predicted. Over ten seeds the raw optimistic feedback shrinks by a
+factor of $12$--$39$ (median $20$) during training, while the pessimistic one does not
+($19$--$65$ times larger than the optimistic feedback at the same anchor after $20$k
+iterations). The optimistic look-ahead is nevertheless the more accurate of the two ($+1.86$
+points on six seeds), and the only bilevel variant ahead of FixMatch at $p<0.05$ before
+correction ($+1.98\pm2.64$ points, ten seeds). The feedback is divided by its own running RMS
+before it enters the teacher loss, so the vanishing magnitude of N2(a) is normalised away and
+the two meta steps have the same size. What remains is the direction, on which N2 is silent and
+N3 only identifies the extra component, not its value for generalisation. At the exact
+meta-gradient scale the asymmetry reaches the meta step (the pessimistic step is about sixteen
+times the optimistic one after $10$k iterations), yet on the screening seed the two rules reach
+the same validation accuracy ($76.3$ and $76.0$). For the proposition to have practical
+consequences, a larger magnitude of the pessimistic feedback would have to translate into
+accuracy; in these experiments it does not.
 
 \begin{remark}[Lazy regime]
 With linear features and the minimum-norm student anchor, $V_r(a(z))=\log(1+e^{r\omega-m(z)})$
