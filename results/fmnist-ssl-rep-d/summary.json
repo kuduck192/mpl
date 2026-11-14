@@ -1,0 +1,132 @@
+[
+ {
+  "name": "abl_fibersam_4_s4",
+  "rc": 0,
+  "minutes": 23.499559915065767
+ },
+ {
+  "name": "abl_fibersam_4_s5",
+  "rc": 0,
+  "minutes": 24.26279034614563
+ },
+ {
+  "name": "abl_fibersam_4_s6",
+  "rc": 0,
+  "minutes": 23.060387106736503
+ },
+ {
+  "name": "abl_fibersam_4_s7",
+  "rc": 0,
+  "minutes": 23.96276912689209
+ },
+ {
+  "name": "abl_fibersam_4_s8",
+  "rc": 0,
+  "minutes": 23.12460394303004
+ },
+ {
+  "name": "abl_fibersam_4_s9",
+  "rc": 0,
+  "minutes": 23.917504080136617
+ },
+ {
+  "name": "abl_labsam_4_s4",
+  "rc": 0,
+  "minutes": 14.171097536881765
+ },
+ {
+  "name": "abl_fibersam_4_s10",
+  "rc": 0,
+  "minutes": 22.972887003421782
+ },
+ {
+  "name": "abl_labsam_4_s5",
+  "rc": 0,
+  "minutes": 14.21110541820526
+ },
+ {
+  "name": "abl_labsam_4_s6",
+  "rc": 0,
+  "minutes": 13.996817461649577
+ },
+ {
+  "name": "abl_labsam_4_s7",
+  "rc": 0,
+  "minutes": 13.866357064247131
+ },
+ {
+  "name": "abl_labsam_4_s8",
+  "rc": 0,
+  "minutes": 13.977354232470194
+ },
+ {
+  "name": "abl_labsam_4_s9",
+  "rc": 0,
+  "minutes": 14.184331162770588
+ },
+ {
+  "name": "abl_labsam_4_s10",
+  "rc": 0,
+  "minutes": 13.986237080891927
+ },
+ {
+  "name": "scr_selfopt_lm0.1",
+  "rc": 0,
+  "minutes": 14.371671847502391
+ },
+ {
+  "name": "scr_selfpess_lm0.1",
+  "rc": 0,
+  "minutes": 19.530642314751944
+ },
+ {
+  "name": "scr_selfopt_raw_lm3",
+  "rc": 0,
+  "minutes": 14.291843366622924
+ },
+ {
+  "name": "scr_selfopt_raw_lm10",
+  "rc": 0,
+  "minutes": 14.348513674736022
+ },
+ {
+  "name": "scr_selfpess_raw_lm3",
+  "rc": 0,
+  "minutes": 19.475580871105194
+ },
+ {
+  "name": "scr_selfpess_raw_lm10",
+  "rc": 0,
+  "minutes": 20.49306314388911
+ },
+ {
+  "name": "abl_selfopt_4_s6",
+  "rc": 0,
+  "minutes": 27.522321824232737
+ },
+ {
+  "name": "abl_selfopt_4_s7",
+  "rc": 0,
+  "minutes": 28.557173236211142
+ },
+ {
+  "name": "abl_selfopt_4_s8",
+  "rc": 0,
+  "minutes": 27.514573752880096
+ },
+ {
+  "name": "abl_selfopt_4_s9",
+  "rc": 0,
+  "minutes": 28.527009769280752
+ },
+ {
+  "name": "abl_selfopt_4_s10",
+  "rc": 0,
+  "minutes": 27.512899855772655
+ },
+ {
+  "name": "abl_self_4_s6",
+  "rc": 0,
+  "minutes": 40.925759514172874
+ }
+]

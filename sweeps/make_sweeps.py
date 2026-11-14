@@ -322,6 +322,31 @@ def wave3(it=20000):
     write("fmnist-ssl-rep-d", d, float(os.environ.get("REPD_HOURS", 5.0)))
 
 
+def wave4(it=20000):
+    """Phase 4, decided after rep-c/rep-d.  The one-network pair is the only setting where the
+    optimistic feedback really vanishes (anchor = teacher that fits the labels), so it is taken
+    to the same seeds as everything else:
+    rep-e: the normalised one-network PBPL on the seeds rep-d skipped (7-10) and SAM-feedback
+           on seeds 6-10 (fills the 10-seed ablation table).
+    rep-f: the one-network pair at the exact meta-gradient scale (--meta_norm 0), lam_m = 3,
+           the best value of the rep-d screen for both rules (seed 0, validation), seeds 1-5,
+           interleaved so that a budget cut drops whole pairs.
+    python sweeps/make_sweeps.py wave4"""
+    def job(name, a, sd, est):
+        return {"name": f"{name}_4_s{sd}", "args": f"{a} --n_per_class 4 --seed {sd} --iters {it}", "est_min": est}
+    SELF_P = f"--bilevel self --feedback pess {PESS}"
+    SAMFB = f"--bilevel two --feedback sam {PESS}"
+    e = [job("abl_self", SELF_P, sd, 41) for sd in range(7, 11)]
+    e += [job("abl_samfb", SAMFB, sd, 31) for sd in range(6, 11)]
+    write("fmnist-ssl-rep-e", e, float(os.environ.get("REPE_HOURS", 3.3)))
+    RAW_O = "--bilevel self --feedback opt --lam_m 3 --meta_norm 0"
+    RAW_P = "--bilevel self --feedback pess --lam_m 3 --radius 0.1 --meta_norm 0"
+    f = []
+    for sd in range(1, 6):
+        f += [job("abl_selfraw", RAW_P, sd, 42), job("abl_selfoptraw", RAW_O, sd, 29)]
+    write("fmnist-ssl-rep-f", f, float(os.environ.get("REPF_HOURS", 3.5)))
+
+
 def remainder():
     """python sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dir> [...]
     Writes a sweep with the jobs of <sweep.json> that have no complete result in the given

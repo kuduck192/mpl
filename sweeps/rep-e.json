@@ -1,0 +1,52 @@
+{
+ "slug": "fmnist-ssl-rep-e",
+ "budget_hours": 3.3,
+ "files": [],
+ "jobs": [
+  {
+   "name": "abl_self_4_s7",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "abl_self_4_s8",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "abl_self_4_s9",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "abl_self_4_s10",
+   "args": "--bilevel self --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "abl_samfb_4_s6",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 31
+  },
+  {
+   "name": "abl_samfb_4_s7",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 31
+  },
+  {
+   "name": "abl_samfb_4_s8",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 31
+  },
+  {
+   "name": "abl_samfb_4_s9",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 31
+  },
+  {
+   "name": "abl_samfb_4_s10",
+   "args": "--bilevel two --feedback sam --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 31
+  }
+ ]
+}
