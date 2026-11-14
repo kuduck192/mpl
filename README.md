@@ -77,6 +77,13 @@ Every 40-label variant on seeds 1-10, paired to FixMatch with t-test, Wilcoxon a
 python3 analysis/tenseed_table.py results/fmnist-ssl-*
 ```
 
+Raw feedback sizes of the one-network runs per seed (shrink of the optimistic feedback,
+pessimistic over optimistic on the same anchor, report §6.1):
+
+```bash
+python3 analysis/feedback_dynamics.py results/fmnist-ssl-* --methods abl_selfopt,abl_self
+```
+
 `checks/degeneracy_static.py`
 (Prop. N2 on the real CNN) runs on CPU in about an hour; `analysis/figures.py` renders the
 figures in `docs/figures/`.
