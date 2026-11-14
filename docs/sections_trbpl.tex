@@ -129,11 +129,12 @@ optimistic feedback does not vanish. Consistently, over ten seeds at $40$ labels
 rule does not improve on the optimistic one (difference $+0.04\pm3.47$ points), and neither
 does the expected rule ($-0.54$). The non-admissible controls that the construction rules out
 match or exceed the pessimistic rule: one ascent step from zero, i.e.\ a SAM step blind to
-$X_u$, is within noise of it ($+0.35$ points on five seeds), and SAM on the deployed network's
-labeled loss, with no student and no fiber, is the most accurate variant over ten seeds
-($+3.05\pm3.19$ points over FixMatch, $p=0.014$ before correction for multiple comparisons;
-$+2.47$ over the pessimistic rule). The theory therefore guarantees that the pessimistic feedback is non-zero and
-differs from the optimistic one where the latter degenerates; it does not imply, and the
+$X_u$, is within noise of it ($+0.53\pm2.12$ points over the pessimistic rule on ten seeds), and
+SAM on the deployed network's labeled loss, with no student and no fiber, is the most accurate
+variant over ten seeds ($+3.05\pm3.19$ points over FixMatch, $p=0.014$ before correction for
+multiple comparisons; $+2.47$ over the pessimistic rule). The theory therefore guarantees that
+the pessimistic feedback is non-zero and differs from the optimistic one where the latter
+degenerates; it does not imply, and the
 experiments do not show, an accuracy gain where the optimistic feedback is not degenerate.
 Nor does the pessimistic rule improve on the default FixMatch base itself over ten seeds
 ($+0.58\pm3.10$ points, $p=0.57$; the gain on the first five seeds, $+2.02$, $p=0.019$, did not
@@ -143,18 +144,23 @@ The one-network look-ahead, where the anchor fits the labels (labeled loss
 $3\cdot10^{-4}$--$2\cdot10^{-3}$), is the configuration in which the proposition applies, and
 there the magnitudes behave as predicted. Over ten seeds the raw optimistic feedback shrinks by a
 factor of $12$--$39$ (median $20$) during training, while the pessimistic one does not
-($19$--$65$ times larger than the optimistic feedback at the same anchor after $20$k
-iterations). The optimistic look-ahead is nevertheless the more accurate of the two ($+1.86$
-points on six seeds), and the only bilevel variant ahead of FixMatch at $p<0.05$ before
-correction ($+1.98\pm2.64$ points, ten seeds). The feedback is divided by its own running RMS
-before it enters the teacher loss, so the vanishing magnitude of N2(a) is normalised away and
-the two meta steps have the same size. What remains is the direction, on which N2 is silent and
-N3 only identifies the extra component, not its value for generalisation. At the exact
-meta-gradient scale the asymmetry reaches the meta step (the pessimistic step is about sixteen
-times the optimistic one after $10$k iterations), yet on the screening seed the two rules reach
-the same validation accuracy ($76.3$ and $76.0$). For the proposition to have practical
-consequences, a larger magnitude of the pessimistic feedback would have to translate into
-accuracy; in these experiments it does not.
+($12$--$65$ times larger than the optimistic feedback at the same anchor after $20$k
+iterations). The two rules are nevertheless equally accurate: over ten seeds the optimistic
+look-ahead leads by $0.48\pm3.07$ points ($p=0.64$), and they are ahead of FixMatch by $1.98$
+($p=0.041$) and $1.51$ ($p=0.094$) points before correction. The feedback is divided by its own
+running RMS before it enters the teacher loss, so the vanishing magnitude of N2(a) is normalised
+away and the two meta steps have the same size. What remains is the direction, on which N2 is
+silent and N3 only identifies the extra component, not its value for generalisation. At the
+exact meta-gradient scale ($\lambda_m=3$) the asymmetry reaches the meta step: summed over
+training with the learning-rate weights, the pessimistic meta step is $2$--$6$ times the
+optimistic one (median $4$) on seeds $1$--$5$, and about ten times after $20$k iterations. The
+two rules still reach the same accuracy (difference $+0.13\pm3.26$ points, $p=0.93$, $95\%$
+interval $[-3.9,4.2]$). Removing the normalisation costs the optimistic rule $1.08$ points and
+gains the pessimistic one $0.82$, the direction the proposition suggests, but this interaction
+($+1.90$, $p=0.18$) is not significant on five seeds and leaves the pessimistic rule below the
+normalised optimistic one. For the proposition to have practical consequences, a larger
+magnitude of the pessimistic feedback would have to translate into accuracy; in these
+experiments it does not.
 
 \begin{remark}[Lazy regime]
 With linear features and the minimum-norm student anchor, $V_r(a(z))=\log(1+e^{r\omega-m(z)})$

@@ -93,17 +93,19 @@ figures in `docs/figures/`.
 The non-degeneracy result holds where it applies: at supervised-only pairs on the real CNN
 the pessimistic feedback on the fiber is a median 134 times the optimistic one and does not
 shrink as the network fits the labels (report §5); in one-network training the raw optimistic
-feedback shrinks 12-39 times while the pessimistic one stays 19-65 times larger (report §6.1).
+feedback shrinks 12-39 times while the pessimistic one stays 12-65 times larger (report §6.1).
 It does not translate into accuracy. At 40 labels over seeds 1-10 (final iterate, EMA model):
 FixMatch 72.75, tuned FixMatch 73.71, MPL 73.28, PBPL 73.32, EBPL 72.74. PBPL − FixMatch =
-+0.58 ± 3.10 points (7/10 seeds, paired t p = 0.57), EBPL − FixMatch = −0.01, PBPL − MPL =
-+0.04; the gain of PBPL on seeds 1-5 (+2.02, p = 0.019) did not replicate. The two variants
-ahead of FixMatch at p < 0.05 (uncorrected) are not pessimistic: SAM on the labeled loss, no
-bilevel, 1.25x the cost of FixMatch (75.79, +3.05, p = 0.014; +2.59 on the seeds run after the
-decision to test it) and the one-network optimistic look-ahead (74.73, +1.98, p = 0.041). After
-Holm correction over the nine comparisons none is significant at 5%. In the one-network
-setting the running-RMS normalisation of the feedback undoes the vanishing magnitude that the
-theory is about; at the exact meta-gradient scale a one-seed screen shows no difference either
++0.58 ± 3.10 points (7/10 seeds, paired t p = 0.57), EBPL − FixMatch = −0.01; the gain of PBPL
+on seeds 1-5 (+2.02, p = 0.019) did not replicate. On the same seeds the pessimistic rule
+does not differ from the optimistic one: +0.04 with two networks, −0.48 with one network, and +0.13
+at the exact meta-gradient scale (seeds 1-5, 95% interval −3.9 to +4.2), where the magnitude is
+not normalised away and the pessimistic meta steps are 2-6 times larger over training. The two
+variants ahead of FixMatch at p < 0.05 (uncorrected) are not pessimistic: SAM on the labeled
+loss, no bilevel, 1.25x the cost of FixMatch (75.79, +3.05, p = 0.014; +2.59 on the seeds run
+after the decision to test it) and the one-network optimistic look-ahead (74.73, +1.98,
+p = 0.041). The best pessimistic variant is the one-network look-ahead (74.25, +1.51,
+p = 0.094). After Holm correction over the nine comparisons none is significant at 5%
 (report §6.1, §9.2). PBPL costs 3.6x FixMatch.
 
 Kaggle: put your username in `.kaggle_user` (untracked) and your API token in

@@ -266,37 +266,44 @@ Tổng hợp từ `docs/report.md`, FashionMNIST, CNN 0.157M tham số, 40 và 1
    (labeled loss ≥ 0.05 ở vòng 20k), nên feedback MPL không triệt tiêu (report Mục 4.2). Đúng
    như vậy, trên 10 seed ở 40 nhãn PBPL ≈ MPL: chênh +0.04 ± 3.47 điểm (report Mục 9). Định lý
    đúng nhưng điều kiện của nó (anchor khớp nhãn) không xảy ra trong cấu hình hai mạng.
-3. **Thiết kế A4 không cần cho accuracy.** Biến thể "một bước ascent từ 0" (ε reset mỗi bước,
-   tức SAM, mù với $X_u$) là thứ mà Mục 3 loại bỏ về mặt lý thuyết. Trên thực nghiệm nó ít nhất
-   bằng PBPL (5 seed: +0.35 điểm; report Mục 9.2). SAM trên labeled loss của chính teacher
-   (không bilevel, không fiber) là biến thể tốt nhất của cả nghiên cứu: trên 10 seed hơn FixMatch
-   +3.05 điểm (p = 0.014) và hơn PBPL +2.47; bản có ràng buộc fiber (fiber-SAM) kém nó 1.52
-   điểm. Lợi ích đo được ở 40 nhãn không quy được cho cấu trúc pessimistic bilevel. Bản thân
+3. **Thiết kế A4 không cần cho accuracy.** Biến thể "một bước ascent từ 0" (ε reset mỗi bước, tức
+   SAM, mù với $X_u$) là thứ mà Mục 3 loại bỏ về mặt lý thuyết. Trên thực nghiệm nó ít nhất bằng
+   PBPL (10 seed: hơn PBPL 0.53 điểm, 7/10; report Mục 9.2). SAM trên labeled loss của chính
+   teacher (không bilevel, không fiber) là biến thể tốt nhất của cả nghiên cứu: trên 10 seed hơn
+   FixMatch +3.05 điểm (p = 0.014) và hơn PBPL +2.47; bản có ràng buộc fiber (fiber-SAM) kém nó
+   1.52 điểm. Lợi ích đo được ở 40 nhãn không quy được cho cấu trúc pessimistic bilevel. Bản thân
    PBPL trên 10 seed không hơn FixMatch (+0.58, p = 0.57; report Mục 9).
 4. **Ở cấu hình một mạng, nơi định lý áp dụng, độ lớn đúng như dự đoán nhưng không quyết định
    accuracy.** Anchor là teacher đã thấy nhãn (labeled loss 3·10⁻⁴–2·10⁻³). Feedback optimistic
-   thô co lại 12–39 lần trong lúc huấn luyện (10 seed), đúng như N2(a); feedback pessimistic
-   thì không co (gấp 19–65 lần feedback optimistic trên cùng anchor ở vòng 20k). Nhưng bản
-   optimistic một mạng *tốt hơn* bản pessimistic (+1.86 điểm, 6 seed) và hơn FixMatch +1.98
-   (10 seed, p = 0.041 chưa hiệu chỉnh; report Mục 6.1, 9.2). Lý do khớp với log: feedback được
-   chuẩn hóa bằng RMS chạy của chính nó trước khi vào $L_{\rm meta}$, nên độ lớn tiến về 0 của
-   N2(a) bị chuẩn hóa xóa đi và bước meta của hai biến thể có cùng cỡ. N2 nói về *độ lớn* của
-   feedback; với chuẩn hóa này chỉ *hướng* còn ảnh hưởng tới huấn luyện. Về hướng, N3 chỉ nói
-   feedback pessimistic bằng hướng MPL cộng gradient của chuẩn labeled gradient "vô hình" (ở
-   đây thành phần này chiếm ưu thế: cos 0.14–0.57 với optimistic). Nó không nói thành phần đó
-   tốt hơn cho accuracy, và thực nghiệm cho thấy hướng optimistic tốt hơn.
-   Ở thang meta-gradient chính xác (`--meta_norm 0`), bất đối xứng độ lớn đi thẳng vào bước meta
-   (bước pessimistic lớn gấp khoảng 16 lần bước optimistic ở vòng 10k), nhưng lượt sàng lọc
-   trên seed 0 không thấy khác biệt accuracy (val 76.32 so với 75.98, test 76.22 so với 76.38).
-   Phép thử trên seed 1–5 nằm trong đợt `rep-f`.
+   thô co lại 12–39 lần trong lúc huấn luyện (10 seed), đúng như N2(a); feedback pessimistic thì
+   không co như vậy (gấp 12–65 lần feedback optimistic trên cùng anchor ở vòng 20k). Nhưng trên
+   10 seed hai bản ngang nhau về accuracy: optimistic − pessimistic = +0.48 điểm (p = 0.64); hơn
+   FixMatch lần lượt +1.98 (p = 0.041) và +1.51 (p = 0.094), chưa hiệu chỉnh (report Mục 6.1,
+   9.2). Lý do khớp với log: feedback được chuẩn hóa bằng RMS chạy của chính nó trước khi vào
+   $L_{\rm meta}$, nên độ lớn tiến về 0 của N2(a) bị chuẩn hóa xóa đi và bước meta của hai biến
+   thể có cùng cỡ. N2 nói về *độ lớn* của feedback; với chuẩn hóa này chỉ *hướng* còn ảnh hưởng
+   tới huấn luyện. Về hướng, N3 chỉ nói feedback pessimistic bằng hướng MPL cộng gradient của
+   chuẩn labeled gradient "vô hình" (ở đây thành phần này chiếm ưu thế: cos 0.14–0.64 với
+   optimistic). Nó không nói thành phần đó tốt hơn cho accuracy, và thực nghiệm không cho thấy
+   điều đó.
+
+   Ở thang meta-gradient chính xác (`--meta_norm 0`, $\lambda_m=3$), bất đối xứng độ lớn đi thẳng
+   vào bước meta. Feedback optimistic co 2.4–34 lần, feedback pessimistic thì không. Gộp cả quá
+   trình, bước meta pessimistic lớn gấp 2–6 lần bước optimistic (trung vị 4), và ở vòng 20k
+   khoảng 10 lần. Dù vậy, trên seed 1–5 accuracy như nhau: pessimistic − optimistic = +0.13 điểm
+   (3/5, p = 0.93, khoảng tin cậy 95% −3.9 đến +4.2). Tín hiệu duy nhất theo hướng lý thuyết là
+   một tương tác yếu. Bỏ chuẩn hóa làm hại bản optimistic 1.08 điểm và giúp bản pessimistic 0.82
+   điểm (hiệu +1.90, 4/5, p = 0.18), nhưng không đưa bản pessimistic vượt bản optimistic chuẩn
+   hóa (report Mục 6.1).
 
 Tóm lại: lý thuyết đảm bảo feedback pessimistic *khác 0 và khác MPL* tại các điểm mà MPL suy
 biến, và điều đó được xác nhận cả ở chẩn đoán tĩnh lẫn trong lúc huấn luyện một mạng. Nó không
-đảm bảo, và thực nghiệm không cho thấy, rằng sự khác biệt đó cải thiện accuracy: ở cấu hình
-hai mạng MPL không suy biến; ở cấu hình một mạng sự suy biến về độ lớn bị chuẩn hóa feedback
-trung hòa, và khi giữ nguyên độ lớn (thang chính xác) thì trên một seed cũng không thấy khác
-biệt. Những gì thực sự giúp ở 40 nhãn đều tác động trực tiếp lên labeled loss của mạng triển
-khai (SAM trên labeled loss; feedback một mạng) và không cần student xấu nhất hay fiber.
+đảm bảo, và thực nghiệm không cho thấy, rằng sự khác biệt đó cải thiện accuracy: ở cấu hình hai
+mạng MPL không suy biến. Ở cấu hình một mạng, sự suy biến về độ lớn bị chuẩn hóa feedback trung
+hòa. Khi giữ nguyên độ lớn (thang chính xác, 5 seed), bước meta pessimistic lớn hơn nhiều lần mà
+accuracy vẫn không khác. Những gì thực sự giúp ở 40 nhãn đều tác động trực tiếp lên labeled loss
+của mạng triển khai (SAM trên labeled loss; feedback một mạng) và không cần student xấu nhất hay
+fiber.
 
 ---
 

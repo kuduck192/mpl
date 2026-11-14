@@ -106,6 +106,16 @@ def main():
         for i in its:
             v = [ha[s][i] / hb[s][i] for s in common]
             print(f"| {i} | " + " | ".join(f"{x:.1f}" for x in v) + f" | {np.median(v):.1f} |")
+        # whole run: sum of eta_k |c_k| (the size of the exact-scale meta steps, eta from the cosine
+        # schedule at the middle of each record's window) of a over that of b
+        tot = []
+        for s in common:
+            ra = R[a][s]["args"]
+            ev = ra.get("eval_every", 1000)
+            eta = {i: ra["lr"] * np.cos(7 * np.pi * (i - ev / 2) / (16 * ra["iters"])) for i in its}
+            tot.append(sum(eta[i] * ha[s][i] for i in its) / sum(eta[i] * hb[s][i] for i in its))
+        print(f"\nwhole run, sum of eta*|c| of {a} over {b}: " + ", ".join(f"s{s} {x:.1f}" for s, x in zip(common, tot))
+              + f" (median {np.median(tot):.1f})")
 
 
 if __name__ == "__main__":

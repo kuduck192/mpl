@@ -1,12 +1,11 @@
 # Báo cáo: trust-region bilevel pseudo-labeling (PBPL / EBPL) trên FashionMNIST
 
-> Trạng thái: bảng chính (60 run), chẩn đoán suy biến, ablation, lưới tinh chỉnh FixMatch,
-> Figure 1, đợt nhân bản seed 6–10 và việc đưa EBPL cùng các đối chứng lên 10 seed (`rep-a`
-> đến `rep-d`) đã xong. Đợt bổ sung `rep-e`/`rep-f` đang chạy: PBPL một mạng seed 7–10,
-> SAM-feedback seed 6–10, cặp một mạng ở thang meta-gradient chính xác seed 1–5. Mọi số liệu
-> lấy từ `results/`.
+> Trạng thái: hoàn tất. Đã xong bảng chính (60 run), chẩn đoán suy biến, ablation, lưới tinh
+> chỉnh FixMatch, Figure 1, đợt nhân bản seed 6–10, việc đưa EBPL cùng các đối chứng lên 10 seed,
+> và cặp một mạng ở thang meta-gradient chính xác (`rep-a` đến `rep-f`). Mọi số liệu lấy từ
+> `results/`.
 >
-> **Kết luận đến thời điểm này (Mục 9, 10):** ở 40 nhãn, trên 10 seed:
+> **Kết luận (Mục 9, 10):** ở 40 nhãn, trên 10 seed:
 > - PBPL, EBPL, MPL (hai mạng), FixMatch và FixMatch tinh chỉnh cách nhau dưới 1 điểm, không có
 >   khác biệt nào có ý nghĩa thống kê. Ưu thế của PBPL ở seed 1–5 (+2.02, p = 0.019) không được
 >   nhân bản.
@@ -15,6 +14,12 @@
 >   - SAM trên labeled loss (không bilevel): +3.05 điểm, p = 0.014;
 >   - MPL một mạng (optimistic): +1.98 điểm, p = 0.041.
 > - Hiệu chỉnh Holm qua 9 phép so sánh thì không biến thể nào còn có ý nghĩa thống kê.
+> - So với optimistic trên cùng seed, pessimistic không khác có ý nghĩa ở cấu hình nào:
+>   - hai mạng: +0.04 (10 seed);
+>   - một mạng: −0.48 (10 seed);
+>   - một mạng ở thang meta-gradient chính xác: +0.13 (5 seed, p = 0.93). Ở thang này độ lớn
+>     không bị chuẩn hóa, và bước meta pessimistic gộp cả quá trình lớn gấp 2–6 lần bước
+>     optimistic.
 
 ## 1. Thiết lập thực nghiệm
 
@@ -272,15 +277,19 @@ thể sau đó được đưa lên 10 seed (`rep-c` đến `rep-e`); bảng 10 s
   về phía labeled loss cao hơn*, không phải tính chấp nhận được mà định nghĩa pessimistic đòi
   hỏi. Điều này khớp với chẩn đoán tĩnh (Mục 5): SAM-feedback cũng không triệt tiêu tại các cặp
   supervised-only, chỉ là nó rời fiber. Trong huấn luyện, việc rời fiber với $r=0.1$ không gây hại.
-  Trên 5 seed (Mục 9.2), SAM-feedback vẫn ít nhất bằng PBPL (+0.35 ± 2.07, 3/5), nhưng nhận xét
-  "không suy giảm" thì không giữ được: ở seed 5 nó giảm từ 74.0 xuống 66.7.
+  Trên 10 seed (Mục 9.2), SAM-feedback vẫn ít nhất bằng PBPL (hơn PBPL 0.53 ± 2.12 điểm, 7/10,
+  p = 0.45). Nhưng ưu thế của nó trên FixMatch ở seed 1–5 (+2.38) không lặp lại ở seed 6–10
+  (−0.16 ± 2.49, 2/5); gộp 10 seed là +1.11 ± 2.73 (6/10, p = 0.23). Nhận xét "không suy giảm"
+  cũng không giữ được: ở seed 5 nó giảm từ 74.0 xuống 66.7, và mức giảm cuối trung bình 10 seed
+  là 1.20 điểm.
 - **Một mạng là đủ.** PBPL dạng look-ahead của chính teacher (không có student phụ) ngang PBPL
   hai mạng (+0.36 ± 0.72). Ở đây anchor là teacher đã thấy dữ liệu có nhãn, nên labeled loss
   của anchor chỉ 0.0016: đúng vùng feedback optimistic suy biến (Prop. N2a). Feedback
   pessimistic lớn gấp 39 lần và gần trực giao với optimistic (cos 0.33). Đối chứng optimistic
   một mạng (`abl_selfopt`) là phép thử trực tiếp lập luận không suy biến *trong lúc huấn
   luyện*, vì ở cấu hình hai mạng student held-out không bao giờ khớp hết nhãn (Mục 4.2). Kết
-  quả ở Mục 6.1: bản optimistic tốt hơn.
+  quả ở Mục 6.1: trên 10 seed hai bản ngang nhau (optimistic hơn 0.48 điểm, p = 0.64), kể cả
+  khi bỏ chuẩn hóa feedback.
 - Nếu chọn checkpoint theo validation, mọi biến thể có feedback bị đẩy (PBPL, SAM-feedback,
   một mạng) nằm trong 73.98–74.37, hơn FixMatch 1.4–1.8 điểm (2/3 hoặc 3/3 seed, p ≥ 0.24).
 
@@ -307,30 +316,33 @@ thể sau đó được đưa lên 10 seed (`rep-c` đến `rep-e`); bảng 10 s
 L_l(\theta')$ thay cho $\nabla L_l(\theta'+\varepsilon)$, cùng $\lambda_m=0.1$ và cùng chuẩn
 hóa. Ở cấu hình này anchor là chính teacher, mạng đã thấy dữ liệu có nhãn, nên đây là nơi điều
 kiện của Prop. N2 (anchor khớp nhãn) thực sự xảy ra. Dữ liệu `results/fmnist-ssl-{ablate-a,rep-b,
-rep-c,rep-d}`; PBPL một mạng seed 7–10 đang chạy trong `rep-e`.
+rep-c,rep-d,rep-e,rep-f}`; độ lớn feedback theo seed: `analysis/feedback_dynamics.py`.
 
 | một mạng, 40 nhãn | n | cuối | đỉnh | giảm cuối | chọn theo val | − FixMatch (cặp, vòng cuối) | $L_l$ anchor, vòng 20k | $\|c\|$ thô | phút/run |
 |---|---|---|---|---|---|---|---|---|---|
 | optimistic (`abl_selfopt`) | 10 | 74.73 | 75.67 | 0.94 | 75.56 | +1.98 ± 2.64, 7/10, p = 0.041 | 3·10⁻⁴–2·10⁻³ | co 12–39 lần từ vòng 1k đến 20k (trung vị 20) | 27.8 |
-| pessimistic (`abl_self`) | 6 | 72.44 | 73.39 | 0.95 | 73.39 | +1.41 ± 1.90, 5/6, p = 0.13 | 5·10⁻⁴–2·10⁻³ | không co; ở vòng 20k gấp 19–65 lần feedback optimistic trên cùng anchor | 39.5 |
+| pessimistic (`abl_self`) | 10 | 74.25 | 74.99 | 0.73 | 74.98 | +1.51 ± 2.55, 8/10, p = 0.094 | 5·10⁻⁴–2·10⁻³ | vòng 1k / vòng 20k chỉ 0.4–3.1 lần (trung vị 0.7); ở vòng 20k gấp 12–65 lần feedback optimistic trên cùng anchor | 39.3 |
 | FixMatch (tham chiếu) | 10 | 72.75 | 74.58 | 1.84 | 74.52 | — | — | — | 11.1 |
 
-Optimistic − pessimistic trên cùng seed: +1.86 ± 2.93 điểm (4/6, p = 0.18).
+Optimistic − pessimistic trên cùng seed: +0.48 ± 3.07 điểm (5/10, p = 0.64; khoảng tin cậy
+95% −1.7 đến +2.7); chọn theo val +0.58 ± 2.54 (6/10, p = 0.49).
 
 - **Về độ lớn feedback, lý thuyết đúng.** Anchor khớp nhãn (labeled loss 3·10⁻⁴–2·10⁻³ ở vòng
   20k), và chuẩn feedback optimistic thô co 12–39 lần trong lúc huấn luyện, đúng như N2(a).
-  Feedback pessimistic thì không co: ở vòng 20k nó lớn gấp 19–65 lần feedback optimistic tính
-  trên cùng anchor (N2(b)).
-- **Về accuracy, kết quả ngược với điều lý thuyết gợi ý.** Bản optimistic không kém bản
-  pessimistic mà còn hơn (+1.86 điểm, 6 seed), và là biến thể bilevel duy nhất hơn FixMatch
-  với p < 0.05 (chưa hiệu chỉnh; Mục 9.2). Feedback optimistic suy biến không làm phương pháp
-  sụp về FixMatch.
+  Feedback pessimistic thì không co theo cách đó (tỉ lệ vòng 1k / vòng 20k 0.4–3.1, trung vị
+  0.7): ở vòng 20k nó lớn gấp 12–65 lần feedback optimistic tính trên cùng anchor (N2(b)), với
+  cos giữa hai hướng 0.14–0.64.
+- **Về accuracy, hai biến thể ngang nhau.** Trên 10 seed, bản optimistic hơn bản pessimistic
+  0.48 điểm (p = 0.64). Ưu thế +1.86 của bản optimistic trên 6 seed đầu không giữ được: ở seed
+  7–10 bản pessimistic hơn 1.61 điểm (3/4). Cả hai hơn FixMatch về danh nghĩa (optimistic +1.98,
+  p = 0.041; pessimistic +1.51, 8/10, p = 0.094), không bản nào còn ý nghĩa sau hiệu chỉnh Holm
+  (Mục 9.2). Feedback optimistic suy biến không làm phương pháp sụp về FixMatch.
 - **Giải thích phù hợp với log: chuẩn hóa RMS chạy (`--meta_norm 2`).** Feedback được chia cho
   RMS chạy của chính nó trước khi vào $L_{\rm meta}$. Cách chuẩn hóa này được chọn ở Mục 3 vì
   tốt hơn thang meta-gradient chính xác. Khi feedback optimistic co lại, RMS chạy co theo,
   nên bước meta vẫn có độ lớn cỡ 1. Từ vòng 9k đến 20k, trung vị của $L_{\rm meta}$ sau chuẩn
-  hóa là −0.19 đến −0.02 ở bản optimistic (10 seed) và −0.18 đến +0.01 ở bản pessimistic
-  (6 seed), dù chuẩn thô chênh nhau hàng chục lần (optimistic 0.16–14, pessimistic 6.5–64).
+  hóa là −0.19 đến −0.02 ở bản optimistic và −0.18 đến +0.01 ở bản pessimistic (10 seed mỗi
+  bản), dù chuẩn thô chênh nhau hàng chục lần (optimistic 0.16–14, pessimistic 6.5–64).
   Như vậy chuẩn hóa xóa đúng thứ mà N2(a) nói tới, tức độ lớn tiến về 0. Chỉ còn *hướng* của
   feedback, và hướng gradient labeled loss tại một mạng gần khớp nhãn vẫn mang thông tin. Với
   cài đặt này, định lý không suy biến không phân biệt được hai biến thể về accuracy.
@@ -348,8 +360,44 @@ Optimistic − pessimistic trên cùng seed: +1.86 ± 2.93 điểm (4/6, p = 0.1
   Ở thang chính xác với $\lambda_m=3$, bước meta của bản pessimistic lớn gấp khoảng 16 lần bản
   optimistic ở vòng 10k. Dù vậy, bốn cấu hình với $\lambda_m\le 3$ cách nhau không quá 0.7 điểm
   val (75.98–76.62) và đều hơn FixMatch khoảng 2 điểm. $\lambda_m=10$ làm hại cả hai như nhau.
-  Trên một seed, giữ nguyên độ lớn feedback không làm bản pessimistic tốt hơn. Phép thử trên
-  seed 1–5 ($\lambda_m=3$, cả hai quy tắc) đang chạy trong `rep-f`.
+  $\lambda_m=3$ được giữ cho phép thử trên seed 1–5.
+- **Thang meta-gradient chính xác trên seed 1–5 (`rep-f`, $\lambda_m=3$, 20k vòng): phép thử
+  quyết định.** Hai quy tắc chạy ở thang chính xác trên seed 1–5. Bảng đặt cạnh chúng hai bản
+  chuẩn hóa ở trên, trên cùng seed:
+
+  | seed 1–5, vòng cuối (EMA) | optimistic | pessimistic | pessimistic − optimistic (cặp) |
+  |---|---|---|---|
+  | chuẩn hóa RMS chạy, $\lambda_m=0.1$ | 74.25 | 72.48 | −1.77 ± 3.26, 2/5, p = 0.29 |
+  | thang chính xác, $\lambda_m=3$ | 73.17 | 73.30 | +0.13 ± 3.26, 3/5, p = 0.93 |
+  | thang chính xác − chuẩn hóa (cặp) | −1.08 ± 1.45, 1/5, p = 0.17 | +0.82 ± 2.10, 3/5, p = 0.43 | +1.90 ± 2.61, 4/5, p = 0.18 |
+
+  FixMatch trên cùng seed đạt 70.96. Chọn theo val, ở thang chính xác pessimistic − optimistic
+  là −0.79 ± 3.81 (2/5, p = 0.67). Giảm cuối: 1.66 điểm (optimistic) và 0.80 (pessimistic).
+  Chi phí: 28.4 và 40.1 phút/run.
+
+  - *Độ lớn đi vào bước cập nhật đúng như định lý.* Feedback optimistic thô co 2.4–34 lần từ
+    vòng 1k đến 20k (trung vị 4.8), ít hơn mức co 12–39 lần của bản chuẩn hóa; labeled loss của
+    anchor ở vòng 20k cũng cao hơn ($6\cdot10^{-4}$–$3\cdot10^{-3}$). Feedback pessimistic không
+    co (vòng 1k / vòng 20k 0.3–1.7 lần), và ở vòng 20k gấp 16–64 lần feedback optimistic trên
+    cùng anchor. Hai run có cùng $\lambda_m$ và cùng lịch learning rate, nên tỉ lệ $\|c\|$ giữa
+    chúng chính là tỉ lệ độ lớn bước meta. Tỉ lệ này (trung vị qua 5 seed) tăng từ 1.4 lần ở
+    vòng 1k lên khoảng 10 lần ở vòng 17k–20k. Gộp cả quá trình ($\sum_k\eta_k\|c_k\|$), bước
+    meta pessimistic lớn gấp 2.0–5.9 lần bước optimistic (trung vị 4.0).
+  - *Về accuracy, độ lớn đó không thành lợi ích:* +0.13 điểm, p = 0.93. Khoảng tin cậy 95% là
+    −3.9 đến +4.2 điểm, nên 5 seed chỉ loại trừ được một hiệu ứng lớn.
+  - *Có một tín hiệu yếu theo hướng lý thuyết.* Bỏ chuẩn hóa làm bản optimistic giảm 1.08 điểm
+    (chỉ 1/5 seed tốt hơn) và bản pessimistic tăng 0.82 điểm. Vì vậy khoảng cách pessimistic −
+    optimistic dịch từ −1.77 sang +0.13 (hiệu +1.90, 4/5, p = 0.18). Đó là điều N2 gợi ý: khi
+    độ lớn được giữ nguyên, feedback optimistic suy biến yếu đi còn feedback pessimistic thì
+    không. Nhưng hiệu này không có ý nghĩa thống kê trên 5 seed. Hơn nữa, bản pessimistic ở thang
+    chính xác (73.30) vẫn kém bản optimistic chuẩn hóa trên cùng seed (74.25).
+  - Cả bốn cấu hình một mạng hơn FixMatch trên seed 1–5 (+1.5 đến +3.3; ở thang chính xác 5/5
+    seed). Tuy vậy, seed 1–5 là các seed FixMatch yếu (70.96, so với 74.54 ở seed 6–10), nên
+    mức hơn FixMatch ở đây bị phóng đại. Cái cần đọc là so sánh cặp giữa các biến thể.
+
+  Tóm lại, cấu hình một mạng là nơi duy nhất điều kiện của N2 xảy ra trong huấn luyện. Ở đó
+  định lý đúng về độ lớn feedback, nhưng độ lớn ấy không thành accuracy, dù feedback có chuẩn
+  hóa (10 seed) hay không (5 seed).
 
 ## 7. Tinh chỉnh FixMatch: đối chứng công bằng
 
@@ -481,8 +529,10 @@ chỉnh 73.71 / 74.50 / 0.79; MPL 73.28 / 73.91 / 0.63; PBPL 73.32 / 74.57 / 1.2
 Sau đợt nhân bản, mọi biến thể còn lại được đưa lên cùng seed 1–10 (`rep-c` đến `rep-e`) và so
 cặp với các run FixMatch mặc định đã có. Quyết định chạy tiếp một đối chứng được đưa ra sau khi
 xem 2–3 seed đầu của nó, nên phần kiểm định xác nhận thực sự là các seed chưa xem lúc quyết định
-(dòng cuối của phần đọc kết quả). Bảng sinh bởi `analysis/tenseed_table.py results/fmnist-ssl-*`
-(t-test cặp, Wilcoxon signed-rank, Holm qua 9 phép so sánh với FixMatch ở vòng cuối).
+(ý thứ ba của phần đọc kết quả). Bảng sinh bởi `analysis/tenseed_table.py results/fmnist-ssl-*`
+(t-test cặp, Wilcoxon signed-rank, Holm qua 9 phép so sánh với FixMatch ở vòng cuối). Cặp một
+mạng ở thang meta-gradient chính xác chỉ có seed 1–5 (`rep-f`). Nó là phép thử lý thuyết của
+Mục 6.1, nằm ngoài họ 9 phép so sánh, và chỉ xuất hiện ở bảng so sánh cặp.
 
 | 40 nhãn, seed 1–10 | n | cuối | − FixMatch, vòng cuối | p (t-test / Wilcoxon / Holm) | − FixMatch, chọn theo val | giảm cuối | phút/run |
 |---|---|---|---|---|---|---|---|
@@ -491,9 +541,9 @@ xem 2–3 seed đầu của nó, nên phần kiểm định xác nhận thực s
 | MPL hai mạng (optimistic) | 10 | 73.28 | +0.54 ± 2.54, 5/10 | 0.521 / 0.492 / 1.00 | −0.74 ± 2.33, 2/10, p = 0.34 | 0.63 | 28.2 |
 | PBPL hai mạng (pessimistic) | 10 | 73.32 | +0.58 ± 3.10, 7/10 | 0.570 / 0.447 / 1.00 | −0.05 ± 3.77, 7/10, p = 0.96 | 1.24 | 40.3 |
 | EBPL hai mạng (expected) | 10 | 72.74 | −0.01 ± 3.30, 6/10 | 0.996 / 0.770 / 1.00 | −0.54 ± 3.08, 6/10, p = 0.60 | 1.40 | 39.3 |
-| SAM-feedback (hai mạng, $\varepsilon$ reset mỗi bước) | 5 | 73.34 | +2.38 ± 2.56, 4/5 | 0.107 / 0.125 / 0.64 | +1.00 ± 3.27, 4/5, p = 0.53 | 1.53 | 29.4 |
+| SAM-feedback (hai mạng, $\varepsilon$ reset mỗi bước) | 10 | 73.86 | +1.11 ± 2.73, 6/10 | 0.231 / 0.193 / 1.00 | +0.42 ± 2.55, 8/10, p = 0.61 | 1.20 | 29.2 |
 | MPL một mạng (optimistic) | 10 | 74.73 | +1.98 ± 2.64, 7/10 | 0.041 / 0.064 / 0.33 | +1.04 ± 2.60, 8/10, p = 0.24 | 0.94 | 27.8 |
-| PBPL một mạng (pessimistic) | 6 | 72.44 | +1.41 ± 1.90, 5/6 | 0.130 / 0.219 / 0.65 | −0.04 ± 3.78, 4/6, p = 0.98 | 0.95 | 39.5 |
+| PBPL một mạng (pessimistic) | 10 | 74.25 | +1.51 ± 2.55, 8/10 | 0.094 / 0.105 / 0.57 | +0.47 ± 3.34, 7/10, p = 0.67 | 0.73 | 39.3 |
 | FixMatch + fiber-SAM (không bilevel) | 10 | 74.28 | +1.53 ± 4.42, 5/10 | 0.303 / 0.492 / 1.00 | +0.73 ± 4.75, 6/10, p = 0.64 | 1.03 | 23.2 |
 | FixMatch + SAM trên labeled loss (không bilevel) | 10 | 75.79 | +3.05 ± 3.19, 8/10 | 0.014 / 0.020 / 0.13 | +1.75 ± 2.58, 7/10, p = 0.06 | 0.59 | 13.9 |
 
@@ -505,17 +555,20 @@ phép so sánh):
 | so sánh, cùng seed | câu hỏi | n | vòng cuối | chọn theo val |
 |---|---|---|---|---|
 | PBPL − MPL | pessimistic so với optimistic, hai mạng | 10 | +0.04 ± 3.47, 4/10, p = 0.97 | +0.68 ± 2.92, 7/10, p = 0.48 |
-| PBPL một mạng − MPL một mạng | pessimistic so với optimistic, một mạng | 6 | −1.86 ± 2.93, 2/6, p = 0.18 | −1.76 ± 2.48, 1/6, p = 0.14 |
+| PBPL một mạng − MPL một mạng | pessimistic so với optimistic, một mạng | 10 | −0.48 ± 3.07, 5/10, p = 0.64 | −0.58 ± 2.54, 4/10, p = 0.49 |
+| PBPL − MPL một mạng, thang chính xác | pessimistic so với optimistic, một mạng, thang meta-gradient chính xác (seed 1–5, Mục 6.1) | 5 | +0.13 ± 3.26, 3/5, p = 0.93 | −0.79 ± 3.81, 2/5, p = 0.67 |
 | EBPL − MPL | expected so với optimistic, hai mạng | 10 | −0.54 ± 3.11, 5/10, p = 0.60 | +0.20 ± 2.49, 7/10, p = 0.81 |
-| PBPL − SAM-feedback | fiber + $\varepsilon$ giữ trạng thái so với một bước SAM (A4) | 5 | −0.35 ± 2.07, 2/5, p = 0.72 | −0.94 ± 1.60, 1/5, p = 0.26 |
+| PBPL − SAM-feedback | fiber + $\varepsilon$ giữ trạng thái so với một bước SAM (A4) | 10 | −0.53 ± 2.12, 3/10, p = 0.45 | −0.48 ± 1.87, 2/10, p = 0.44 |
 | fiber-SAM − SAM labeled | ràng buộc fiber ở teacher | 10 | −1.52 ± 3.33, 3/10, p = 0.18 | −1.02 ± 3.11, 4/10, p = 0.33 |
 | MPL một mạng − MPL | một mạng so với hai mạng (optimistic) | 10 | +1.45 ± 3.67, 6/10, p = 0.24 | +1.78 ± 2.51, 7/10, p = 0.05 |
+| PBPL một mạng − PBPL | một mạng so với hai mạng (pessimistic) | 10 | +0.93 ± 2.30, 7/10, p = 0.23 | +0.52 ± 2.04, 7/10, p = 0.44 |
 | SAM labeled − MPL một mạng | không bilevel so với bilevel tốt nhất | 10 | +1.06 ± 2.24, 8/10, p = 0.17 | +0.71 ± 1.72, 8/10, p = 0.22 |
 
 Đọc kết quả:
 
-- **Không biến thể pessimistic hay expected nào hơn FixMatch.** PBPL +0.58, EBPL −0.01 (hai
-  mạng); PBPL một mạng +1.41 (6 seed; seed 7–10 đang chạy trong `rep-e`).
+- **Không biến thể pessimistic hay expected nào hơn FixMatch có ý nghĩa thống kê.** Với hai
+  mạng: PBPL +0.58, EBPL −0.01. Tốt nhất trong nhóm là PBPL một mạng: +1.51, thắng 8/10,
+  p = 0.094 (Wilcoxon 0.105, Holm 0.57).
 - **Hai biến thể hơn FixMatch với p < 0.05 chưa hiệu chỉnh, và cả hai đều không pessimistic.**
   - SAM trên labeled loss: +3.05 điểm, thắng 8/10, t-test p = 0.014, Wilcoxon p = 0.020.
   - MPL một mạng: +1.98, thắng 7/10, p = 0.041, Wilcoxon p = 0.064.
@@ -523,21 +576,32 @@ phép so sánh):
   Sau hiệu chỉnh Holm qua 9 phép so sánh, p là 0.13 và 0.33: không biến thể nào hơn FixMatch có
   ý nghĩa ở mức 5%. Khi chọn checkpoint theo val, SAM trên labeled loss vẫn hơn +1.75 (7/10,
   t-test p = 0.06, Wilcoxon p = 0.027), MPL một mạng +1.04 (p = 0.24).
-- **Trên các seed chưa xem lúc quyết định**, SAM trên labeled loss giữ được ưu thế: seed 4–10,
-  +2.59 ± 2.51, thắng 6/7, p = 0.034. MPL một mạng yếu hơn: seed 3–10, +1.08 ± 1.92, 5/8,
-  p = 0.16; con số 10 seed của nó dựa nhiều vào seed 1–2. Fiber-SAM thì không giữ được: seed
-  4–10, +0.28, 3/7.
-- **Pessimism không giúp, ở cả hai cấu hình.** PBPL − MPL = +0.04 với hai mạng, −1.86 với một
-  mạng (6 seed). Cấu hình một mạng là nơi feedback optimistic thực sự suy biến (Mục 6.1), vậy
-  mà bản optimistic vẫn tốt hơn.
+- **Trên các seed chưa xem lúc quyết định, chỉ SAM trên labeled loss giữ được ưu thế:** seed
+  4–10, +2.59 ± 2.51, thắng 6/7, p = 0.034. Các biến thể khác đều yếu đi:
+  - MPL một mạng, seed 3–10: +1.08 ± 1.92, 5/8, p = 0.16; con số 10 seed của nó dựa nhiều vào
+    seed 1–2;
+  - PBPL một mạng, seed 4–10: +0.99 ± 2.83, 5/7, p = 0.39;
+  - fiber-SAM, seed 4–10: +0.28, 3/7;
+  - SAM-feedback, seed 4–10: +0.12, 3/7.
+- **Pessimism không giúp, ở mọi cấu hình.** PBPL − MPL (cùng seed) là:
+  - +0.04 với hai mạng;
+  - −0.48 với một mạng;
+  - +0.13 với một mạng ở thang meta-gradient chính xác (5 seed).
+
+  Cấu hình một mạng là nơi feedback optimistic thực sự suy biến (Mục 6.1). Ở thang chính xác,
+  bước meta pessimistic gộp cả quá trình lớn gấp 2–6 lần bước optimistic, vậy mà accuracy như
+  nhau.
 - **Ràng buộc fiber không giúp.** Một bước SAM từ 0, rời fiber (SAM-feedback), ít nhất bằng
-  PBPL (+0.35 cho SAM-feedback, 5 seed). SAM thường trên labeled loss hơn fiber-SAM 1.52 điểm
+  PBPL: hơn 0.53 điểm, 7/10, rẻ hơn 28%. SAM thường trên labeled loss hơn fiber-SAM 1.52 điểm
   (7/10).
-- **Một mạng tốt hơn hai mạng.** MPL một mạng − MPL hai mạng = +1.45 ở vòng cuối, +1.78 khi
-  chọn theo val (7/10, p = 0.05), với chi phí tương đương.
+- **Một mạng tốt hơn hai mạng, với chi phí tương đương.** Một mạng − hai mạng:
+  - MPL: +1.45 ở vòng cuối, +1.78 khi chọn theo val (7/10, p = 0.05);
+  - PBPL: +0.93 (7/10, p = 0.23).
 - **Không cần bilevel.** Phương pháp tốt nhất là SAM trên labeled loss: không student, không
-  feedback qua pseudo-label, chi phí 1.25× FixMatch. Nó hơn MPL một mạng 1.06 điểm (8/10,
-  p = 0.17) và hơn PBPL 2.47 điểm (8/10, p = 0.053).
+  feedback qua pseudo-label, chi phí 1.25× FixMatch. Nó hơn:
+  - MPL một mạng 1.06 điểm (8/10, p = 0.17);
+  - PBPL một mạng 1.54 điểm (7/10, p = 0.20);
+  - PBPL hai mạng 2.47 điểm (8/10, p = 0.053).
 
 ## 10. Kết luận và giới hạn
 
@@ -553,8 +617,9 @@ có bậc $s^2$ (N2(d)). Kiểm chứng số:
 1. toy MLP (`checks/check_nondegeneracy.py`);
 2. CNN thật, chẩn đoán tĩnh (Mục 5): pessimistic lớn hơn optimistic trung vị 134 lần;
 3. trong lúc huấn luyện một mạng (Mục 6.1): feedback optimistic thô co 12–39 lần (trung vị 20,
-   10 seed), còn feedback pessimistic thì không co, và ở vòng 20k lớn gấp 19–65 lần feedback
-   optimistic tính trên cùng anchor.
+   10 seed), còn feedback pessimistic thì không co như vậy, và ở vòng 20k lớn gấp 12–65 lần
+   feedback optimistic tính trên cùng anchor. Ở thang meta-gradient chính xác, bước meta
+   pessimistic gộp cả quá trình lớn gấp 2–6 lần bước optimistic (5 seed).
 
 **Thực nghiệm: không biến thể pessimistic hay expected nào vượt baseline mạnh.**
 - So với Supervised, Pseudo-Label, Mean Teacher: PBPL hơn 6.6–16.1 điểm (Mục 4). Nhưng gần như toàn
@@ -570,15 +635,22 @@ có bậc $s^2$ (N2(d)). Kiểm chứng số:
   - MPL một mạng: +1.98, p = 0.041; trên seed 3–10 chỉ còn +1.08, p = 0.16.
 
   Sau hiệu chỉnh Holm qua 9 phép so sánh, không biến thể nào còn có ý nghĩa ở mức 5%.
+- Biến thể pessimistic tốt nhất là PBPL một mạng: +1.51 so với FixMatch (8/10, p = 0.094). Trên
+  seed 4–10, chưa xem lúc quyết định, nó chỉ còn +0.99 (p = 0.39).
+- Pessimistic so với optimistic, cùng cấu hình, cùng seed: +0.04 (hai mạng), −0.48 (một mạng),
+  +0.13 (một mạng, thang meta-gradient chính xác, 5 seed). Không có khác biệt nào.
 
 **Vì sao không suy biến không chuyển thành accuracy.** Có ba lý do, mỗi lý do có số liệu đi kèm:
 1. *Cấu hình hai mạng không chạm tới điều kiện của định lý.* Student held-out không bao giờ khớp
    hết nhãn, nên feedback MPL không triệt tiêu và không có gì để pessimism sửa (Mục 4.2, 9).
 2. *Ở cấu hình một mạng, suy biến có xảy ra nhưng không làm hại bản optimistic.* Chuẩn hóa RMS
-   chạy đưa bước meta của hai quy tắc về cùng cỡ, nên chỉ còn hướng có tác dụng, và hướng
-   optimistic tốt hơn (−1.86 điểm cho pessimistic, 6 seed; Mục 6.1). Ở thang meta-gradient
-   chính xác, nơi feedback optimistic thực sự tắt dần, lượt sàng lọc trên seed 0 không thấy khác
-   biệt (Mục 6.1); phép thử trên seed 1–5 đang chạy trong `rep-f`.
+   chạy đưa bước meta của hai quy tắc về cùng cỡ, nên chỉ còn hướng có tác dụng. Khi đó hai quy
+   tắc ngang nhau (−0.48 điểm cho pessimistic, 10 seed). Ở thang meta-gradient chính xác, độ lớn
+   được giữ nguyên và feedback optimistic thực sự tắt dần: bước meta pessimistic lớn gấp 2–6
+   lần, vậy mà accuracy vẫn như nhau (+0.13, p = 0.93, 5 seed). Tín hiệu duy nhất theo hướng lý
+   thuyết là bỏ chuẩn hóa làm hại bản optimistic 1.08 điểm và giúp bản pessimistic 0.82 điểm
+   (hiệu +1.90, 4/5, p = 0.18; Mục 6.1). Tín hiệu này yếu, và không đủ để đưa bản pessimistic
+   vượt bản optimistic chuẩn hóa.
 3. *Lợi ích quan sát được ở seed 1–5 là chống suy giảm cuối huấn luyện của FixMatch.* Tinh chỉnh
    $\lambda_u$ hoặc một bước SAM cũng chữa được hiện tượng này, và nó gần như không xuất hiện ở
    seed 6–10 (Mục 4.1, 7, 9).
@@ -602,8 +674,11 @@ Cả hai đều không cần fiber, student phụ hay student xấu nhất.
   $r=0.1$: với $r\ge0.3$ bộ giải ascent-rồi-co bậc nhất ($K=2$) không ở lại được trên fiber.
 - "Chấp nhận được" chỉ theo nghĩa xấp xỉ: KL tới anchor ≈ 2·10⁻³ trên batch.
 - Figure 1 của bản thảo không tái lập được với giao thức và bộ giải penalty của review (Mục 8).
-- Chi phí so với FixMatch: PBPL 3.6×, EBPL 3.5×, MPL 2.5×, MPL một mạng 2.5×, SAM trên labeled
-  loss 1.25×.
+- Chi phí so với FixMatch: PBPL 3.6×, EBPL 3.5×, PBPL một mạng 3.5×, MPL 2.5×, MPL một mạng
+  2.5×, SAM trên labeled loss 1.25×.
+- Phép thử ở thang meta-gradient chính xác chỉ có 5 seed, lại là seed 1–5, nơi FixMatch yếu.
+  Khoảng tin cậy 95% của hiệu pessimistic − optimistic là −3.9 đến +4.2 điểm, nên nó chỉ loại
+  trừ được hiệu ứng lớn.
 - Giao thức chọn checkpoint theo val dùng 5 000 ảnh có nhãn, tức là một oracle; nó chỉ là giao
   thức phụ.
 - Các đối chứng được chọn để chạy tiếp sau khi xem 2–3 seed đầu của chúng. Vì vậy con số 10 seed
@@ -612,8 +687,10 @@ Cả hai đều không cần fiber, student phụ hay student xấu nhất.
   hiệu chỉnh Holm, không kết quả nào còn ý nghĩa ở mức 5%.
 
 **Hướng tiếp theo.**
-- Giữ nguyên độ lớn feedback (thang meta-gradient chính xác) ở cấu hình một mạng, nơi suy biến
-  thực sự xảy ra. Đây là phép thử còn lại của lý thuyết (`rep-f`, Mục 6.1).
+- Một phép thử lý thuyết mạnh hơn ở thang meta-gradient chính xác cần hai điều. Thứ nhất là
+  nhiều seed hơn: khoảng tin cậy hiện tại rộng khoảng 8 điểm. Thứ hai là huấn luyện dài hơn,
+  để giai đoạn anchor khớp nhãn chiếm phần lớn quá trình; đó là giai đoạn duy nhất mà hai quy
+  tắc khác nhau.
 - Gắn feedback bilevel một mạng vào một base đã có SAM trên labeled loss, thay vì vào FixMatch
   trơn. Hai thành phần tốt nhất chưa từng được chạy chung.
 - Dùng bài toán mà FixMatch có confirmation bias mạnh và ổn định giữa các seed (ví dụ CIFAR-10
