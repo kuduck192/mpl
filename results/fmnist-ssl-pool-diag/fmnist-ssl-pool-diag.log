@@ -1,0 +1,11 @@
+[{"stream_name":"stdout","time":18.149644349,"data":"GPUs: 2 ['Tesla T4', 'Tesla T4']\n"}
+,{"stream_name":"stdout","time":3972.268646485,"data":"[gpu1] pooldiag_bag_4_s0 rc=0 65.9 min :: [pooldiag_bag_4_s0] done in 65.4 min; final={\"iter\": 20000, \"test_ema\": 0.7433, \"test\": 0.7425, \"val_ema\": 0.755, \"unl_ema\": 0.7495818181818181, \"minutes\": 65.43114236990611, \"stu_test_ema\": 0.7424666484196981, \"stu_test\": 0.7411, \"stu_val_ema\": 0.753, \"pool_test_ema_min\": 0.7409999966621399, \"pool_test_ema_max\": 0.7432999610900879, \"pool_ens_test\": 0.7440999746322632, \"pool_dis_val\": 0.0293333325\n"}
+,{"stream_name":"stdout","time":4075.812800695,"data":"[gpu0] pooldiag_same_4_s0 rc=0 67.6 min :: [pooldiag_same_4_s0] done in 67.3 min; final={\"iter\": 20000, \"test_ema\": 0.7393, \"test\": 0.7369, \"val_ema\": 0.7498, \"unl_ema\": 0.7476909090909091, \"minutes\": 67.33662625551224, \"stu_test_ema\": 0.7385333180427551, \"stu_test\": 0.7378, \"stu_val_ema\": 0.7506, \"pool_test_ema_min\": 0.738099992275238, \"pool_test_ema_max\": 0.7390999794006348, \"pool_ens_test\": 0.7382999658584595, \"pool_dis_val\": 0.02346666\n"}
+,{"stream_name":"stdout","time":4075.813202458,"data":"ALL DONE in 67.9 min\n"}
+,{"stream_name":"stderr","time":4079.065504754,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":4079.065544353,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":4079.566197656,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":4079.566218274,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":4080.700371758,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":4082.18964739,"data":"[NbConvertApp] Writing 386789 bytes to __results__.html\n"}
+]

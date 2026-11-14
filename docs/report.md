@@ -696,3 +696,75 @@ Cả hai đều không cần fiber, student phụ hay student xấu nhất.
 - Dùng bài toán mà FixMatch có confirmation bias mạnh và ổn định giữa các seed (ví dụ CIFAR-10
   với 40 nhãn, huấn luyện dài hơn). Ở đó việc giữ được tín hiệu từ dữ liệu có nhãn có nhiều chỗ
   để tạo khác biệt hơn.
+
+## 11. Pool student: chẩn đoán (seed 0, 40 nhãn, 20k vòng)
+
+**Thiết kế.** k = 3 student held-out: không học từ ảnh có nhãn, chỉ học pseudo-label mềm của
+teacher. Mỗi student j tính feedback optimistic c_j tại chính nó, sau bước học của nó. Teacher
+nhận feedback gộp theo labeled loss sau bước học của từng student:
+- O = student có loss thấp nhất;
+- E = trung bình;
+- P = student có loss cao nhất;
+- CVaR_m = trung bình m student tệ nhất.
+
+Teacher EMA là mô hình triển khai. Cuối run, từng student và ensemble được finetune 1000 vòng
+trên nhãn; bước này chỉ để đo, không ảnh hưởng teacher. Cả hai run chẩn đoán dẫn teacher bằng
+E (`--pool_agg mean --lam_m 0.1`), nhưng ghi lại cả bốn cách gộp ở mỗi bước log.
+
+Hai nguồn đa dạng:
+- *same*: các student chỉ khác nhau ở khởi tạo;
+- *bag*: thêm augmentation mạnh độc lập cho từng student và một tập con cố định 63% của X_u cho
+  mỗi student (`--pool_aug indep --pool_bag 0.63`).
+
+Mỗi run mất 65–67 phút trên T4. Ở seed 0, FixMatch mất 31 phút và MPL hai mạng mất 65 phút.
+
+Lệnh: `python3 analysis/pool_diag.py results/fmnist-ssl-pool-diag`. Bảng dưới là median trên
+nửa sau huấn luyện.
+
+| thống kê | same | bag |
+|---|---|---|
+| cos feedback hai student (cùng batch) | 0.59 | 0.23 |
+| cos một student trên hai view mạnh (mốc nhiễu augmentation) | 0.54 | 0.56 |
+| cos(P, E) | 0.86 | 0.75 |
+| cos(O, P) | 0.61 | 0.23 |
+| cos(CVaR_2, E) | 0.97 | 0.92 |
+| ‖E‖ / trung bình ‖c_j‖ (1 nếu cùng hướng, 0.58 nếu trực giao) | 0.85 | 0.70 |
+| (max − min) / mean của labeled loss các student | 0.28 | 0.35 |
+| tỷ lệ bước log mà student tệ nhất đổi | 0.8 | 0.5 |
+| tỷ lệ student tệ nhất là student 0 / 1 / 2 | 0.26 / 0.42 / 0.32 | 0.42 / 0.18 / 0.40 |
+| bất đồng dự đoán giữa các student trên val | 2.5% | 2.9% |
+| RMS feedback gộp, vòng 1k → 20k | 23.5 → 15.3 | 11.2 → 7.1 |
+
+| test % (vòng cuối, EMA) | same | bag |
+|---|---|---|
+| teacher (triển khai) | 73.93 | 74.33 |
+| student (min–max) | 73.81–73.91 | 74.10–74.33 |
+| ensemble 3 student | 73.83 | 74.41 |
+| student sau finetune (min–max) | 74.02–74.24 | 73.51–73.84 |
+| ensemble sau finetune | 74.21 | 73.67 |
+
+Mốc tham chiếu ở seed 0 (cùng 20k vòng): FixMatch 72.47, FlexMatch 74.61, MPL hai mạng
+(λ_m = 0.3) 71.40. Seed 0 là seed chọn siêu tham số, chỉ có một seed, nên các con số này
+không phải bằng chứng về độ chính xác.
+
+**Đọc kết quả.**
+- **Hướng feedback đủ đa dạng để P khác E.**
+  - cos(P, E) là 0.86 với *same* và 0.75 với *bag*. Với *bag*, O và P gần như khác hướng
+    (cos 0.23).
+  - CVaR_2 của 3 student gần như trùng E (cos 0.92–0.97), nên với k = 3 không cần nhánh này.
+  - Với *same*, hai student trên cùng một view lệch nhau gần bằng một student trên hai view
+    (0.59 so với 0.54). Phần riêng của từng student vì thế cỡ nhiễu augmentation.
+- **Nhưng đa dạng về hàm số thì nhỏ.**
+  - Các student đồng ý trên 97% ảnh val.
+  - Ensemble chỉ hơn trung bình các student 0.0–0.1 điểm.
+  - Student tệ nhất đổi ở 50–80% bước log, và không student nào tệ nhất liên tục. P vì thế
+    giống một lựa chọn student xoay vòng hơn là một đối thủ ổn định.
+- **Đảm bảo N2(b) không chuyển sang pool, và số liệu khớp với điều đó.**
+  - Student held-out không thấy nhãn nhưng vẫn khớp nhãn vì teacher khớp nhãn: labeled loss cuối
+    run là 0.007–0.07.
+  - Khi mọi student đều khớp nhãn, feedback của cả ba cùng nhỏ đi. P trên pool không có bước
+    ascent nào giữ cho feedback lớn như P trên fiber.
+  - RMS feedback gộp giảm 1.5–1.6 lần trong cả run.
+- **Finetune student trên nhãn không giúp ổn định.** So với teacher: +0.31 điểm với *same*,
+  −0.49 với *bag*. Triển khai teacher không mất gì. Điều này khớp với kết quả trước: trong
+  thiết kế này student là bản chưng cất của teacher.
