@@ -9,6 +9,7 @@ reference palette, light mode), neutral ink for text, recessive grid, one y-axis
   python analysis/figures.py curves      # training curves of the main runs (after main-a/b)
   python analysis/figures.py dynamics    # feedback diagnostics along the main runs
   python analysis/figures.py replication # paired differences, seeds 1-5 vs 6-10 (after rep-b)
+  python analysis/figures.py tenseed     # every variant, seeds 1-10, paired to FixMatch (after rep-f)
 """
 import glob
 import json
@@ -351,6 +352,69 @@ def replication():
     os.makedirs(OUT, exist_ok=True)
     fig.savefig(os.path.join(OUT, "replication_paired.png"))
     print("wrote", os.path.join(OUT, "replication_paired.png"))
+
+
+def tenseed():
+    """40 labels, seeds 1-10: test accuracy minus default FixMatch on the same seed, every variant.
+    Dots: seeds; thick tick: mean; thin line: 95% t-interval of the mean.  Colour encodes the
+    feedback rule (blue optimistic, orange pessimistic, green expected), grey the SAM-type
+    controls, pink the tuned base; the row label names the variant."""
+    from scipy import stats
+    R = _load("results/fmnist-ssl-*/results/*.json")
+    res = defaultdict(dict)
+    for n, r in R.items():
+        m = re.match(r"(.+)_4_s(\d+)$", n)
+        if m and 1 <= int(m.group(2)) <= 10 and r.get("final", {}).get("iter", 0) >= r["args"].get("iters", 1):
+            res[m.group(1)][int(m.group(2))] = 100 * r["final"]["test_ema"]
+    grey = INK2
+    rows = [("fmtuned", r"FixMatch, tuned ($\lambda_u$ = 2)", COL["fmtuned"], "base"),
+            ("mpl", "MPL, two networks", COL["mpl"], "two-network bilevel"),
+            ("pbpl", "PBPL, two networks", COL["pbpl"], "two-network bilevel"),
+            ("ebpl", "EBPL, two networks", COL["ebpl"], "two-network bilevel"),
+            ("abl_samfb", "SAM-feedback (ε reset), two networks", grey, "two-network bilevel"),
+            ("abl_selfopt", "MPL, one network", COL["mpl"], "one-network bilevel"),
+            ("abl_self", "PBPL, one network", COL["pbpl"], "one-network bilevel"),
+            ("abl_fibersam", "FixMatch + fiber-SAM", grey, "no bilevel"),
+            ("abl_labsam", "FixMatch + SAM on labeled loss", grey, "no bilevel")]
+    rows = [r for r in rows if res.get(r[0])]
+    base = res["fixmatch"]
+    fig, ax = plt.subplots(figsize=(6.4, 3.9))
+    ys = {}
+    y, prev = 0.0, None
+    for meth, lab, col, fam in rows:
+        if prev is not None and fam != prev:
+            y += 0.6
+        ys[meth] = y
+        prev = fam
+        y += 1.0
+    top = y - 1.0
+    for meth, lab, col, fam in rows:
+        yy = top - ys[meth]
+        common = [s for s in range(1, 11) if s in res[meth] and s in base]
+        d = np.array([res[meth][s] - base[s] for s in common])
+        jit = (np.array(common) - 5.5) * 0.035
+        ax.scatter(d, yy + jit, s=16, color=col, zorder=3, edgecolor="white", lw=0.6)
+        mu = d.mean()
+        ci = stats.t.ppf(0.975, len(d) - 1) * d.std(ddof=1) / np.sqrt(len(d))
+        ax.plot([mu - ci, mu + ci], [yy, yy], color=INK, lw=0.9, zorder=2)
+        ax.plot([mu, mu], [yy - 0.3, yy + 0.3], color=INK, lw=1.8, zorder=4)
+        p = stats.ttest_rel([res[meth][s] for s in common], [base[s] for s in common]).pvalue
+        ax.annotate(f"{mu:+.2f}  (n={len(d)}, p={p:.2f})".replace("-", "\u2212"), (1.0, yy),
+                    xycoords=("axes fraction", "data"),
+                    xytext=(4, 0), textcoords="offset points", va="center", fontsize=7, color=INK)
+    ax.axvline(0, color=INK2, lw=0.8, zorder=1)
+    ax.set_yticks([top - ys[m] for m, *_ in rows])
+    ax.set_yticklabels([lab for _, lab, *_ in rows])
+    ax.set_ylim(-0.7, top + 0.7)
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("test acc. − default FixMatch, same seed (pp), final iterate")
+    ax.set_title("40 labels, seeds 1–10: paired difference to default FixMatch\n"
+                 "dots: seeds · tick: mean · line: 95% interval of the mean · p: paired t-test, uncorrected",
+                 fontsize=8, color=INK)
+    fig.tight_layout()
+    os.makedirs(OUT, exist_ok=True)
+    fig.savefig(os.path.join(OUT, "tenseed_paired.png"))
+    print("wrote", os.path.join(OUT, "tenseed_paired.png"))
 
 
 if __name__ == "__main__":

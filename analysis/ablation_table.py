@@ -25,7 +25,7 @@ def main():
     ap.add_argument("--seeds", default="1-3")
     ap.add_argument("--npc", type=int, default=4)
     ap.add_argument("--k", type=int, default=3)
-    ap.add_argument("--methods", default="fixmatch,fmtuned,mpl,ebpl,pbpl,pbpltuned,abl_samfb,abl_self,abl_selfopt,abl_fibersam,abl_labsam,abl_pbplflex,flexmatch")
+    ap.add_argument("--methods", default="fixmatch,fmtuned,mpl,ebpl,pbpl,pbpltuned,abl_samfb,abl_self,abl_selfopt,abl_selfraw,abl_selfoptraw,abl_fibersam,abl_labsam,abl_pbplflex,flexmatch")
     args = ap.parse_args()
     lo, hi = map(int, args.seeds.split("-"))
     seeds = set(range(lo, hi + 1))

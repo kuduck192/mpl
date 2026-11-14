@@ -16,13 +16,16 @@ import numpy as np
 from scipy import stats
 
 ORDER = ["sup", "pseudolabel", "meanteacher", "fixmatch", "fmtuned", "flexmatch", "mpl", "ebpl", "pbpl",
-         "pbpltuned", "abl_samfb", "abl_self", "abl_selfopt", "abl_fibersam", "abl_labsam", "abl_pbplflex"]
+         "pbpltuned", "abl_samfb", "abl_self", "abl_selfopt", "abl_selfraw", "abl_selfoptraw", "abl_fibersam", "abl_labsam",
+         "abl_pbplflex"]
 LABEL = {"sup": "Supervised", "pseudolabel": "Pseudo-Label", "meanteacher": "Mean Teacher",
          "fixmatch": "FixMatch", "fmtuned": "FixMatch, tuned (λ_u = 2)", "flexmatch": "FlexMatch", "mpl": "MPL + FixMatch (optimistic)",
          "ebpl": "**EBPL + FixMatch (expected)**", "pbpl": "**PBPL + FixMatch (pessimistic)**",
          "abl_samfb": "PBPL, ε reset each step (= SAM step, blind to X_u)",
          "abl_self": "PBPL, one network (look-ahead student)",
          "abl_selfopt": "MPL, one network (look-ahead student, optimistic control)",
+         "abl_selfraw": "PBPL, one network, exact meta-gradient scale (λ_m = 3)",
+         "abl_selfoptraw": "MPL, one network, exact meta-gradient scale (λ_m = 3)",
          "pbpltuned": "PBPL + tuned FixMatch (λ_u = 2)",
          "abl_fibersam": "FixMatch + fiber-SAM (teacher-anchored, one network)",
          "abl_labsam": "FixMatch + SAM on labeled loss",
