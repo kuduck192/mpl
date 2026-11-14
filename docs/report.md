@@ -249,7 +249,7 @@ lại trên fiber.
 Dữ liệu `results/fmnist-ssl-ablate-{a,b}`; bảng sinh bởi `analysis/ablation_table.py` (đỉnh,
 mức giảm cuối, chẩn đoán trung bình 3 lần đánh giá cuối) và `analysis/main_table.py --ref pbpl`
 (so sánh cặp). Bảng dưới là 3 seed đầu, dùng để chọn đối chứng nào đáng chạy tiếp. Mọi biến
-thể sau đó được đưa lên 10 seed (`rep-c` đến `rep-f`); bảng 10 seed ở Mục 9 là bảng cần đọc.
+thể sau đó được đưa lên 10 seed (`rep-c` đến `rep-e`); bảng 10 seed ở Mục 9.2 là bảng cần đọc.
 
 | biến thể (40 nhãn, seed 1–3) | cuối | đỉnh | giảm cuối | chọn theo val | − FixMatch (cặp) | − PBPL (cặp) | $L_l$ student bị đẩy | cos(c, c_opt) | phút/run |
 |---|---|---|---|---|---|---|---|---|---|
@@ -388,7 +388,7 @@ chính trên seed 1–10 (`results/fmnist-ssl-rep-b`):
   p = 0.97).
 - PBPL trên base đã tinh chỉnh ($\lambda_u=2$, giữ $\lambda_m$, $r$) không được chạy. PBPL đã
   không hơn chính base của nó trên 10 seed, nên ngân sách đợt cuối được dành cho việc đưa các
-  biến thể còn lại lên 10 seed (Mục 10).
+  biến thể còn lại lên 10 seed (Mục 9.2).
 
 ## 8. Figure 1 của bản thảo theo giao thức của review
 
