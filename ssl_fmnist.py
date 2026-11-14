@@ -508,14 +508,14 @@ class Feedback:
         with bn_frozen_stats(self.net):
             return functional_call(self.net, params, (x,))
 
-    def feedback(self, theta, theta_p, xs_in, xl, yl, diag=False, w=None):
+    def feedback(self, theta, theta_p, xs_in, xl, yl, diag=False, w=None, mode=None):
         """theta: student params before its step, theta_p: after one SGD step on
         the pseudo-labels.  Returns c (B_u x C) and diagnostics.  With diag=True
         the optimistic (MPL) feedback at the same anchor is also computed and
         compared (labeled loss of the anchor, ||c_opt||, cos(c, c_opt))."""
         a = self.a
         st = {}
-        mode = a.feedback
+        mode = mode or a.feedback
         self.w = w
         if mode == "opt":
             eps = dzeros(theta_p)
@@ -659,6 +659,45 @@ def check_amp(args, dev):
         json.dump({"args": vars(args), "final": {"rel_err_c": rel_c, "cos_c": cos, "rel_err_grad_student": rel_g}, "hist": []}, f)
 
 
+def finetune_students(pool, Xl, Yl, Xv, Yv, Xte, Yte, args):
+    """Diagnostic: finetune a copy of each student's EMA on the labeled set (weak views, cosine
+    lr) and report test / val accuracy of the members and of their ensemble, before and after."""
+    def probs(m, X, bs=2500):
+        m.eval()
+        with torch.no_grad():
+            p = torch.cat([F.softmax(m(clean(X[i:i + bs])), 1) for i in range(0, len(X), bs)])
+        return p
+
+    res = {"before": {}, "after": {}}
+    models = []
+    for (sj, oj, ej, fj) in pool:
+        m = copy.deepcopy(ej.model)
+        for p in m.parameters():
+            p.requires_grad_(True)
+        models.append(m)
+    for tag in ("before", "after"):
+        if tag == "after":
+            scaler = torch.amp.GradScaler("cuda", enabled=AMP)
+            for m in models:
+                m.train()
+                opt = make_sgd(m, args.stu_ft_lr, args.wd)
+                for it in range(args.stu_ft_iters):
+                    set_lr(opt, cosine_lr(args.stu_ft_lr, it, args.stu_ft_iters))
+                    il = torch.randint(0, len(Xl), (args.bl,), device=Xl.device)
+                    loss = F.cross_entropy(m(weak_aug(Xl[il])), Yl[il])
+                    opt.zero_grad(set_to_none=True)
+                    scaler.scale(loss).backward()
+                    scaler.step(opt)
+                    scaler.update()
+        pt = [probs(m, Xte) for m in models]
+        pv = [probs(m, Xv) for m in models]
+        res[tag] = {"test": [(p.argmax(1) == Yte).float().mean().item() for p in pt],
+                    "val": [(p.argmax(1) == Yv).float().mean().item() for p in pv],
+                    "ens_test": ((sum(pt) / len(pt)).argmax(1) == Yte).float().mean().item(),
+                    "ens_val": ((sum(pv) / len(pv)).argmax(1) == Yv).float().mean().item()}
+    return res
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", default="run")
@@ -690,6 +729,21 @@ def main(argv=None):
     ap.add_argument("--stu_view", default="strong", choices=["strong", "weak", "clean"])
     ap.add_argument("--stu_lr", type=float, default=-1.0)
     ap.add_argument("--stu_bs", type=int, default=0, help="unlabeled batch of the student path (0 = all)")
+    # student pool (two-network): k held-out students trained on the same pseudo-labels; the
+    # optimistic feedback of each member is aggregated by the members' labeled loss after their
+    # step: min = optimistic over the pool, mean = expected, max = pessimistic, cvar = mean of
+    # the pool_m worst members
+    ap.add_argument("--n_stu", type=int, default=1, help="number of held-out students (two-network)")
+    ap.add_argument("--pool_agg", default="mean", choices=["min", "mean", "max", "cvar"])
+    ap.add_argument("--pool_m", type=int, default=2, help="cvar: number of worst members averaged")
+    ap.add_argument("--pool_aug", default="same", choices=["same", "indep"],
+                    help="members see the same strong view of X_u, or independent strong views")
+    ap.add_argument("--pool_bag", type=float, default=1.0,
+                    help="fraction of X_u each member trains on (fixed random subset per member)")
+    ap.add_argument("--stu_ft_iters", type=int, default=0,
+                    help="after training, finetune each student (EMA) on the labeled set and evaluate "
+                         "the members and their ensemble (diagnostic; the teacher is the deployed model)")
+    ap.add_argument("--stu_ft_lr", type=float, default=0.01)
     ap.add_argument("--radius", type=float, default=0.3)
     ap.add_argument("--beta", type=float, default=10.0)
     ap.add_argument("--alpha", type=float, default=0.5)
@@ -757,6 +811,21 @@ def main(argv=None):
         fb = Feedback(args, student)
     elif args.bilevel == "self":
         fb = Feedback(args, teacher)
+    # student pool: member 0 is `student`; members differ by their random initialisation and,
+    # optionally, by their strong views and a fixed subset of X_u
+    pool, bag = [], None
+    if args.bilevel == "two":
+        pool.append((student, s_opt, s_ema, fb))
+        for _ in range(1, args.n_stu):
+            sj = ConvNet(args.width).to(dev).to(memory_format=mf)
+            pool.append((sj, make_sgd(sj, args.stu_lr if args.stu_lr > 0 else args.lr, args.wd),
+                         EMA(sj, args.ema), Feedback(args, sj)))
+    if args.n_stu > 1:
+        assert args.bilevel == "two" and args.warm_sup_iters == 0, "student pool: two-network, no warm start"
+        if args.pool_bag < 1.0:
+            gb = torch.Generator().manual_seed(10_000 + args.seed)
+            bag = (torch.rand(args.n_stu, nu, generator=gb) < args.pool_bag).float().to(dev)
+    pool_prev_worst = [-1]
     flex = FlexState(nu, dev, args.tau) if args.base == "flexmatch" else None
     # labeled examples are part of the unlabeled pool (standard for FixMatch); the
     # student path excludes them so that its labeled loss is a held-out signal and the
@@ -812,6 +881,8 @@ def main(argv=None):
             rec["stu_test_ema"], _ = evaluate(s_ema.model, Xte, Yte)
             rec["stu_test"], _ = evaluate(student, Xte, Yte)
             rec["stu_val_ema"], _ = evaluate(s_ema.model, Xv, Yv)
+        if len(pool) > 1:
+            pool_eval(rec)
         rec.update({k2: float(np.mean(v)) for k2, v in run_stats.items() if len(v)})
         run_stats.clear()
         hist.append(rec)
@@ -820,6 +891,98 @@ def main(argv=None):
 
     def push(key, val):
         run_stats.setdefault(key, []).append(float(val))
+
+    def wcos(a, b):
+        return ((a * b).sum() / (a.norm() * b.norm() + 1e-12)).item()
+
+    def pool_feedback(eta, xs_in, xu_raw, iu, nb, w_s, t_soft, xl, yl, log_now):
+        """One step of every pool member on the pseudo-labels, then the optimistic feedback of
+        each member at its own look-ahead (held-out labeled loss), aggregated by that loss.
+        Returns the aggregated, centred and masked feedback and each member's gradient."""
+        K = len(pool)
+        thetas, tps, gs, xss, ws = [], [], [], [], []
+        for j, (sj, oj, ej, fj) in enumerate(pool):
+            set_lr(oj, eta)
+            xj = xs_in if (j == 0 or args.pool_aug == "same") else strong_aug(xu_raw)[:nb]
+            wj = w_s if bag is None else w_s * bag[j][iu[:nb]]
+            lj = (soft_ce(sj(xj), t_soft.detach()) * wj).sum() / wj.sum().clamp_min(1.0)
+            gj = grads_of(lj, dict(sj.named_parameters()))
+            th = pdict(sj)
+            thetas.append(th), gs.append(gj), xss.append(xj), ws.append(wj)
+            tps.append({n: th[n] - eta * gj[n] for n in th})
+            if log_now:
+                push("stu_loss", lj.item())
+        with torch.no_grad():
+            Ll = torch.stack([F.cross_entropy(pool[j][3]._f(tps[j], xl), yl).float() for j in range(K)])
+        order = torch.argsort(Ll).tolist()  # ascending labeled loss: order[0] best, order[-1] worst
+        wts = [0.0] * K
+        if args.pool_agg == "min":
+            wts[order[0]] = 1.0
+        elif args.pool_agg == "max":
+            wts[order[-1]] = 1.0
+        elif args.pool_agg == "mean":
+            wts = [1.0 / K] * K
+        else:
+            m = min(max(args.pool_m, 1), K)
+            for j in order[-m:]:
+                wts[j] = 1.0 / m
+        need = range(K) if log_now else [j for j in range(K) if wts[j] > 0]
+        cs = {}
+        for j in need:
+            cj, _ = pool[j][3].feedback(thetas[j], tps[j], xss[j], xl, yl, diag=False, w=ws[j], mode="opt")
+            cs[j] = (cj - cj.mean(1, keepdim=True)) * ws[j][:, None]
+        c = sum(wts[j] * cs[j] for j in range(K) if wts[j] > 0)
+        st = {}
+        if log_now:
+            ll = Ll.tolist()
+            st.update(pool_ll_min=min(ll), pool_ll_mean=float(np.mean(ll)), pool_ll_max=max(ll),
+                      pool_ll_spread=(max(ll) - min(ll)) / max(float(np.mean(ll)), 1e-12),
+                      lab_loss_anchor=float(np.mean(ll)))
+            cm = sum(cs[j] for j in range(K)) / K
+            m = min(max(args.pool_m, 1), K)
+            ccv = sum(cs[j] for j in order[-m:]) / m
+            cmax, cmin = cs[order[-1]], cs[order[0]]
+            st["pool_cos_pair"] = float(np.mean([wcos(cs[i], cs[j]) for i in range(K) for j in range(i + 1, K)]))
+            st["pool_cos_max_mean"] = wcos(cmax, cm)
+            st["pool_cos_min_mean"] = wcos(cmin, cm)
+            st["pool_cos_max_min"] = wcos(cmax, cmin)
+            st["pool_cos_cvar_mean"] = wcos(ccv, cm)
+            mem = float(np.mean([cs[j].norm().item() for j in range(K)]))
+            st["pool_norm_mean_rel"] = cm.norm().item() / max(mem, 1e-12)  # 1 if members agree, 1/sqrt(K) if orthogonal
+            st["c_norm"] = c.norm().item() / math.sqrt(c.shape[0])
+            st["pool_worst_switch"] = float(order[-1] != pool_prev_worst[0])
+            pool_prev_worst[0] = order[-1]
+            for j in range(K):
+                st[f"pool_worst_is_{j}"] = float(order[-1] == j)
+            # reference: the same member and direction v on a second strong view of the batch
+            xb = strong_aug(xu_raw)[:nb]
+            cb, _ = pool[0][3].feedback(thetas[0], tps[0], xb, xl, yl, diag=False, w=ws[0], mode="opt")
+            cb = (cb - cb.mean(1, keepdim=True)) * ws[0][:, None]
+            st["pool_cos_aug_ref"] = wcos(cs[0], cb)
+        return c, st, gs
+
+    @torch.no_grad()
+    def predict_proba(model, X, bs=2500):
+        model.eval()
+        out = torch.cat([F.softmax(model(clean(X[i:i + bs])), 1) for i in range(0, len(X), bs)])
+        model.train()
+        return out
+
+    def pool_eval(rec):
+        accs, pte, pv = [], 0, []
+        for (sj, oj, ej, fj) in pool:
+            pr = predict_proba(ej.model, Xte)
+            accs.append((pr.argmax(1) == Yte).float().mean().item())
+            pte = pte + pr
+            pv.append(predict_proba(ej.model, Xv).argmax(1))
+        lab = [F.cross_entropy(predict_proba(ej.model, Xl).clamp_min(1e-8).log(), Yl, reduction="mean").item()
+               for (sj, oj, ej, fj) in pool]
+        rec["stu_test_ema"] = float(np.mean(accs))
+        rec["pool_test_ema_min"], rec["pool_test_ema_max"] = min(accs), max(accs)
+        rec["pool_ens_test"] = ((pte / len(pool)).argmax(1) == Yte).float().mean().item()
+        rec["pool_dis_val"] = float(np.mean([(pv[i] != pv[j]).float().mean().item()
+                                             for i in range(len(pv)) for j in range(i + 1, len(pv))]))
+        rec["pool_lab_loss_min"], rec["pool_lab_loss_max"] = min(lab), max(lab)
 
     stopped_early = False
     for k in range(args.iters):
@@ -894,7 +1057,12 @@ def main(argv=None):
                     xs_in = xu_w[:nb]
                 else:
                     xs_in = clean(xu_raw[:nb])
-                if args.bilevel == "two":
+                pool_gs = None
+                if len(pool) > 1:
+                    eta = cosine_lr(args.stu_lr if args.stu_lr > 0 else args.lr, k, args.iters)
+                    c, st, pool_gs = pool_feedback(eta, xs_in, xu_raw, iu, nb, w_s, t_soft, xl_w, yl, log_now)
+                    g_stu = pool_gs[0]
+                elif args.bilevel == "two":
                     eta = cosine_lr(args.stu_lr if args.stu_lr > 0 else args.lr, k, args.iters)
                     set_lr(s_opt, eta)
                     s_logits = student(xs_in)
@@ -914,8 +1082,9 @@ def main(argv=None):
                     g_stu = grads_of(l_look, pl_)
                     if log_now:
                         push("stu_loss", l_look.item())
-                theta_p = {n: theta[n] - eta * g_stu[n] for n in theta}
-                c, st = fb.feedback(theta, theta_p, xs_in, xl_w, yl, diag=log_now, w=w_s)
+                if pool_gs is None:
+                    theta_p = {n: theta[n] - eta * g_stu[n] for n in theta}
+                    c, st = fb.feedback(theta, theta_p, xs_in, xl_w, yl, diag=log_now, w=w_s)
                 for kk, vv in st.items():
                     push(kk, vv)
                 c = (c - c.mean(1, keepdim=True)) * w_s[:, None]  # labeled examples carry no feedback
@@ -932,7 +1101,7 @@ def main(argv=None):
                 total = total + lam_m * l_meta
                 if log_now:
                     push("meta", l_meta.item())
-                    if args.bilevel == "two":
+                    if args.bilevel == "two" and pool_gs is None:
                         with torch.no_grad():
                             push("stu_pl_agree", (s_logits.argmax(1) == pl[:nb]).float().mean().item())
 
@@ -982,14 +1151,15 @@ def main(argv=None):
             t_ema.update(teacher)
 
             if args.bilevel == "two":
-                ok = torch.stack([torch.isfinite(g).all() for g in g_stu.values()]).all()
-                if bool(ok):
-                    for n, p in student.named_parameters():
-                        p.grad = g_stu[n]
-                    s_opt.step()
-                else:
-                    push("stu_nonfinite", 1.0)
-                s_ema.update(student)
+                for (sj, oj, ej, fj), gj in zip(pool, pool_gs if pool_gs is not None else [g_stu]):
+                    ok = torch.stack([torch.isfinite(g).all() for g in gj.values()]).all()
+                    if bool(ok):
+                        for n, p in sj.named_parameters():
+                            p.grad = gj[n]
+                        oj.step()
+                    else:
+                        push("stu_nonfinite", 1.0)
+                    ej.update(sj)
 
         if (k + 1) % args.eval_every == 0 or k + 1 == args.iters:
             log_eval(k + 1)
@@ -1002,6 +1172,9 @@ def main(argv=None):
     final = hist[-1] if hist else {}
     out = {"args": vars(args), "final": final, "hist": hist, "stopped_early": stopped_early,
            "n_params": n_params, "minutes": (time.time() - t_start) / 60}
+    if pool and args.stu_ft_iters > 0:
+        out["stu_ft"] = finetune_students(pool, Xl, Yl, Xv, Yv, Xte, Yte, args)
+        print(f"[{args.name}] student finetune: {json.dumps(out['stu_ft'])}", flush=True)
     os.makedirs(args.out_dir, exist_ok=True)
     with open(os.path.join(args.out_dir, f"{args.name}.json"), "w") as f:
         json.dump(out, f)

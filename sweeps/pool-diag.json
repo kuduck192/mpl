@@ -1,0 +1,17 @@
+{
+ "slug": "fmnist-ssl-pool-diag",
+ "budget_hours": 2.2,
+ "files": [],
+ "jobs": [
+  {
+   "name": "pooldiag_same_4_s0",
+   "args": "--bilevel two --n_stu 3 --pool_agg mean --lam_m 0.1 --stu_ft_iters 1000 --pool_aug same --n_per_class 4 --seed 0 --iters 20000",
+   "est_min": 75
+  },
+  {
+   "name": "pooldiag_bag_4_s0",
+   "args": "--bilevel two --n_stu 3 --pool_agg mean --lam_m 0.1 --stu_ft_iters 1000 --pool_aug indep --pool_bag 0.63 --n_per_class 4 --seed 0 --iters 20000",
+   "est_min": 75
+  }
+ ]
+}

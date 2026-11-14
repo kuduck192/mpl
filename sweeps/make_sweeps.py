@@ -347,6 +347,22 @@ def wave4(it=20000):
     write("fmnist-ssl-rep-f", f, float(os.environ.get("REPF_HOURS", 3.5)))
 
 
+def pool_diag(it=20000):
+    """Student-pool diagnostic (seed 0, 40 labels): k = 3 held-out students trained on the
+    teacher's pseudo-labels, expected (mean) aggregation driving the teacher, all of min / mean /
+    max / cvar feedbacks logged.  Two diversity levels: members differ only by their
+    initialisation (same strong view), or also by independent strong views and a fixed 63% subset
+    of X_u each.  Students are finetuned on the labels at the end (diagnostic); the teacher EMA is
+    the deployed model.
+    python sweeps/make_sweeps.py pool_diag"""
+    POOL = f"--bilevel two --n_stu 3 --pool_agg mean {OPT} --stu_ft_iters 1000"
+    jobs = [{"name": "pooldiag_same_4_s0", "args": f"{POOL} --pool_aug same --n_per_class 4 --seed 0 --iters {it}",
+             "est_min": 75},
+            {"name": "pooldiag_bag_4_s0",
+             "args": f"{POOL} --pool_aug indep --pool_bag 0.63 --n_per_class 4 --seed 0 --iters {it}", "est_min": 75}]
+    write("fmnist-ssl-pool-diag", jobs, float(os.environ.get("POOLDIAG_HOURS", 2.2)))
+
+
 def remainder():
     """python sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dir> [...]
     Writes a sweep with the jobs of <sweep.json> that have no complete result in the given
