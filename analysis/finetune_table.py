@@ -133,7 +133,8 @@ def main():
     for m in meths:
         cells = [ms(m, c)[0] for c, _ in COLS]
         tm = np.nanmean([x["min"] for x in R[m].values()])
-        fm = np.nanmean([x.get("ft_min", np.nan) for x in R[m].values()])
+        fms = [x["ft_min"] for x in R[m].values() if np.isfinite(x.get("ft_min", np.nan))]
+        fm = np.mean(fms) if fms else np.nan
         print(f"| {m} | {len(R[m])} | " + " | ".join(cells) + f" | {tm:.1f}" + (f" + {fm:.1f}" if np.isfinite(fm) else "") + " |")
 
     # fair references: without finetune vs FixMatch EMA, with finetune vs finetuned FixMatch

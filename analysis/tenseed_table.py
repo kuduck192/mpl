@@ -118,9 +118,19 @@ def main():
     ap.add_argument("--pairs", default="", help="extra comparisons a:b,c:d (no multiplicity correction)")
     ap.add_argument("--methods", default=",".join(METHODS))
     ap.add_argument("--tex", action="store_true", help="also print the LaTeX rows of the paper table")
+    ap.add_argument("--ref_avg", default="",
+                    help="robustness check: use as reference the per-seed mean of these runs of the same "
+                         "method (e.g. fixmatch,fixmatchft: the original FixMatch runs and their re-runs)")
     args = ap.parse_args()
     R = load(args.dirs)
-    meths = [m for m in args.methods.split(",") if m in R]
+    if args.ref_avg:
+        src = args.ref_avg.split(",")
+        seeds = set.intersection(*(set(R[m]) for m in src))
+        R["refavg"] = {s: {k: float(np.mean([R[m][s][k] for m in src])) for k in ("final", "val", "peak", "min")}
+                       for s in seeds}
+        args.ref = "refavg"
+    skip = {args.ref} | set(args.ref_avg.split(",") if args.ref_avg else ())  # not tested against the reference
+    meths = [m for m in args.methods.split(",") if m in R] + (["refavg"] if args.ref_avg else [])
     print("Per-seed final test accuracy (EMA), 40 labels:\n")
     print("| method | " + " | ".join(f"s{s}" for s in range(1, 11)) + " | mean ± sd | n |")
     print("|---|" + "---|" * 12)
@@ -141,7 +151,7 @@ def main():
     for key in ("final", "val"):
         rows, ps = [], []
         for m in meths:
-            if m == args.ref:
+            if m in skip:
                 continue
             common, d, x, y = paired(R, m, args.ref, key)
             if len(common) < 2:
