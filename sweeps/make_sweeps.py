@@ -363,6 +363,29 @@ def pool_diag(it=20000):
     write("fmnist-ssl-pool-diag", jobs, float(os.environ.get("POOLDIAG_HOURS", 2.2)))
 
 
+def wave5(it=20000):
+    """Phase 5: SAM on the labeled loss (the best variant of the 10-seed table) combined with the
+    two-network bilevel feedback (MPL / PBPL / EBPL, Algorithm 1), each component at its own
+    selected hyper-parameters (the combination is not re-tuned), seeds 1-10, 40 labels.  Every
+    run ends with the same labeled finetune of its deployed EMA models (teacher, and student for
+    the two-network runs; grid of lr x BN mode, selected on val).  FixMatch and FixMatch + SAM on
+    L_l are re-run with that finetune so that finetuned students are compared with finetuned
+    baselines.  rep-g: seeds 1-5, rep-h: seeds 6-10, seed-major so a budget cut drops whole seeds.
+    python sweeps/make_sweeps.py wave5"""
+    LS, FT = "--lab_reg sam --lab_radius 0.1", "--ft_iters 1000"
+
+    def job(name, a, sd, est):
+        return {"name": f"{name}_4_s{sd}", "args": f"{a} {FT} --n_per_class 4 --seed {sd} --iters {it}",
+                "est_min": est}
+    arms = [("lspbpl", f"--bilevel two --feedback pess {PESS} {LS}", 46),
+            ("lsebpl", f"--bilevel two --feedback exp {EXP} {LS}", 45),
+            ("lsmpl", f"--bilevel two --feedback opt {OPT} {LS}", 34),
+            ("labsamft", "--lab_reg sam --radius 0.1", 15),
+            ("fixmatchft", "--base fixmatch", 12)]
+    for slug, seeds in (("fmnist-ssl-rep-g", range(1, 6)), ("fmnist-ssl-rep-h", range(6, 11))):
+        write(slug, [job(n, a, sd, e) for sd in seeds for (n, a, e) in arms], float(os.environ.get("WAVE5_HOURS", 7.8)))
+
+
 def remainder():
     """python sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dir> [...]
     Writes a sweep with the jobs of <sweep.json> that have no complete result in the given

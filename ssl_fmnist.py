@@ -659,6 +659,35 @@ def check_amp(args, dev):
         json.dump({"args": vars(args), "final": {"rel_err_c": rel_c, "cos_c": cos, "rel_err_grad_student": rel_g}, "hist": []}, f)
 
 
+def ft_copy(src, Xl, Yl, lr, iters, bl, wd, bn="train", ema=0.0):
+    """Finetune a copy of `src` on the labeled loss only (weak views, nesterov SGD, cosine lr,
+    fp16 as in the main training).  bn = "frozen" keeps every BatchNorm layer in eval mode (the
+    running statistics of the main training are used and kept); "train" re-estimates them on the
+    labeled batches.  Returns the finetuned copy and the EMA of its trajectory (None if ema = 0)."""
+    m = copy.deepcopy(src)
+    for p in m.parameters():
+        p.requires_grad_(True)
+    m.train()
+    if bn == "frozen":
+        for mod in m.modules():
+            if isinstance(mod, nn.modules.batchnorm._BatchNorm):
+                mod.eval()
+    m_ema = EMA(m, ema) if ema > 0 else None
+    opt = make_sgd(m, lr, wd)
+    scaler = torch.amp.GradScaler("cuda", enabled=AMP)
+    for it in range(iters):
+        set_lr(opt, cosine_lr(lr, it, iters))
+        il = torch.randint(0, len(Xl), (bl,), device=Xl.device)
+        loss = F.cross_entropy(m(weak_aug(Xl[il])), Yl[il])
+        opt.zero_grad(set_to_none=True)
+        scaler.scale(loss).backward()
+        scaler.step(opt)
+        scaler.update()
+        if m_ema is not None:
+            m_ema.update(m)
+    return m, m_ema
+
+
 def finetune_students(pool, Xl, Yl, Xv, Yv, Xte, Yte, args):
     """Diagnostic: finetune a copy of each student's EMA on the labeled set (weak views, cosine
     lr) and report test / val accuracy of the members and of their ensemble, before and after."""
@@ -669,32 +698,41 @@ def finetune_students(pool, Xl, Yl, Xv, Yv, Xte, Yte, args):
         return p
 
     res = {"before": {}, "after": {}}
-    models = []
-    for (sj, oj, ej, fj) in pool:
-        m = copy.deepcopy(ej.model)
-        for p in m.parameters():
-            p.requires_grad_(True)
-        models.append(m)
+    models = [ej.model for (sj, oj, ej, fj) in pool]
     for tag in ("before", "after"):
         if tag == "after":
-            scaler = torch.amp.GradScaler("cuda", enabled=AMP)
-            for m in models:
-                m.train()
-                opt = make_sgd(m, args.stu_ft_lr, args.wd)
-                for it in range(args.stu_ft_iters):
-                    set_lr(opt, cosine_lr(args.stu_ft_lr, it, args.stu_ft_iters))
-                    il = torch.randint(0, len(Xl), (args.bl,), device=Xl.device)
-                    loss = F.cross_entropy(m(weak_aug(Xl[il])), Yl[il])
-                    opt.zero_grad(set_to_none=True)
-                    scaler.scale(loss).backward()
-                    scaler.step(opt)
-                    scaler.update()
+            models = [ft_copy(m, Xl, Yl, args.stu_ft_lr, args.stu_ft_iters, args.bl, args.wd)[0] for m in models]
         pt = [probs(m, Xte) for m in models]
         pv = [probs(m, Xv) for m in models]
         res[tag] = {"test": [(p.argmax(1) == Yte).float().mean().item() for p in pt],
                     "val": [(p.argmax(1) == Yv).float().mean().item() for p in pv],
                     "ens_test": ((sum(pt) / len(pt)).argmax(1) == Yte).float().mean().item(),
                     "ens_val": ((sum(pv) / len(pv)).argmax(1) == Yv).float().mean().item()}
+    return res
+
+
+def finetune_deployed(models, Xl, Yl, Xv, Yv, Xte, Yte, args):
+    """End-of-run labeled finetune applied identically to every deployed EMA model (the teacher of
+    every method, and the students of the two-network methods), so that a finetuned student is
+    compared with finetuned baselines.  For each model and each (lr, BN mode) of the grid: test /
+    val accuracy of the finetuned weights and of the EMA of the finetune trajectory; the analysis
+    selects the configuration on val.  Every model and configuration sees the same random batches."""
+    t0 = time.time()
+    lrs = [float(x) for x in args.ft_lrs.split(",") if x]
+    bns = [x for x in args.ft_bn.split(",") if x]
+    res = {}
+    for name, src in models.items():
+        r = {"before": {"test": evaluate(src, Xte, Yte)[0], "val": evaluate(src, Xv, Yv)[0]}}
+        for lr in lrs:
+            for bn in bns:
+                torch.manual_seed(1_000_003 + args.seed)
+                m, me = ft_copy(src, Xl, Yl, lr, args.ft_iters, args.bl, args.wd, bn, args.ft_ema)
+                c = {"test": evaluate(m, Xte, Yte)[0], "val": evaluate(m, Xv, Yv)[0]}
+                if me is not None:
+                    c.update(test_ema=evaluate(me.model, Xte, Yte)[0], val_ema=evaluate(me.model, Xv, Yv)[0])
+                r[f"lr{lr:g}_{bn}"] = c
+        res[name] = r
+    res["minutes"] = (time.time() - t0) / 60
     return res
 
 
@@ -744,6 +782,14 @@ def main(argv=None):
                     help="after training, finetune each student (EMA) on the labeled set and evaluate "
                          "the members and their ensemble (diagnostic; the teacher is the deployed model)")
     ap.add_argument("--stu_ft_lr", type=float, default=0.01)
+    ap.add_argument("--ft_iters", type=int, default=0,
+                    help="after training, finetune copies of the deployed EMA models (teacher and "
+                         "students) on the labeled loss only; every (lr, BN mode) of the grid is evaluated")
+    ap.add_argument("--ft_lrs", default="0.001,0.003,0.01", help="finetune learning rates (grid)")
+    ap.add_argument("--ft_bn", default="frozen,train",
+                    help="finetune BatchNorm modes: frozen keeps the running statistics of the main "
+                         "training, train re-estimates them on the labeled batches")
+    ap.add_argument("--ft_ema", type=float, default=0.99, help="EMA decay over the finetune trajectory")
     ap.add_argument("--radius", type=float, default=0.3)
     ap.add_argument("--beta", type=float, default=10.0)
     ap.add_argument("--alpha", type=float, default=0.5)
@@ -752,6 +798,9 @@ def main(argv=None):
     ap.add_argument("--eps_reset", type=int, default=0)
     # one-network labeled-loss regularizers (controls): SAM / fiber-SAM (teacher-anchored PBPL)
     ap.add_argument("--lab_reg", default="none", choices=["none", "sam", "fibersam"])
+    ap.add_argument("--lab_radius", type=float, default=-1.0,
+                    help="radius of --lab_reg (default: --radius); lets SAM on L_l run with the "
+                         "bilevel feedback at its own trust-region radius")
     # diagnostics / degeneracy experiment
     ap.add_argument("--warm_sup_iters", type=int, default=0,
                     help="supervised warm start of the teacher; student copied from it")
@@ -836,6 +885,7 @@ def main(argv=None):
     meta_rms = None
     lab_eps = None  # persistent eps for fibersam
     lab_fb = Feedback(args, teacher) if args.lab_reg == "fibersam" else None
+    lab_r = args.lab_radius if args.lab_radius > 0 else args.radius  # radius of --lab_reg
     teacher0 = None
 
     # optional supervised warm start (degeneracy diagnostic)
@@ -1112,7 +1162,7 @@ def main(argv=None):
                     with bn_frozen_stats(teacher):
                         l0 = F.cross_entropy(functional_call(teacher, tp, (xl_w,)), yl)
                     g0 = grads_of(l0, tp)
-                    eps_l = dscale(g0, args.radius / (dnorm(g0) + 1e-12))
+                    eps_l = dscale(g0, lab_r / (dnorm(g0) + 1e-12))
                 else:
                     if lab_eps is None:
                         lab_eps = dzeros(pdict(teacher))
@@ -1126,12 +1176,12 @@ def main(argv=None):
                 if args.lab_reg == "fibersam":
                     # teacher-anchored PBPL: same ascent-then-retract adversary, fiber of the
                     # deployed network's own predictions on the weak unlabeled views
-                    new = dadd(lab_eps, g_adv, args.alpha * args.radius / (dnorm(g_adv) + 1e-12))
+                    new = dadd(lab_eps, g_adv, args.alpha * lab_r / (dnorm(g_adv) + 1e-12))
                     st_l = {}
                     lab_fb.w = (~is_lab_u[iu]).float()
                     new = lab_fb._retract(pdict(teacher), new, xu_w, args.k_proj, st_l, log_now)
                     en = dnorm(new)
-                    lab_eps = dscale(new, torch.clamp(args.radius / (en + 1e-12), max=1.0))
+                    lab_eps = dscale(new, torch.clamp(lab_r / (en + 1e-12), max=1.0))
                     for kk, vv in st_l.items():
                         push(kk, vv)
                 # replace the labeled CE gradient by the gradient at the perturbed point
@@ -1175,6 +1225,13 @@ def main(argv=None):
     if pool and args.stu_ft_iters > 0:
         out["stu_ft"] = finetune_students(pool, Xl, Yl, Xv, Yv, Xte, Yte, args)
         print(f"[{args.name}] student finetune: {json.dumps(out['stu_ft'])}", flush=True)
+    if args.ft_iters > 0:
+        dep = {"teacher": t_ema.model}
+        dep.update({("student" if j == 0 else f"student{j}"): ej.model for j, (sj, oj, ej, fj) in enumerate(pool)})
+        out["ft"] = finetune_deployed(dep, Xl, Yl, Xv, Yv, Xte, Yte, args)
+        print(f"[{args.name}] finetune ({out['ft']['minutes']:.1f} min): "
+              + json.dumps({n: {c: round(v.get("test_ema", v["test"]), 4) for c, v in r.items()}
+                            for n, r in out["ft"].items() if n != "minutes"}), flush=True)
     os.makedirs(args.out_dir, exist_ok=True)
     with open(os.path.join(args.out_dir, f"{args.name}.json"), "w") as f:
         json.dump(out, f)

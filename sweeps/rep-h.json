@@ -1,0 +1,132 @@
+{
+ "slug": "fmnist-ssl-rep-h",
+ "budget_hours": 7.8,
+ "files": [],
+ "jobs": [
+  {
+   "name": "lspbpl_4_s6",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 46
+  },
+  {
+   "name": "lsebpl_4_s6",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 45
+  },
+  {
+   "name": "lsmpl_4_s6",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 34
+  },
+  {
+   "name": "labsamft_4_s6",
+   "args": "--lab_reg sam --radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "fixmatchft_4_s6",
+   "args": "--base fixmatch --ft_iters 1000 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "lspbpl_4_s7",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 46
+  },
+  {
+   "name": "lsebpl_4_s7",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 45
+  },
+  {
+   "name": "lsmpl_4_s7",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 34
+  },
+  {
+   "name": "labsamft_4_s7",
+   "args": "--lab_reg sam --radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "fixmatchft_4_s7",
+   "args": "--base fixmatch --ft_iters 1000 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "lspbpl_4_s8",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 46
+  },
+  {
+   "name": "lsebpl_4_s8",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 45
+  },
+  {
+   "name": "lsmpl_4_s8",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 34
+  },
+  {
+   "name": "labsamft_4_s8",
+   "args": "--lab_reg sam --radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "fixmatchft_4_s8",
+   "args": "--base fixmatch --ft_iters 1000 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "lspbpl_4_s9",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 46
+  },
+  {
+   "name": "lsebpl_4_s9",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 45
+  },
+  {
+   "name": "lsmpl_4_s9",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 34
+  },
+  {
+   "name": "labsamft_4_s9",
+   "args": "--lab_reg sam --radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "fixmatchft_4_s9",
+   "args": "--base fixmatch --ft_iters 1000 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "lspbpl_4_s10",
+   "args": "--bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 46
+  },
+  {
+   "name": "lsebpl_4_s10",
+   "args": "--bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 45
+  },
+  {
+   "name": "lsmpl_4_s10",
+   "args": "--bilevel two --feedback opt --lam_m 0.1 --lab_reg sam --lab_radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 34
+  },
+  {
+   "name": "labsamft_4_s10",
+   "args": "--lab_reg sam --radius 0.1 --ft_iters 1000 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "fixmatchft_4_s10",
+   "args": "--base fixmatch --ft_iters 1000 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 12
+  }
+ ]
+}
