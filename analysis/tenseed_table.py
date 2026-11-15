@@ -21,17 +21,19 @@ from scipy import stats
 # the family compared on seeds 1-10 (the exact-scale one-network pair, seeds 1-5, is a separate
 # theory test: --methods fixmatch,abl_selfopt,abl_self,abl_selfoptraw,abl_selfraw)
 METHODS = ["fixmatch", "fmtuned", "mpl", "pbpl", "ebpl", "abl_samfb", "lsmpl", "lspbpl", "lsebpl",
-           "abl_selfopt", "abl_self", "abl_fibersam", "abl_labsam"]
+           "fsmpl", "fspbpl", "fsebpl", "abl_selfopt", "abl_self", "abl_fibersam", "abl_labsam"]
 # LaTeX rows (--tex), grouped as in the paper table
 GROUPS = [(None, ["fixmatch", "fmtuned"]),
           ("Two networks (Algorithm 1)", ["mpl", "pbpl", "ebpl", "abl_samfb"]),
           ("Two networks + SAM on $L_l$", ["lsmpl", "lspbpl", "lsebpl"]),
+          ("Two networks + fiber-SAM", ["fsmpl", "fspbpl", "fsebpl"]),
           ("One network (look-ahead of the deployed network)", ["abl_selfopt", "abl_self"]),
           ("No bilevel feedback", ["abl_fibersam", "abl_labsam"])]
 TEX = {"fixmatch": "FixMatch", "fmtuned": r"FixMatch, tuned ($\lambda_u = 2$)", "mpl": "MPL (optimistic)",
        "pbpl": "PBPL (pessimistic)", "ebpl": "EBPL (expected)",
        "abl_samfb": r"$\varepsilon$ reset each step (SAM step)", "lsmpl": "MPL (optimistic)",
-       "lspbpl": "PBPL (pessimistic)", "lsebpl": "EBPL (expected)", "abl_selfopt": "MPL (optimistic)",
+       "lspbpl": "PBPL (pessimistic)", "lsebpl": "EBPL (expected)", "fsmpl": "MPL (optimistic)",
+       "fspbpl": "PBPL (pessimistic)", "fsebpl": "EBPL (expected)", "abl_selfopt": "MPL (optimistic)",
        "abl_self": "PBPL (pessimistic)", "abl_fibersam": "FixMatch + fiber-SAM",
        "abl_labsam": "FixMatch + SAM on $L_l$"}
 

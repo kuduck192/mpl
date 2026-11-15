@@ -23,12 +23,15 @@ from collections import defaultdict
 import numpy as np
 from scipy import stats
 
-FT_METHODS = ["fixmatchft", "labsamft", "mplft", "pbplft", "ebplft", "lsmpl", "lspbpl", "lsebpl"]
+FT_METHODS = ["fixmatchft", "labsamft", "fibersamft", "mplft", "pbplft", "ebplft", "lsmpl", "lspbpl", "lsebpl",
+              "fsmpl", "fspbpl", "fsebpl"]
 OLD_TWO = ["mpl", "pbpl", "ebpl"]
 LABEL = {"fixmatchft": "FixMatch", "labsamft": "FixMatch + SAM on $L_l$",
          "mplft": "MPL", "pbplft": "PBPL", "ebplft": "EBPL",
          "mpl": "MPL (no finetune run)", "pbpl": "PBPL (no finetune run)", "ebpl": "EBPL (no finetune run)",
-         "lsmpl": "MPL + SAM on $L_l$", "lspbpl": "PBPL + SAM on $L_l$", "lsebpl": "EBPL + SAM on $L_l$"}
+         "lsmpl": "MPL + SAM on $L_l$", "lspbpl": "PBPL + SAM on $L_l$", "lsebpl": "EBPL + SAM on $L_l$",
+         "fibersamft": "FixMatch + fiber-SAM", "fsmpl": "MPL + fiber-SAM", "fspbpl": "PBPL + fiber-SAM",
+         "fsebpl": "EBPL + fiber-SAM"}
 COLS = [("t_ema", "teacher EMA"), ("s_ema", "student EMA"), ("t_ft", "teacher ft"), ("s_ft", "student ft")]
 
 

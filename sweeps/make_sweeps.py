@@ -386,6 +386,44 @@ def wave5(it=20000):
         write(slug, [job(n, a, sd, e) for sd in seeds for (n, a, e) in arms], float(os.environ.get("WAVE5_HOURS", 7.8)))
 
 
+def wave6a(it=20000):
+    """Phase 6a: the plain two-network MPL / PBPL / EBPL rows re-run with the end-of-run labeled
+    finetune (same flags as the 10-seed table, plus --ft_iters 1000), so that their students also
+    have a finetuned number on the same footing as the wave5 rows.  Training is unchanged (the
+    finetune acts on copies after the last iteration), so the teacher EMA of mplft / pbplft /
+    ebplft also checks the reproducibility of the mpl / pbpl / ebpl rows.  rep-i: seeds 1-5,
+    rep-j: seeds 6-10, seed-major.
+    python sweeps/make_sweeps.py wave6a"""
+    FT = "--ft_iters 1000"
+
+    def job(name, a, sd, est):
+        return {"name": f"{name}_4_s{sd}", "args": f"{a} {FT} --n_per_class 4 --seed {sd} --iters {it}",
+                "est_min": est}
+    arms = [("pbplft", f"--bilevel two --feedback pess {PESS}", 43),
+            ("ebplft", f"--bilevel two --feedback exp {EXP}", 42),
+            ("mplft", f"--bilevel two --feedback opt {OPT}", 31)]
+    for slug, seeds in (("fmnist-ssl-rep-i", range(1, 6)), ("fmnist-ssl-rep-j", range(6, 11))):
+        write(slug, [job(n, a, sd, e) for sd in seeds for (n, a, e) in arms], float(os.environ.get("WAVE6_HOURS", 5.4)))
+
+
+def wave6b(it=20000):
+    """Phase 6b (alternative to 6a): fiber-SAM on L_l (teacher-anchored PBPL adversary, radius 0.1)
+    combined with the two-network MPL / PBPL / EBPL feedback, plus the FixMatch + fiber-SAM
+    baseline, all with the end-of-run finetune.  rep-i: seeds 1-5, rep-j: seeds 6-10.
+    python sweeps/make_sweeps.py wave6b"""
+    FS, FT = "--lab_reg fibersam --lab_radius 0.1", "--ft_iters 1000"
+
+    def job(name, a, sd, est):
+        return {"name": f"{name}_4_s{sd}", "args": f"{a} {FT} --n_per_class 4 --seed {sd} --iters {it}",
+                "est_min": est}
+    arms = [("fspbpl", f"--bilevel two --feedback pess {PESS} {FS}", 55),
+            ("fsebpl", f"--bilevel two --feedback exp {EXP} {FS}", 54),
+            ("fsmpl", f"--bilevel two --feedback opt {OPT} {FS}", 43),
+            ("fibersamft", "--lab_reg fibersam --radius 0.1", 25)]
+    for slug, seeds in (("fmnist-ssl-rep-i", range(1, 6)), ("fmnist-ssl-rep-j", range(6, 11))):
+        write(slug, [job(n, a, sd, e) for sd in seeds for (n, a, e) in arms], float(os.environ.get("WAVE6_HOURS", 7.8)))
+
+
 def remainder():
     """python sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dir> [...]
     Writes a sweep with the jobs of <sweep.json> that have no complete result in the given
