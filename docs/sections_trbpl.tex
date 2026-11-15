@@ -132,7 +132,15 @@ match or exceed the pessimistic rule: one ascent step from zero, i.e.\ a SAM ste
 $X_u$, is within noise of it ($+0.53\pm2.12$ points over the pessimistic rule on ten seeds), and
 SAM on the deployed network's labeled loss, with no student and no fiber, is the most accurate
 variant over ten seeds ($+3.05\pm3.19$ points over FixMatch, $p=0.014$ before correction for
-multiple comparisons; $+2.47$ over the pessimistic rule). The theory therefore guarantees that
+multiple comparisons; $+2.47$ over the pessimistic rule). Adding the two-network feedback on top
+of it lowers accuracy: with SAM on $L_l$, the optimistic, pessimistic and expected rules are
+$1.1$, $2.1$ and $2.5$ points below SAM alone (expected rule: ahead on $2$ of $10$ seeds,
+$p=0.011$), and the same labeled finetune of the deployed models does not change the ranking
+(finetuned students $0.84$, $1.64$ and $2.02$ points below the finetuned SAM teacher).
+Re-running FixMatch on the same seeds moves its accuracy by $-3.5$ to $+7.5$ points (GPU
+non-determinism; the training code is bit-identical on CPU); against the per-seed mean of the
+two FixMatch runs, SAM on $L_l$ leads by $2.65\pm2.18$ points ($p=0.004$; Holm-adjusted over
+the $12$ comparisons, $p=0.048$), the only variant significant after correction. The theory therefore guarantees that
 the pessimistic feedback is non-zero and differs from the optimistic one where the latter
 degenerates; it does not imply, and the
 experiments do not show, an accuracy gain where the optimistic feedback is not degenerate.

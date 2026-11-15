@@ -1,0 +1,127 @@
+[
+ {
+  "name": "lsebpl_4_s1",
+  "rc": 0,
+  "minutes": 41.35636545419693
+ },
+ {
+  "name": "lspbpl_4_s1",
+  "rc": 0,
+  "minutes": 42.38448024193446
+ },
+ {
+  "name": "labsamft_4_s1",
+  "rc": 0,
+  "minutes": 14.051964954535167
+ },
+ {
+  "name": "fixmatchft_4_s1",
+  "rc": 0,
+  "minutes": 11.329233042399089
+ },
+ {
+  "name": "lsmpl_4_s1",
+  "rc": 0,
+  "minutes": 30.674793914953867
+ },
+ {
+  "name": "lspbpl_4_s2",
+  "rc": 0,
+  "minutes": 42.237417443593344
+ },
+ {
+  "name": "lsebpl_4_s2",
+  "rc": 0,
+  "minutes": 41.21692824761073
+ },
+ {
+  "name": "labsamft_4_s2",
+  "rc": 0,
+  "minutes": 14.409192665417988
+ },
+ {
+  "name": "fixmatchft_4_s2",
+  "rc": 0,
+  "minutes": 11.53227386077245
+ },
+ {
+  "name": "lsmpl_4_s2",
+  "rc": 0,
+  "minutes": 31.104524115721386
+ },
+ {
+  "name": "lspbpl_4_s3",
+  "rc": 0,
+  "minutes": 41.80224950710932
+ },
+ {
+  "name": "lsebpl_4_s3",
+  "rc": 0,
+  "minutes": 41.3081390619278
+ },
+ {
+  "name": "labsamft_4_s3",
+  "rc": 0,
+  "minutes": 13.932233226299285
+ },
+ {
+  "name": "fixmatchft_4_s3",
+  "rc": 0,
+  "minutes": 11.419441401958466
+ },
+ {
+  "name": "lsmpl_4_s3",
+  "rc": 0,
+  "minutes": 30.53791655699412
+ },
+ {
+  "name": "lspbpl_4_s4",
+  "rc": 0,
+  "minutes": 42.15021984577179
+ },
+ {
+  "name": "lsebpl_4_s4",
+  "rc": 0,
+  "minutes": 40.97605507771174
+ },
+ {
+  "name": "labsamft_4_s4",
+  "rc": 0,
+  "minutes": 13.845548729101816
+ },
+ {
+  "name": "fixmatchft_4_s4",
+  "rc": 0,
+  "minutes": 11.365161355336507
+ },
+ {
+  "name": "lsmpl_4_s4",
+  "rc": 0,
+  "minutes": 30.8056618531545
+ },
+ {
+  "name": "lspbpl_4_s5",
+  "rc": 0,
+  "minutes": 41.93474722703298
+ },
+ {
+  "name": "lsebpl_4_s5",
+  "rc": 0,
+  "minutes": 41.55533496141434
+ },
+ {
+  "name": "labsamft_4_s5",
+  "rc": 0,
+  "minutes": 14.01136969725291
+ },
+ {
+  "name": "fixmatchft_4_s5",
+  "rc": 0,
+  "minutes": 11.442407035827637
+ },
+ {
+  "name": "lsmpl_4_s5",
+  "rc": 0,
+  "minutes": 30.618265930811564
+ }
+]

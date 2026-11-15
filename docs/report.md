@@ -634,7 +634,9 @@ có bậc $s^2$ (N2(d)). Kiểm chứng số:
     định vẫn +2.59, p = 0.034;
   - MPL một mạng: +1.98, p = 0.041; trên seed 3–10 chỉ còn +1.08, p = 0.16.
 
-  Sau hiệu chỉnh Holm qua 9 phép so sánh, không biến thể nào còn có ý nghĩa ở mức 5%.
+  Sau hiệu chỉnh Holm qua 9 phép so sánh, không biến thể nào còn có ý nghĩa ở mức 5%. Cập nhật ở
+  Mục 12: khi mốc FixMatch là trung bình hai run mỗi seed, SAM trên labeled loss qua được Holm
+  qua 12 phép so sánh (+2.65, p Holm = 0.048).
 - Biến thể pessimistic tốt nhất là PBPL một mạng: +1.51 so với FixMatch (8/10, p = 0.094). Trên
   seed 4–10, chưa xem lúc quyết định, nó chỉ còn +0.99 (p = 0.39).
 - Pessimistic so với optimistic, cùng cấu hình, cùng seed: +0.04 (hai mạng), −0.48 (một mạng),
@@ -692,7 +694,8 @@ Cả hai đều không cần fiber, student phụ hay student xấu nhất.
   để giai đoạn anchor khớp nhãn chiếm phần lớn quá trình; đó là giai đoạn duy nhất mà hai quy
   tắc khác nhau.
 - Gắn feedback bilevel một mạng vào một base đã có SAM trên labeled loss, thay vì vào FixMatch
-  trơn. Hai thành phần tốt nhất chưa từng được chạy chung.
+  trơn. Bản hai mạng của phép gộp này đã chạy ở Mục 12: feedback làm hại SAM (−1.1 đến −2.5
+  điểm). Bản một mạng, gộp hai thành phần tốt nhất, chưa được chạy.
 - Dùng bài toán mà FixMatch có confirmation bias mạnh và ổn định giữa các seed (ví dụ CIFAR-10
   với 40 nhãn, huấn luyện dài hơn). Ở đó việc giữ được tín hiệu từ dữ liệu có nhãn có nhiều chỗ
   để tạo khác biệt hơn.
@@ -768,3 +771,186 @@ không phải bằng chứng về độ chính xác.
 - **Finetune student trên nhãn không giúp ổn định.** So với teacher: +0.31 điểm với *same*,
   −0.49 với *bag*. Triển khai teacher không mất gì. Điều này khớp với kết quả trước: trong
   thiết kế này student là bản chưng cất của teacher.
+
+## 12. SAM trên labeled loss kết hợp feedback bilevel hai mạng, có finetune cuối (10 seed, 40 nhãn)
+
+**Câu hỏi.** SAM trên labeled loss là biến thể tốt nhất của Mục 9.2. Liệu feedback PBPL / EBPL
+(hay MPL) hai mạng có cộng thêm được gì khi đặt lên trên nó? Và nếu triển khai student sau khi
+finetune trên nhãn thay vì teacher, so sánh có công bằng với baseline cũng được finetune không?
+
+**Thiết kế** (`sweeps/make_sweeps.py wave5`, kernel `rep-g` cho seed 1–5 và `rep-h` cho seed 6–10,
+50 run, 350 + 362 phút GPU).
+- Ba tổ hợp: SAM trên $L_l$ (ρ = 0.1) cộng MPL / PBPL / EBPL hai mạng (Algorithm 1). Mỗi thành
+  phần giữ đúng siêu tham số đã chọn: MPL λ_m = 0.1; PBPL λ_m = 0.1, r = 0.1; EBPL λ_m = 0.3,
+  r = 3.0. Tổ hợp không được tinh chỉnh lại. Cờ `--lab_radius 0.1` tách bán kính SAM khỏi bán
+  kính fiber, vì EBPL dùng r = 3.0.
+- Finetune cuối run, giống hệt cho mọi mô hình triển khai: teacher của mọi phương pháp và
+  student của các bản hai mạng (`--ft_iters 1000`, hàm `finetune_deployed`).
+  - Mỗi lần finetune lấy một bản sao của mô hình EMA. Nó chạy 1000 bước chỉ trên CE của 40 ảnh
+    có nhãn (batch 64, weak augmentation, cosine LR, weight decay 5·10⁻⁴).
+  - Con số báo cáo là EMA (0.99) của quỹ đạo finetune.
+  - Lưới thử: lr ∈ {0.001, 0.003, 0.01} × BatchNorm {giữ nguyên thống kê, cập nhật}. Mọi mô hình
+    và mọi cấu hình thấy cùng một chuỗi batch ngẫu nhiên.
+  - Cấu hình được chọn theo val, riêng cho từng run và từng mô hình. Mục 12.3 kiểm tra lại với
+    cấu hình cố định.
+- FixMatch và FixMatch + SAM được chạy lại với cùng bước finetune (`fixmatchft`, `labsamft`), để
+  student đã finetune được so với baseline cũng đã finetune.
+- Trên CPU, mã huấn luyện cho lịch sử trùng từng bit với mã của các run gốc (commit `6e88445`).
+  Kiểm tra gồm FixMatch, SAM trên $L_l$, PBPL và MPL; có cả một cấu hình τ = 0.2 để nhánh
+  pseudo-label có mask được chạy. Finetune chỉ chạy sau vòng cuối, trên bản sao, nên không đổi
+  phần huấn luyện.
+
+Hai bảng sinh bởi `analysis/tenseed_table.py results/fmnist-ssl-* --tex` và
+`analysis/finetune_table.py results/fmnist-ssl-* --tex`.
+
+### 12.1 Bảng 10 seed mở rộng (teacher EMA, vòng cuối)
+
+Holm giờ tính qua 12 phép so sánh với FixMatch (thay vì 9 như Mục 9.2), nên p Holm của các hàng
+cũ tăng lên.
+
+| 40 nhãn, seed 1–10 | cuối | − FixMatch, vòng cuối | p (t-test / Wilcoxon / Holm 12) | − FixMatch, chọn theo val | giảm cuối | phút/run |
+|---|---|---|---|---|---|---|
+| FixMatch | 72.75 ± 3.76 | — | — | — | 1.84 | 11.1 |
+| FixMatch tinh chỉnh ($\lambda_u=2$) | 73.71 ± 3.66 | +0.96 ± 1.52, 6/10 | 0.078 / 0.113 / 0.78 | −0.10 | 0.79 | 10.9 |
+| MPL hai mạng | 73.28 ± 3.96 | +0.54 ± 2.54, 5/10 | 0.52 / 0.49 / 1.00 | −0.74 | 0.63 | 28.2 |
+| PBPL hai mạng | 73.32 ± 3.10 | +0.58 ± 3.10, 7/10 | 0.57 / 0.45 / 1.00 | −0.05 | 1.24 | 40.3 |
+| EBPL hai mạng | 72.74 ± 2.51 | −0.01 ± 3.30, 6/10 | 1.00 / 0.77 / 1.00 | −0.54 | 1.40 | 39.3 |
+| SAM-feedback ($\varepsilon$ reset mỗi bước) | 73.86 ± 3.88 | +1.11 ± 2.73, 6/10 | 0.23 / 0.19 / 1.00 | +0.42 | 1.20 | 29.2 |
+| **MPL hai mạng + SAM trên $L_l$** | 74.66 ± 3.20 | +1.91 ± 3.42, 8/10 | 0.111 / 0.13 / 0.89 | +1.33 | 1.28 | 29.9 |
+| **PBPL hai mạng + SAM trên $L_l$** | 73.67 ± 3.47 | +0.92 ± 2.43, 6/10 | 0.26 / 0.56 / 1.00 | +1.07 | 1.99 | 41.4 |
+| **EBPL hai mạng + SAM trên $L_l$** | 73.26 ± 2.54 | +0.52 ± 2.95, 6/10 | 0.59 / 0.70 / 1.00 | −0.47 | 0.88 | 40.6 |
+| MPL một mạng | 74.73 ± 2.97 | +1.98 ± 2.64, 7/10 | 0.041 / 0.064 / 0.45 | +1.04 | 0.94 | 27.8 |
+| PBPL một mạng | 74.25 ± 3.34 | +1.51 ± 2.55, 8/10 | 0.094 / 0.105 / 0.85 | +0.47 | 0.73 | 39.3 |
+| FixMatch + fiber-SAM | 74.28 ± 4.42 | +1.53 ± 4.42, 5/10 | 0.30 / 0.49 / 1.00 | +0.73 | 1.03 | 23.2 |
+| FixMatch + SAM trên $L_l$ | 75.79 ± 2.55 | +3.05 ± 3.19, 8/10 | 0.014 / 0.020 / 0.17 | +1.75 | 0.59 | 13.9 |
+
+Tổ hợp so với từng thành phần của nó (teacher EMA, cùng seed, không hiệu chỉnh nhiều phép so
+sánh). "SAM, 2 run" là trung bình mỗi seed của `abl_labsam` và `labsamft`:
+
+| so sánh | vòng cuối | chọn theo val |
+|---|---|---|
+| MPL + SAM − SAM, 2 run | −1.09 ± 2.15, 3/10, p = 0.14 (W 0.16) | −0.24 ± 1.22, 2/10, p = 0.55 |
+| PBPL + SAM − SAM, 2 run | −2.08 ± 3.28, 3/10, p = 0.076 (W 0.105) | −0.51 ± 1.80, 4/10, p = 0.40 |
+| EBPL + SAM − SAM, 2 run | −2.49 ± 2.48, 2/10, p = 0.011 (W 0.014) | −2.04 ± 2.58, 2/10, p = 0.034 |
+| EBPL + SAM − SAM, run gốc | −2.53 ± 2.11, 0/10, p = 0.004 | −2.22 ± 2.11, 1/10, p = 0.009 |
+| MPL + SAM − MPL | +1.38 ± 2.48, 6/10, p = 0.11 | +2.07 ± 2.55, 8/10, p = 0.030 |
+| PBPL + SAM − PBPL | +0.35 ± 3.31, 6/10, p = 0.75 | +1.12 ± 3.24, 8/10, p = 0.30 |
+| EBPL + SAM − EBPL | +0.52 ± 2.22, 6/10, p = 0.48 | +0.07 ± 1.93, 5/10, p = 0.91 |
+| PBPL + SAM − MPL + SAM | −0.99 ± 2.80, 3/10, p = 0.29 | −0.27 ± 1.29, 6/10, p = 0.53 |
+| EBPL + SAM − MPL + SAM | −1.40 ± 1.92, 2/10, p = 0.047 | −1.80 ± 1.97, 2/10, p = 0.018 |
+| MPL + SAM − MPL một mạng | −0.07 ± 3.50, 5/10, p = 0.95 | +0.29 ± 1.78, 6/10, p = 0.62 |
+
+### 12.2 Mô hình triển khai: teacher, student, trước và sau finetune
+
+Cấu hình finetune chọn theo val, 10 seed. FixMatch và FixMatch + SAM ở đây là các run chạy lại
+cùng đợt, có finetune. Các hàng MPL / PBPL / EBPL không SAM là run cũ, không có finetune.
+
+| | teacher EMA | student EMA | teacher finetune | student finetune |
+|---|---|---|---|---|
+| FixMatch (chạy lại) | 73.54 ± 2.32 | — | 73.72 ± 2.43 | — |
+| FixMatch + SAM trên $L_l$ (chạy lại) | 75.71 ± 3.12 | — | 75.92 ± 3.06 | — |
+| MPL + SAM | 74.66 ± 3.20 | 74.83 ± 3.30 | 74.89 ± 3.34 | 75.08 ± 3.06 |
+| PBPL + SAM | 73.67 ± 3.47 | 73.74 ± 3.50 | 73.85 ± 3.51 | 74.28 ± 3.22 |
+| EBPL + SAM | 73.26 ± 2.54 | 73.44 ± 2.58 | 73.45 ± 2.54 | 73.89 ± 2.56 |
+| MPL (run cũ) | 73.28 ± 3.96 | 73.16 ± 3.80 | — | — |
+| PBPL (run cũ) | 73.32 ± 3.10 | 73.49 ± 3.18 | — | — |
+| EBPL (run cũ) | 72.74 ± 2.51 | 72.81 ± 2.71 | — | — |
+
+So sánh công bằng: mô hình đã finetune so với baseline đã finetune, mô hình chưa finetune so với
+EMA của FixMatch cùng đợt. Paired qua 10 seed, Holm qua các phương pháp của mỗi cột:
+
+| | student finetune − FixMatch finetune | student finetune − (FixMatch + SAM) finetune | student EMA − FixMatch EMA |
+|---|---|---|---|
+| MPL + SAM | +1.36 ± 3.05, 7/10, 0.19 / 0.13 / 0.58 | −0.84 ± 2.39, 3/10, 0.30 / 0.19 / 0.30 | +1.28 ± 3.34, 6/10, p = 0.26 |
+| PBPL + SAM | +0.56 ± 3.74, 5/10, 0.65 / 0.77 / 1.00 | −1.64 ± 3.30, 2/10, 0.15 / 0.105 / 0.30 | +0.20 ± 4.03, 5/10, p = 0.88 |
+| EBPL + SAM | +0.18 ± 2.61, 6/10, 0.84 / 0.92 / 1.00 | −2.02 ± 2.98, 2/10, 0.060 / 0.064 / 0.18 | −0.10 ± 2.72, 4/10, p = 0.91 |
+
+Trong cùng run (không hiệu chỉnh nhiều phép so sánh):
+
+| | student EMA − teacher EMA | teacher finetune − teacher EMA | student finetune − teacher finetune |
+|---|---|---|---|
+| FixMatch | — | +0.17 ± 0.18, 9/10, p = 0.013 | — |
+| FixMatch + SAM | — | +0.20 ± 0.33, 7/10, p = 0.082 | — |
+| MPL + SAM | +0.17 ± 0.40, 6/10, p = 0.22 | +0.23 ± 0.38, 7/10, p = 0.092 | +0.19 ± 0.54, 5/10, p = 0.30 |
+| PBPL + SAM | +0.07 ± 0.18, 5/10, p = 0.25 | +0.18 ± 0.22, 8/10, p = 0.026 | +0.42 ± 0.52, 7/10, p = 0.031 |
+| EBPL + SAM | +0.17 ± 0.41, 7/10, p = 0.21 | +0.19 ± 0.33, 7/10, p = 0.11 | +0.44 ± 0.31, 10/10, p = 0.002 |
+
+### 12.3 Độ vững
+
+**Cấu hình finetune cố định thay vì chọn theo val.**
+- Val thường chọn lr 0.01 với BN cập nhật (6–8/10 run cho student). Cố định cấu hình đó, các
+  con số gần như không đổi:
+  - student finetune − FixMatch finetune: +1.40, +0.52, +0.12;
+  - student finetune − teacher finetune: +0.36 (8/10, p = 0.026), +0.39 (p = 0.050), +0.41
+    (9/10, p = 0.004).
+- Với lr 0.001 và BN giữ nguyên, finetune gần như không làm gì: thay đổi trung bình từ −0.05 đến
+  +0.06 điểm.
+
+**Chạy lại cùng seed: nhiễu GPU lớn cỡ hiệu ứng cần đo.**
+- FixMatch chạy lại trừ run gốc, theo seed 1–10: +1.32, +7.45, +0.20, −3.53, +1.77, +3.30,
+  +0.06, −2.17, +1.36, −1.80. Trung bình +0.80 ± 3.11 (p = 0.44), tương ứng nhiễu khoảng 2.2
+  điểm trên mỗi run.
+- FixMatch + SAM chạy lại: −0.08 ± 1.56, khoảng 1.1 điểm trên mỗi run. Seed 5 lệch −3.98, các
+  seed khác lệch trong khoảng ±1.8.
+- Mã huấn luyện trùng từng bit trên CPU, nên độ lệch đến từ tính không tất định của GPU
+  (`cudnn.benchmark`, AMP), được khuếch đại bởi động lực pseudo-label ở 40 nhãn.
+- Hệ quả: ghép cặp theo seed chỉ cố định tập có nhãn, không cố định nhiễu huấn luyện. Một run
+  FixMatch duy nhất mỗi seed làm mốc mang theo khoảng 2 điểm nhiễu.
+
+**Mốc FixMatch ít nhiễu hơn** (`--ref_avg fixmatch,fixmatchft`: trung bình hai run FixMatch mỗi
+seed; Holm qua cùng 12 phép so sánh). SAM trên $L_l$ là biến thể duy nhất qua được Holm ở mức 5%:
+
+| mốc so sánh cho SAM trên $L_l$ (run gốc) | chênh lệch | p (t / Wilcoxon / Holm 12) |
+|---|---|---|
+| FixMatch gốc | +3.05 ± 3.19, 8/10 | 0.014 / 0.020 / 0.17 |
+| FixMatch chạy lại | +2.25 ± 2.06, 9/10 | 0.007 / 0.010 / 0.086 |
+| trung bình hai run FixMatch | +2.65 ± 2.18, 8/10 | 0.004 / 0.014 / **0.048** |
+| hai run SAM so với hai run FixMatch (cả hai phía đều lấy trung bình) | +2.61 ± 2.22, 8/10 | t 0.005, W 0.014 |
+
+Với mốc trung bình này, các hàng khác:
+- MPL một mạng: +1.58 (t 0.039, Holm 0.43);
+- MPL + SAM: +1.52 (p = 0.14);
+- PBPL + SAM: +0.53;
+- EBPL + SAM: +0.12;
+- PBPL hai mạng: +0.18.
+
+### 12.4 Đọc kết quả
+
+- **Gộp không cộng dồn: feedback bilevel làm hại SAM.** Thêm feedback hai mạng vào SAM trên
+  $L_l$ làm accuracy thấp hơn SAM đơn thuần:
+  - MPL −1.09 (3/10);
+  - PBPL −2.08 (3/10, p = 0.076);
+  - EBPL −2.49 (2/10, p = 0.011; so với run SAM gốc 0/10, p = 0.004).
+
+  Khi chọn checkpoint theo val, phần thiếu hụt của MPL + SAM và PBPL + SAM thu nhỏ còn −0.24 và
+  −0.51: phần lớn là suy giảm cuối huấn luyện (PBPL + SAM có mức giảm cuối lớn nhất bảng, 1.99
+  điểm). EBPL + SAM thì kém cả khi chọn theo val (−2.04, p = 0.034). Chiều ngược lại, thêm SAM
+  vào feedback bilevel chỉ giúp ít và không có ý nghĩa: +1.38 (MPL), +0.35 (PBPL), +0.52 (EBPL).
+- **Trong tổ hợp, pessimism và expected vẫn không hơn optimistic.**
+  - PBPL + SAM − MPL + SAM: −0.99 (p = 0.29).
+  - EBPL + SAM − MPL + SAM: −1.40 (2/10, p = 0.047); chọn theo val −1.80 (p = 0.018).
+  - Sau finetune, student của EBPL + SAM vẫn kém student của MPL + SAM 1.19 điểm (2/10,
+    p = 0.047).
+- **Finetune student công bằng không đổi kết luận.**
+  - Student của các tổ hợp không thấy nhãn trong lúc huấn luyện, nên finetune trên nhãn giúp nó
+    nhiều hơn giúp teacher: +0.42 / +0.44 điểm so với teacher đã finetune (PBPL / EBPL + SAM,
+    p = 0.031 / 0.002). Teacher vốn đã khớp nhãn, nên chỉ thêm khoảng +0.2.
+  - Mức tăng nhỏ đó không đủ:
+    - student finetune tốt nhất (MPL + SAM, 75.08) vẫn kém teacher finetune của FixMatch + SAM
+      (75.92) 0.84 điểm, 3/10;
+    - so với FixMatch finetune, không tổ hợp nào hơn có ý nghĩa (tốt nhất +1.36, Holm 0.58).
+- **Kết quả vững duy nhất là SAM trên labeled loss, không bilevel.**
+  - Hai run SAM so với hai run FixMatch mỗi seed: +2.61 ± 2.22, 8/10, t-test p = 0.005.
+  - So với mốc FixMatch trung bình, Holm qua 12 phép so sánh cho p = 0.048.
+  - Nó cũng ổn định hơn giữa các lần chạy lại: nhiễu khoảng 1.1 điểm, so với 2.2 điểm của
+    FixMatch.
+- **Về câu hỏi ban đầu.** Trong cả cấu hình gốc lẫn cấu hình gộp với SAM, PBPL và EBPL không cải
+  thiện so với FixMatch và cũng không hơn bản optimistic. Thành phần có ích là SAM trên labeled
+  loss của mạng triển khai.
+
+**Giới hạn của mục này.**
+- Tổ hợp không được tinh chỉnh lại. Một λ_m nhỏ hơn có thể giảm phần hại; điều đó vẫn có nghĩa
+  là feedback bilevel không thêm được tín hiệu hữu ích nào.
+- Tổ hợp một mạng + SAM (hai thành phần tốt nhất) chưa được chạy.
+- So sánh với mốc trung bình dùng hai run FixMatch nhưng chỉ một run cho mỗi phương pháp khác
+  (trừ SAM). Nó làm giảm nhiễu của mốc, không làm giảm nhiễu của phương pháp được so.

@@ -58,7 +58,10 @@ python3 analysis/main_table.py results/fmnist-ssl-main-a results/fmnist-ssl-main
 ```
 
 The same for `ablations` (`ablate-a.json`, `ablate-b.json`), `replication` (`rep-a.json`,
-`rep-b.json`), `wave3` (`rep-c.json`, `rep-d.json`) and `wave4` (`rep-e.json`, `rep-f.json`).
+`rep-b.json`), `wave3` (`rep-c.json`, `rep-d.json`), `wave4` (`rep-e.json`, `rep-f.json`) and
+`wave5` (`rep-g.json`, `rep-h.json`: SAM on the labeled loss combined with the two-network
+feedback, `--lab_reg sam --lab_radius 0.1`, and the end-of-run labeled finetune of every
+deployed model, `--ft_iters 1000`).
 `python3 sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dirs...>`
 writes the jobs of a sweep that have no complete result.  Paired tables on any seed range or
 reference, and the ablation diagnostics:
@@ -74,7 +77,20 @@ python3 analysis/ablation_table.py results/fmnist-ssl-* --seeds 1-3
 Every 40-label variant on seeds 1-10, paired to FixMatch with t-test, Wilcoxon and Holm:
 
 ```bash
-python3 analysis/tenseed_table.py results/fmnist-ssl-*
+python3 analysis/tenseed_table.py results/fmnist-ssl-* --tex
+```
+
+The same with the per-seed mean of the original and re-run FixMatch as the reference:
+
+```bash
+python3 analysis/tenseed_table.py results/fmnist-ssl-* --ref_avg fixmatch,fixmatchft
+```
+
+Teacher EMA, student EMA and both after the end-of-run finetune, compared with the finetuned
+FixMatch and FixMatch + SAM (report §12):
+
+```bash
+python3 analysis/finetune_table.py results/fmnist-ssl-* --tex
 ```
 
 Raw feedback sizes of the one-network runs per seed (shrink of the optimistic feedback,
@@ -106,7 +122,15 @@ loss, no bilevel, 1.25x the cost of FixMatch (75.79, +3.05, p = 0.014; +2.59 on 
 after the decision to test it) and the one-network optimistic look-ahead (74.73, +1.98,
 p = 0.041). The best pessimistic variant is the one-network look-ahead (74.25, +1.51,
 p = 0.094). After Holm correction over the nine comparisons none is significant at 5%
-(report §6.1, §9.2). PBPL costs 3.6x FixMatch.
+(report §6.1, §9.2). PBPL costs 3.6x FixMatch.  Combining the two-network feedback with SAM on
+the labeled loss does not add up (report §12): MPL / PBPL / EBPL + SAM reach 74.66 / 73.67 /
+73.26, i.e. 1.1 / 2.1 / 2.5 points below SAM alone (EBPL: 2/10 seeds, p = 0.011).  The same
+labeled finetune applied to every deployed model adds about 0.2 points to a teacher and 0.4 to
+a held-out student; the best finetuned student (MPL + SAM, 75.08) stays below the finetuned
+FixMatch + SAM (75.92).  Re-running FixMatch on the same seeds moves it by -3.5 to +7.5 points
+(GPU non-determinism; the training code is bit-identical on CPU), so a single FixMatch run per
+seed carries about 2 points of noise; against the per-seed mean of two FixMatch runs, SAM on the
+labeled loss is the only variant significant after Holm over 12 comparisons (+2.65, p = 0.048).
 
 Kaggle: put your username in `.kaggle_user` (untracked) and your API token in
 `~/.kaggle/access_token`; never commit either.

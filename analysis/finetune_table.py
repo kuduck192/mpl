@@ -115,6 +115,9 @@ def main():
     ap.add_argument("dirs", nargs="+")
     ap.add_argument("--cfg", default="val", help="'val' (per-run selection) or a fixed config, e.g. lr0.003_frozen")
     ap.add_argument("--ref", default="fixmatchft")
+    ap.add_argument("--ref2", default="labsamft",
+                    help="second reference for the finetuned students: the component without the bilevel "
+                         "feedback (FixMatch + SAM on L_l for the SAM combinations)")
     ap.add_argument("--min_n", type=int, default=5)
     ap.add_argument("--tex", action="store_true", help="also print LaTeX rows")
     args = ap.parse_args()
@@ -145,6 +148,17 @@ def main():
         res[col] = {r[0]: r for r in rows}
         name = dict(COLS)[col]
         print(f"\n{name} − FixMatch {dict(COLS)[rcol]} (paired, Holm over {sum(np.isfinite(r[5]) for r in rows)} methods):\n")
+        print("| method | n | mean ± sd | wins | t p | Wilcoxon p | Holm p |")
+        print("|---|---|---|---|---|---|---|")
+        for m, common, d, p, w, a in rows:
+            print(f"| {m} | {len(common)} | {d.mean():+.2f} ± {d.std(ddof=1):.2f} | {int((d > 0).sum())}/{len(d)} | "
+                  f"{fmt_p(p)} | {fmt_p(w)} | {fmt_p(a)} |")
+
+    if args.ref2 in R:
+        # does the combination beat its component?  finetuned student vs finetuned component
+        rows = compare(R, [m for m in meths if m in FT_METHODS and m != args.ref], "s_ft", args.ref2, "t_ft", args.min_n)
+        res["s_ft_ref2"] = {r[0]: r for r in rows}
+        print(f"\nstudent ft − {args.ref2} teacher ft (paired, Holm over {sum(np.isfinite(r[5]) for r in rows)} methods):\n")
         print("| method | n | mean ± sd | wins | t p | Wilcoxon p | Holm p |")
         print("|---|---|---|---|---|---|---|")
         for m, common, d, p, w, a in rows:
@@ -182,7 +196,7 @@ def main():
             return "$" + s.replace(" ± ", r" \pm ") + "$" if n > 1 else "--"
 
         def delta(m, col):
-            r = res[col].get(m)
+            r = res.get(col, {}).get(m)
             if r is None:
                 return "--"
             d = r[2]
@@ -190,10 +204,11 @@ def main():
                     f"{fmt_p(r[3])} / {fmt_p(r[4])} / {fmt_p(r[5])}")
 
         print("\n% variant & teacher EMA & student EMA & teacher ft. & student ft. & "
-              "Delta student ft. vs FixMatch ft. (mean, wins, p t / W / Holm)")
+              "Delta student ft. vs FixMatch ft. & Delta student ft. vs " + LABEL.get(args.ref2, args.ref2) + " ft. "
+              "(mean, wins, p t / W / Holm)")
         for m in meths:
             if m in FT_METHODS:
-                cells = [tex(m, c) for c, _ in COLS] + [delta(m, "s_ft")]
+                cells = [tex(m, c) for c, _ in COLS] + [delta(m, "s_ft"), delta(m, "s_ft_ref2")]
                 print(f"{LABEL[m]} & " + " & ".join(cells) + r" \\")
 
 
