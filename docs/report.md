@@ -1185,3 +1185,31 @@ kém hơn).
   FixMatch. Phần neo (CE trên nhãn + FixMatch, cộng với việc pseudo-label là output của teacher)
   giữ cho meta feedback không gây hại, nhưng tín hiệu nó mang về tính đúng của nhãn là quá yếu so
   với nhiễu.
+
+## 16. Accuracy pseudo-label của teacher trên X_u (10 seed, 40 nhãn)
+
+Mọi run đều log `unl_ema`, tức accuracy của teacher EMA trên toàn bộ tập không nhãn X_u (accuracy
+của pseudo-label dạng argmax). Bảng sinh bởi
+`python3 analysis/tenseed_table.py results/fmnist-ssl-* --metric unl_ema`, vòng cuối, so cặp với
+FixMatch, Holm qua 12 phép so sánh.
+
+| biến thể | PL acc trên X_u | − FixMatch, thắng, p (t / Holm) |
+|---|---|---|
+| FixMatch | 73.20 | — |
+| FixMatch tinh chỉnh | 74.15 | +0.95, 6/10, 0.085 / 0.85 |
+| MPL hai mạng | 73.57 | +0.37, 6/10, 0.68 / 1.00 |
+| PBPL hai mạng | 73.60 | +0.40, 7/10, 0.72 / 1.00 |
+| EBPL hai mạng | 73.07 | −0.13, 6/10, 0.90 / 1.00 |
+| MPL / PBPL / EBPL hai mạng + SAM | 75.10 / 74.09 / 73.63 | +1.90 / +0.88 / +0.43, n.s. |
+| MPL một mạng | 75.11 | +1.91, 8/10, 0.038 / 0.42 |
+| PBPL một mạng | 74.65 | +1.44, 8/10, 0.14 / 1.00 |
+| FixMatch + SAM trên L_l | 76.30 | +3.10, 8/10, 0.015 / 0.18 |
+
+Cùng seed, cùng cấu hình:
+- PBPL − MPL = +0.03 (p = 0.98);
+- EBPL − MPL = −0.50;
+- PBPL − MPL ở cấu hình một mạng = −0.46;
+- EBPL + SAM − MPL + SAM = −1.47 (2/10, p = 0.029).
+
+Pseudo-label của teacher theo đúng thứ hạng của test accuracy: trust region pessimistic / expected
+không làm pseudo-label đúng hơn, cả so với feedback optimistic lẫn so với FixMatch.

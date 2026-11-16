@@ -38,7 +38,9 @@ TEX = {"fixmatch": "FixMatch", "fmtuned": r"FixMatch, tuned ($\lambda_u = 2$)", 
        "abl_labsam": "FixMatch + SAM on $L_l$"}
 
 
-def load(dirs, npc=4, seeds=range(1, 11)):
+def load(dirs, npc=4, seeds=range(1, 11), metric="test_ema"):
+    """metric: test_ema (test accuracy of the deployed EMA teacher, default) or unl_ema (accuracy
+    of its predictions on the unlabeled pool X_u, i.e. the teacher's pseudo-label accuracy)."""
     R = defaultdict(dict)  # method -> seed -> dict
     for d in dirs:
         for f in glob.glob(os.path.join(d, "**", "*.json"), recursive=True):
@@ -53,11 +55,13 @@ def load(dirs, npc=4, seeds=range(1, 11)):
                 continue
             if r.get("stopped_early") or r["final"].get("iter", 0) < r["args"].get("iters", 0):
                 continue
-            h = [x for x in r["hist"] if "test_ema" in x]
+            h = [x for x in r["hist"] if metric in x]
+            if metric not in r["final"] or not h:
+                continue
             R[m.group(1)][int(m.group(3))] = {
-                "final": 100 * r["final"]["test_ema"],
-                "val": 100 * max(h, key=lambda x: x.get("val_ema", -1))["test_ema"],
-                "peak": 100 * max(x["test_ema"] for x in h),
+                "final": 100 * r["final"][metric],
+                "val": 100 * max(h, key=lambda x: x.get("val_ema", -1))[metric],
+                "peak": 100 * max(x[metric] for x in h),
                 "min": r.get("minutes", np.nan)}
     return R
 
@@ -118,11 +122,13 @@ def main():
     ap.add_argument("--pairs", default="", help="extra comparisons a:b,c:d (no multiplicity correction)")
     ap.add_argument("--methods", default=",".join(METHODS))
     ap.add_argument("--tex", action="store_true", help="also print the LaTeX rows of the paper table")
+    ap.add_argument("--metric", default="test_ema", choices=["test_ema", "unl_ema"],
+                    help="test_ema: test accuracy; unl_ema: the teacher's pseudo-label accuracy on X_u")
     ap.add_argument("--ref_avg", default="",
                     help="robustness check: use as reference the per-seed mean of these runs of the same "
                          "method (e.g. fixmatch,fixmatchft: the original FixMatch runs and their re-runs)")
     args = ap.parse_args()
-    R = load(args.dirs)
+    R = load(args.dirs, metric=args.metric)
     if args.ref_avg:
         src = args.ref_avg.split(",")
         seeds = set.intersection(*(set(R[m]) for m in src))
