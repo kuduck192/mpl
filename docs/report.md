@@ -1040,3 +1040,148 @@ hợp với việc MPL / PBPL / EBPL không hơn FixMatch.
   giới hạn bước teacher lớn vô hạn. Phương pháp thật dùng pseudo-label mềm từ một teacher với λ_m
   nhỏ.
 - Các biến thể pessimistic / expected chưa được thử trên toy này.
+
+## 14. Toy Two Moons: hypergradient unroll K bước và IFT cho pseudo-label tự do
+
+**Câu hỏi.** Signal bậc một ở Mục 13 chỉ là xấp xỉ. Nếu tính meta-gradient đúng hơn, bằng cách
+unroll K bước của student hoặc dùng hypergradient ngầm (IFT) tại student đã hội tụ, thì
+pseudo-label có đúng hơn không?
+
+**Thiết kế** (`checks/toy_two_moons_unroll.py`, kết quả trong `results/toy-two-moons/unroll.json`).
+Dữ liệu, student ngẫu nhiên và các lần rút nhãn giống hệt Mục 13. Mỗi cấu hình có 40 student
+(8 khởi tạo × 5 lần rút).
+- **Unroll:** F_K(t) = L_l(θ_K(t)), với θ_K là K bước SGD (η = 0.1) của student từ θ_0 trên
+  (X_u, t). Signal g = dF_K/dt được lấy bằng backprop qua cả K bước, với K = 1, 2, 5, 10, 20, 50,
+  100.
+- **IFT (K = ∞):** g_i = J_i(θ*) v / N, với (H + λI) v = ∇L_l(θ*) và θ* là student học 1000 bước
+  trên t.
+  - H là ma trận Gauss–Newton (bản chính, nửa xác định dương) hoặc Hessian thật.
+  - v được giải bằng conjugate gradient, với damping λ = ρ·λ_max(H).
+  - Trong lúc tối ưu, θ* được warm-start thêm 100 bước sau mỗi bước của t.
+- **Kiểm tra cài đặt.**
+  - Backprop qua unroll khớp sai phân trung tâm ở float64, sai số tương đối ≤ 1.6·10⁻⁷ với K = 1,
+    5, 20, 100.
+  - Với K = 1, signal bằng (η/N) J(θ_0) ∇L_l(θ_1) tới 3.6·10⁻¹¹, sau khi trừ trung bình theo lớp.
+  - Signal bậc một của Mục 13 có cos 0.9993 với signal K = 1.
+  - Dấu đúng: dịch t về phía argmin làm F giảm, về phía argmax làm F tăng.
+  - Tích Gauss–Newton nửa xác định dương, đối xứng, và trùng Hessian thật khi gần hội tụ
+    (cos 0.9999).
+- **Ba bộ pseudo-label cho mỗi K:**
+  - argmin của signal tại t đều;
+  - 30 bước mirror descent trên logit của t (bước 0.3, signal chuẩn hóa RMS), xuất phát từ t đều;
+  - cùng phép tối ưu đó nhưng xuất phát từ nhãn thật.
+
+  Một bản sao của cùng student được huấn luyện trên mỗi bộ, 1000 bước.
+
+| 1 nhãn/lớp, trung vị | K = 1 | 5 | 20 | 50 | 100 | IFT |
+|---|---|---|---|---|---|---|
+| PL acc, argmin tại t đều | 0.786 | 0.826 | 0.833 | 0.823 | 0.763 | 0.641 |
+| PL acc, tối ưu từ t đều | 0.835 | 0.837 | 0.841 | 0.789 | 0.658 | 0.582 |
+| PL acc, tối ưu từ nhãn thật | 0.917 | 0.917 | 0.909 | 0.919 | 0.937 | 0.998 |
+| F tại nhãn thật | 0.657 | 0.517 | 0.204 | 0.108 | 0.083 | 9.3·10⁻⁴ |
+| F tại PL tối ưu từ t đều | 0.642 | 0.489 | 0.120 | 0.017 | 0.008 | 1.8·10⁻⁶ |
+
+Với 5 nhãn/lớp, PL acc khi tối ưu từ t đều là 0.879, 0.889, 0.855, 0.798, 0.739 và 0.804; khi tối
+ưu từ nhãn thật là 0.944, 0.942, 0.892, 0.829, 0.809 và 0.994 (cùng thứ tự K = 1, 5, 20, 50, 100,
+IFT). Ở mọi K, kể cả IFT, và với cả hai số nhãn, pseudo-label tối ưu từ t đều cho F thấp hơn nhãn
+thật ở **40/40** student.
+
+![unroll summary](figures/toy_moons_unroll_summary.png)
+
+![unroll paths](figures/toy_moons_unroll_paths.png)
+
+![unroll signal](figures/toy_moons_unroll_signal.png)
+
+**Log IFT** (1 nhãn/lớp; 5 nhãn/lớp cho kết quả tương tự).
+- **Thông số chung:** λ_max(H) ≈ 2.09. Student θ* đạt |∇L_u| = 2.9·10⁻⁴ tại t đều và 1.1·10⁻²
+  tại nhãn thật.
+- **Gauss–Newton và Hessian thật cho cùng kết quả** tại θ*(t đều), và không gặp độ cong âm ở điểm
+  này. Bản thử trước đó gặp độ cong âm ở các t khác khi damping ≤ 10⁻³·λ_max, nên bản chính dùng
+  Gauss–Newton.
+- **Conjugate gradient** chạy 6 / 13 / 27 vòng với damping 0.1 / 0.01 / 0.001 × λ_max, residual
+  tương đối khoảng 5·10⁻⁵.
+- **Damping càng nhỏ, tức IFT càng "chính xác", thì argmin càng tệ:** 0.824 / 0.641 / 0.585.
+- **IFT khớp unroll xuất phát từ θ*** khi K ≈ 1/(ηρλ_max), như lý thuyết dự đoán (cos 0.99 / 0.96
+  / 0.90 trên đường chéo này).
+- **Trong lúc tối ưu IFT**, conjugate gradient cần trung vị 20–24 vòng, residual ≤ 10⁻⁴, và θ*
+  warm-start có |∇L_u| khoảng 10⁻².
+
+**Đọc kết quả: giải bilevel đúng hơn không làm pseudo-label đúng hơn.**
+- **K hữu hạn: thiên lệch tầm ngắn.** F_K đo việc student, xuất phát từ khởi tạo ngẫu nhiên, khớp
+  điểm có nhãn nhanh đến đâu trong K bước. Nó ưu tiên cách gán nhãn dễ học, như một đường gần thẳng
+  nằm giữa các điểm có nhãn, chứ không ưu tiên biên cong thật. Nhãn thật không phải cực tiểu của
+  F_K: tối ưu xuất phát từ nhãn thật vẫn trôi ra xa (còn 0.91–0.94 với 1 nhãn/lớp, 0.81 với 5
+  nhãn/lớp ở K = 100).
+- **K = ∞: meta objective gần như phẳng.** IFT xuất phát từ nhãn thật giữ được 0.998, với F ≈
+  1.5·10⁻⁶. IFT xuất phát từ t đều cũng đạt F ≈ 1.8·10⁻⁶ nhưng PL acc chỉ 0.582. Mọi cách gán nhãn
+  cho phép student hội tụ khớp hai điểm có nhãn đều gần tối ưu, nên nghiệm phụ thuộc vào điểm xuất
+  phát. Xuất phát từ t đều, vài bước IFT đầu tiên đã định hình cách gán nhãn: F giảm từ 0.70 xuống
+  0.04 sau 5 bước, dùng một signal có trọng số nghịch đảo độ cong, nhiễu hơn khi damping nhỏ. Sau
+  đó không còn signal để sửa.
+- **Mục tiêu CE trên vài điểm có nhãn không xác định được nhãn thật.** Ở cả hai chế độ, meta
+  objective thưởng cho độ tự tin của student tại điểm có nhãn, không thưởng cho tính đúng của nhãn
+  ở chỗ khác.
+
+## 15. Toy Two Moons: pseudo-label neo vào một teacher FixMatch bằng KL
+
+**Câu hỏi.** Nếu meta signal không tự xác định được nhãn thật, liệu nó có sửa được pseudo-label
+của một teacher tốt khi được neo vào teacher đó?
+
+**Thiết kế** (`checks/toy_two_moons_anchor.py`, kết quả trong `results/toy-two-moons/anchor.json`).
+- **Teacher:** mỗi lần rút nhãn có một teacher, huấn luyện bằng CE trên nhãn + FixMatch.
+  - FixMatch dùng jitter Gauss yếu 0.03 và mạnh 0.3, ngưỡng 0.95, SGD momentum 0.9, 3000 bước.
+  - PL acc của teacher: 0.628 / 0.911 / 0.897 / 0.961 / 0.964 với 1 nhãn/lớp, và 0.962–0.992 với
+    5 nhãn/lớp.
+- **Bài toán:** t* = argmin_t ⟨t, ĝ_K(t)⟩ + λ·KL(t ‖ q), với ĝ_K là signal unroll K bước (hoặc
+  IFT, Gauss–Newton, damping 0.01) chuẩn hóa RMS.
+  - Khi ĝ cố định, nghiệm là t ∝ q·exp(−ĝ/λ).
+  - Với λ > 0, nghiệm được tìm bằng lặp điểm bất động có damping z ← ½z + ½(log q − ĝ(t)/λ), 20
+    bước, xuất phát từ q.
+  - λ = 0 là 20 bước mirror descent tự do từ q. Không có KL, nên chỉ số bước giới hạn mức dịch
+    chuyển; λ = 0.1 đi tới điểm bất động và dịch xa hơn.
+  - λ = ∞ là t = q.
+- 20 student ngẫu nhiên mỗi số nhãn (4 khởi tạo × 5 lần rút). Mỗi lỗi lật nhãn so với teacher được
+  tách thành *sửa* (teacher sai, t đúng) và *làm hỏng* (teacher đúng, t sai).
+
+| trung bình 20 student | λ = 0 | λ = 0.1 | λ = 1 | λ = 10 | λ = ∞ (teacher) |
+|---|---|---|---|---|---|
+| 1 nhãn/lớp, K = 1: PL acc (sửa / làm hỏng) | 0.851 (3.1% / 5.2%) | 0.829 (3.2% / 7.5%) | 0.874 (0.9% / 0.7%) | 0.874 | 0.872 |
+| 1 nhãn/lớp, K = 50 | 0.853 (0.7% / 2.6%) | 0.843 (0.7% / 3.6%) | 0.871 (0.4% / 0.5%) | 0.873 | 0.872 |
+| 1 nhãn/lớp, IFT | 0.872 (0.2% / 0.3%) | 0.869 (0.2% / 0.5%) | 0.872 (0.1% / 0.1%) | 0.872 | 0.872 |
+| 5 nhãn/lớp, K = 1 | 0.929 (0.1% / 4.8%) | 0.913 (0.1% / 6.4%) | 0.969 (0.0% / 0.7%) | 0.975 | 0.976 |
+| 5 nhãn/lớp, K = 50 | 0.846 (0.6% / 13.6%) | 0.832 (0.4% / 14.9%) | 0.972 (0.5% / 0.9%) | 0.976 | 0.976 |
+| 5 nhãn/lớp, IFT | 0.971 (0.5% / 1.0%) | 0.971 (0.5% / 1.0%) | **0.979 (0.3% / 0.1%)** | 0.977 | 0.976 |
+
+Accuracy của student học trên t đi theo PL acc. Student học trên q đạt 0.864 (1 nhãn/lớp) và
+0.973 (5 nhãn/lớp); ô tốt nhất là IFT với λ = 1 và 5 nhãn/lớp, đạt +0.002 (7 student tốt hơn, 3
+kém hơn).
+
+![anchor](figures/toy_moons_anchor.png)
+
+**Log.**
+- **Phần dư điểm bất động** ở bước cuối có trung vị 1·10⁻⁶ với λ = 1 và 2·10⁻⁷ với λ = 10.
+  - Với λ = 1, lớn nhất là 2.4·10⁻² (1 nhãn/lớp) và 0.44 (5 nhãn/lớp).
+  - Với λ = 0.1, lớn nhất là 0.56 và 6.6: một vài run dao động, vì khi λ nhỏ thì phép lặp không còn
+    là ánh xạ co.
+- **IFT:** λ_max ≈ 1.9; conjugate gradient cần trung vị 11–13 vòng, residual ≤ 10⁻⁴; θ* có
+  |∇L_u| khoảng (2–4)·10⁻³.
+- **Teacher kém** (lần rút 0, 1 nhãn/lớp, PL acc 0.628): F_∞ tại q đã chỉ còn 5.7·10⁻³. IFT chỉ
+  đưa PL acc lên 0.634 với λ = 0 và 0.631 với λ = 1. Cách gán nhãn sai của teacher đã đủ để student
+  hội tụ khớp hai điểm có nhãn, nên meta signal không có gì để sửa.
+
+**Đọc kết quả.**
+- **Phần neo ngăn được tác hại.** Với λ ≥ 1, PL acc giữ ở mức teacher (±0.007 điểm). Với λ ≤ 0.1
+  và K hữu hạn, meta signal làm hỏng nhiều hơn sửa ở mọi cấu hình. Với 5 nhãn/lớp và K = 50, nó làm
+  hỏng 13.6–14.9% nhãn đúng mà chỉ sửa 0.4–0.6% nhãn sai, trong khi đưa F xuống thấp hơn cả teacher
+  lẫn nhãn thật (0.09 so với 0.22 và 0.23).
+- **Nhưng neo đủ mạnh để vô hại thì cũng làm meta signal hết tác dụng.** Ở λ = 1, số lỗi được sửa
+  xấp xỉ số nhãn bị làm hỏng (0.1–0.9% mỗi loại). Ô dương duy nhất là IFT với λ = 1 ở 5 nhãn/lớp:
+  +0.2 điểm, sửa 0.3% so với làm hỏng 0.1%.
+- **Meta signal chỉ thấy được các lỗi của teacher làm hại labeled loss.** Với vài điểm có nhãn, phần
+  lớn lỗi của teacher (ví dụ ở đầu mút của hai mặt trăng, xa các điểm có nhãn) không ảnh hưởng tới
+  labeled loss sau khi student hội tụ. Chúng vô hình với meta signal: trường hợp teacher 0.628 không
+  sửa được.
+- **Hệ quả cho các phương pháp chính:** điều này phù hợp với việc MPL / PBPL / EBPL không hơn
+  FixMatch. Phần neo (CE trên nhãn + FixMatch, cộng với việc pseudo-label là output của teacher)
+  giữ cho meta feedback không gây hại, nhưng tín hiệu nó mang về tính đúng của nhãn là quá yếu so
+  với nhiễu.

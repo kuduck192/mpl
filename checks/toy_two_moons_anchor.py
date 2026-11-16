@@ -291,7 +291,8 @@ def plots(R):
                for K in KS]
     fig.legend(handles=handles, loc="lower center", ncol=len(KS), fontsize=6.5, bbox_to_anchor=(0.5, -0.01))
     fig.text(0.01, 0.045, "Means over 20 random students per row (5 labeled draws x 4 inits; one FixMatch teacher per draw).  "
-             "lam = 0: free pseudo-labels started at q; lam = inf: t = q.", fontsize=6.3, color=INK2)
+             "lam = 0: 20 free mirror-descent steps from q (no KL, so only the step budget limits the move; lam = 0.1 "
+             "reaches its fixed point and moves further); lam = inf: t = q.", fontsize=6.3, color=INK2)
     fig.tight_layout(rect=(0, 0.07, 1, 1))
     p = os.path.join(FIG, "toy_moons_anchor.png")
     fig.savefig(p, bbox_inches="tight")
