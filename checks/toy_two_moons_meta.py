@@ -175,6 +175,17 @@ def statics(n_l, lab_draw, n_students=64):
             "Xl": Xl.tolist(), "yl": yl.tolist()}
 
 
+def _round(o, sig=5):
+    """Round floats to `sig` significant digits (keeps the results file small)."""
+    if isinstance(o, float):
+        return float(f"{o:.{sig}g}") if math.isfinite(o) else o
+    if isinstance(o, list):
+        return [_round(x, sig) for x in o]
+    if isinstance(o, dict):
+        return {k: _round(v, 3 if k == "grid_p1" else sig) for k, v in o.items()}
+    return o
+
+
 def main_runs(args):
     jobs = []
     for n_l in (1, 5):
@@ -193,7 +204,7 @@ def main_runs(args):
     os.makedirs(os.path.dirname(OUT_JSON), exist_ok=True)
     meta = {"iters": args.iters, "lr": args.lr, "width": 64, "n_u": 1000, "n_test": 4000, "noise": 0.1,
             "minutes": (time.time() - t0) / 60}
-    json.dump({"meta": meta, "runs": runs, "statics": st}, open(OUT_JSON, "w"))
+    json.dump(_round({"meta": meta, "runs": runs, "statics": st}), open(OUT_JSON, "w"))
     print(f"{len(runs)} runs in {meta['minutes']:.1f} min -> {OUT_JSON}")
 
 
@@ -307,8 +318,8 @@ def plots(R):
     plt.close(fig)
 
     # ---- figure 2: dynamics and one snapshot ---------------------------------------------
-    fig = plt.figure(figsize=(7.4, 5.0))
-    gs = fig.add_gridspec(2, 3, height_ratios=(1, 1.0))
+    fig = plt.figure(figsize=(7.4, 7.6))
+    gs = fig.add_gridspec(3, 3, height_ratios=(1, 1, 1.05))
 
     def band(ax, rule, key, n_l, ls_, label=None):
         rs = [r for r in runs if r["n_l"] == n_l and r["rule"] == rule]
@@ -322,44 +333,52 @@ def plots(R):
                         fontsize=6.5, color=INK)
         return med
 
-    n_l = 1
-    ax = fig.add_subplot(gs[0, 0])
-    band(ax, "dynamic", "pl_acc", n_l, "-")
-    band(ax, "dynamic", "stu_acc", n_l, (0, (3, 2)))
-    band(ax, "frozen", "stu_acc", n_l, (0, (3, 2)))
-    ax.set_xscale("log")
-    ax.set_ylim(0.38, 1.0)
-    ax.set_xlim(1, 3000)
-    ax.set_title("a. accuracy (median, IQR)", fontsize=8, loc="left", color=INK)
-    ax.set_xlabel("student step")
-    ax.legend(handles=[Line2D([], [], color=BLUE, lw=1.6, label="pseudo-labels, dynamic"),
-                       Line2D([], [], color=BLUE, lw=1.6, ls=(0, (3, 2)), label="student, dynamic"),
-                       Line2D([], [], color=ORANGE, lw=1.6, ls=(0, (3, 2)), label="student, frozen")],
-              fontsize=6.5, loc="lower right")
-    ax = fig.add_subplot(gs[0, 1])
-    band(ax, "dynamic", "Ll", n_l, "-")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlim(1, 3000)
-    ax.set_title("b. labeled loss of the student", fontsize=8, loc="left", color=INK)
-    ax.set_xlabel("student step")
-    ax = fig.add_subplot(gs[0, 2])
-    band(ax, "dynamic", "flip", n_l, "-")
-    ax.set_xscale("log")
-    ax.set_xlim(1, 3000)
-    ax.set_title("c. pseudo-labels changed per step", fontsize=8, loc="left", color=INK)
-    ax.set_xlabel("student step")
+    for row, n_l in enumerate((1, 5)):
+        tag = f"{n_l} labeled point{'s' if n_l > 1 else ''} per class"
+        ax = fig.add_subplot(gs[row, 0])
+        band(ax, "dynamic", "pl_acc", n_l, "-")
+        band(ax, "dynamic", "stu_acc", n_l, (0, (3, 2)))
+        band(ax, "frozen", "stu_acc", n_l, (0, (3, 2)))
+        ax.set_xscale("log")
+        ax.set_ylim(0.38, 1.0)
+        ax.set_xlim(1, 3000)
+        ax.set_title(f"{'ad'[row]}. accuracy, {tag}", fontsize=8, loc="left", color=INK)
+        ax.set_xlabel("student step")
+        if row == 0:
+            ax.legend(handles=[Line2D([], [], color=BLUE, lw=1.6, label="pseudo-labels, dynamic"),
+                               Line2D([], [], color=BLUE, lw=1.6, ls=(0, (3, 2)), label="student, dynamic"),
+                               Line2D([], [], color=ORANGE, lw=1.6, ls=(0, (3, 2)), label="student, frozen")],
+                      fontsize=6.5, loc="lower right")
+        ax = fig.add_subplot(gs[row, 1])
+        band(ax, "dynamic", "Ll", n_l, "-")
+        band(ax, "frozen", "Ll", n_l, "-")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_ylim(1e-8, 30)
+        ax.set_xlim(1, 3000)
+        ax.set_title(f"{'be'[row]}. labeled loss of the student", fontsize=8, loc="left", color=INK)
+        ax.set_xlabel("student step")
+        if row == 0:
+            ax.legend(handles=[Line2D([], [], color=BLUE, lw=1.6, label="dynamic"),
+                               Line2D([], [], color=ORANGE, lw=1.6, label="frozen")], fontsize=6.5, loc="lower left")
+        ax = fig.add_subplot(gs[row, 2])
+        band(ax, "dynamic", "flip", n_l, "-")
+        ax.set_xscale("log")
+        ax.set_xlim(1, 3000)
+        ax.set_ylim(0, 0.45)
+        ax.set_title(f"{'cf'[row]}. pseudo-labels flipped per step", fontsize=8, loc="left", color=INK)
+        ax.set_xlabel("student step")
     # snapshot: one labeled draw, initial student 0; frozen vs dynamic vs label spreading
     d = int(np.argsort([np.median([r["hist"][-1]["stu_acc"] for r in runs if r["n_l"] == 1 and
                                    r["rule"] == "dynamic" and r["lab_draw"] == dd]) for dd in
                         sorted({r["lab_draw"] for r in runs})])[len({r['lab_draw'] for r in runs}) // 2])
     Xu, yu, _, _, Xl, yl = make_data(1, d)
     S = next(s for s in st if s["n_l"] == 1 and s["lab_draw"] == d)
-    panels = [("frozen", "d. frozen (set at the random init)"), ("dynamic", "e. dynamic (end of training)"),
-              ("ls", "f. label spreading")]
+    panels = [("frozen", "g. frozen (set at the random init)"), ("dynamic", "h. dynamic (end of training)"),
+              ("ls", "i. label spreading")]
     gx, gy = np.meshgrid(np.linspace(-1.6, 2.6, 120), np.linspace(-1.1, 1.6, 90))
     for j, (rule, title) in enumerate(panels):
-        ax = fig.add_subplot(gs[1, j])
+        ax = fig.add_subplot(gs[2, j])
         if rule == "ls":
             pl = np.array(S["ls_pl"])
         else:
@@ -378,8 +397,9 @@ def plots(R):
         ax.set_yticks([])
         ax.grid(False)
         ax.set_aspect("equal")
-    fig.text(0.01, 0.005, "Bottom row: colour = pseudo-label, x = wrong pseudo-label, large dots = the two labeled "
-             "points, line = student decision boundary.  1 labeled point per class.", fontsize=6.5, color=INK2)
+    fig.text(0.01, 0.005, "Bands: interquartile range over 40 random students; lines: median.  Bottom row (1 labeled point "
+             "per class, one student): colour = pseudo-label, x = wrong pseudo-label, large dots = labeled points, "
+             "line = student decision boundary.", fontsize=6.5, color=INK2)
     fig.tight_layout(rect=(0, 0.02, 1, 1))
     p2 = os.path.join(FIG, "toy_moons_dynamics.png")
     fig.savefig(p2, bbox_inches="tight")

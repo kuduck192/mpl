@@ -102,7 +102,9 @@ python3 analysis/feedback_dynamics.py results/fmnist-ssl-* --methods abl_selfopt
 
 `checks/degeneracy_static.py`
 (Prop. N2 on the real CNN) runs on CPU in about an hour; `analysis/figures.py` renders the
-figures in `docs/figures/`.
+figures in `docs/figures/`.  `checks/toy_two_moons_meta.py` (CPU, about 5 minutes) is the Two
+Moons toy with pseudo-labels as free variables set by the argmin of the first-order meta signal
+(report §13).
 
 ## Results in one paragraph (details and caveats in `docs/report.md`)
 

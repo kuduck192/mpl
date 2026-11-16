@@ -954,3 +954,89 @@ Với mốc trung bình này, các hàng khác:
 - Tổ hợp một mạng + SAM (hai thành phần tốt nhất) chưa được chạy.
 - So sánh với mốc trung bình dùng hai run FixMatch nhưng chỉ một run cho mỗi phương pháp khác
   (trừ SAM). Nó làm giảm nhiễu của mốc, không làm giảm nhiễu của phương pháp được so.
+
+## 13. Toy Two Moons: pseudo-label là biến tự do, chọn bằng argmin của meta signal bậc một
+
+**Câu hỏi.** Bỏ teacher, coi pseudo-label là biến tối ưu riêng. Nếu chọn chúng đúng theo meta
+signal bậc một của một student ngẫu nhiên, thì pseudo-label có đúng không, và accuracy của student
+liên hệ thế nào với accuracy của pseudo-label?
+
+**Thiết kế** (`checks/toy_two_moons_meta.py`, CPU, 5 phút; kết quả trong
+`results/toy-two-moons/results.json`).
+- Dữ liệu: Two Moons với nhiễu 0.1, gồm 1000 điểm không nhãn và 4000 điểm test. Điểm có nhãn rút
+  từ một tập riêng, 1 hoặc 5 điểm mỗi lớp, rút 5 lần.
+- Student: MLP 2-64-64-2 ReLU, khởi tạo ngẫu nhiên mặc định, SGD full-batch lr 0.1, 3000 bước.
+  Student chỉ học trên (X_u, pseudo-label), không bao giờ thấy nhãn.
+- Pseudo-label tự do: PL_i = argmin_k c_ik, với c_i = J_f(x_i; θ) ∇L_l(θ) (một JVP).
+  - Theo khai triển bậc một, L_l sau một bước của student bằng hằng số + (η/N_u) Σ_i ⟨t_i, c_i⟩.
+    Meta objective vì thế tuyến tính theo t, và argmin trên simplex là pseudo-label one-hot ở trên.
+  - Viết theo kernel: c_i = Σ_j K_θ(x_i, x_j)(p_j − y_j)/N_l. Tức là một phiếu bầu của residual trên
+    các điểm có nhãn, với trọng số là tangent kernel của student.
+- Hai quy tắc:
+  - *dynamic*: đặt lại PL trước mỗi bước của student. Đây là MPL với pseudo-label tự do và bước
+    teacher lớn vô hạn.
+  - *frozen*: đặt PL một lần tại student ngẫu nhiên ban đầu, rồi giữ nguyên.
+- 8 student ngẫu nhiên × 5 lần rút nhãn, tức 40 run cho mỗi quy tắc và mỗi số nhãn.
+- Mốc so sánh:
+  - label spreading (kNN 10, α = 0.99);
+  - student chỉ học trên các điểm có nhãn;
+  - student học trên nhãn thật của X_u (oracle);
+  - argmin của meta signal lấy trung bình qua 64 student ngẫu nhiên.
+
+| | 1 nhãn/lớp | 5 nhãn/lớp |
+|---|---|---|
+| PL acc, argmin tại một student ngẫu nhiên (64 × 5) | 0.748 (0.38–0.91) | 0.844 (0.50–0.91) |
+| PL acc, argmin của tín hiệu trung bình 64 student | 0.767 | 0.884 |
+| PL acc, label spreading | 0.927 | 0.996 |
+| PL acc dynamic, bước đầu → bước 3000 | 0.741 → 0.755 | 0.839 → 0.791 |
+| student test acc, dynamic | 0.733 | 0.790 |
+| student test acc, frozen | 0.721 | 0.821 |
+| student test acc, chỉ học trên điểm có nhãn | 0.751 | 0.814 |
+| student test acc, oracle | 0.999 | 0.999 |
+| labeled loss cuối của student, dynamic / frozen (trung vị) | 4.5·10⁻⁷ / 0 | 4.2·10⁻³ / 2.9 |
+| tỉ lệ PL đổi mỗi bước, dynamic, từ bước 500 | 5.1% | 17.7% |
+
+![toy pl vs student](figures/toy_moons_pl_vs_student.png)
+
+![toy dynamics](figures/toy_moons_dynamics.png)
+
+**Đọc kết quả.**
+- **Pseudo-label tối ưu theo meta signal bậc một không phải là pseudo-label đúng.** Chúng đạt
+  0.75 (1 nhãn/lớp) và 0.84 (5 nhãn/lớp), so với 0.93 và 0.996 của label spreading. Lỗi tập trung
+  ở hai đầu mút, nơi hai mặt trăng lồng vào nhau (hình g, h). Tangent kernel của một MLP ngẫu
+  nhiên đo độ giống nhau theo hình học của mạng, không theo đa tạp của dữ liệu.
+- **Student chép pseudo-label.** Mọi điểm cuối nằm trên đường chéo: student đồng ý với PL ở 92–98%
+  điểm, và accuracy của student thấp hơn PL 0.00–0.02. Student không tự sửa được PL sai.
+- **Kết quả phụ thuộc mạnh vào student ngẫu nhiên.**
+  - Với 1 nhãn/lớp, PL acc dao động 0.38–0.91 giữa các student.
+  - 7/40 student cho PL acc ≤ 0.55. Chỉ một trong số đó dồn hết về một lớp; các student còn lại
+    chia mặt phẳng theo cách không liên quan đến hai mặt trăng.
+  - Tương quan giữa PL acc của student ban đầu và accuracy cuối là 0.93.
+  - Lấy trung bình tín hiệu qua 64 student chỉ thêm 0.02 (1 nhãn/lớp) và 0.04 (5 nhãn/lớp).
+- **Tối ưu lại PL trong lúc học không làm PL tốt hơn.**
+  - 1 nhãn/lớp: student khớp hai điểm có nhãn trong khoảng 100 bước (L_l → 10⁻⁷), và meta signal
+    tắt về độ lớn. Argmin không phụ thuộc độ lớn nên vẫn chọn được, nhưng lúc này nó chọn theo
+    nhiễu số: 5% PL đổi mỗi bước, và PL acc chỉ tăng 0.015.
+  - 5 nhãn/lớp: không có bộ PL nào làm student khớp đủ 10 điểm cùng lúc, nên argmin dao động.
+    Tới 25% PL đổi mỗi bước quanh bước 30–50, vẫn còn 18% ở cuối, và PL acc giảm từ 0.839 xuống
+    0.791.
+- **Meta objective tốt hơn không có nghĩa là accuracy tốt hơn.** Với 5 nhãn/lớp:
+  - dynamic giữ labeled loss của student ở 4·10⁻³, còn frozen để nó lên 2.9, vì student học PL
+    sai gần các điểm có nhãn;
+  - nhưng student dynamic lại kém student frozen 3.1 điểm, thua ở 26/40 cặp.
+
+  Đây chính là overfit ở tầng meta: PL được chọn để student khớp vài điểm có nhãn, không phải để
+  PL đúng.
+- **Không quy tắc nào hơn student chỉ học trên điểm có nhãn** (0.751 và 0.814).
+
+**Liên hệ với các thí nghiệm chính.** Meta signal bậc một chỉ dùng dữ liệu không nhãn thông qua
+tangent kernel của mạng, không thông qua giả định cụm hay đa tạp. Trong FixMatch, phần khai thác
+cấu trúc của dữ liệu không nhãn là consistency theo augmentation. Meta feedback chỉ thêm một phiếu
+bầu kernel của residual trên nhãn, tức không mang thông tin mới về cấu trúc dữ liệu. Điều này phù
+hợp với việc MPL / PBPL / EBPL không hơn FixMatch.
+
+**Giới hạn.**
+- Đây là toy: MLP ReLU, chỉ dùng tín hiệu bậc một (không có look-ahead θ'), và argmin cứng, tức
+  giới hạn bước teacher lớn vô hạn. Phương pháp thật dùng pseudo-label mềm từ một teacher với λ_m
+  nhỏ.
+- Các biến thể pessimistic / expected chưa được thử trên toy này.
