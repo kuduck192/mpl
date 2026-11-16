@@ -1,0 +1,117 @@
+{
+ "slug": "fmnist-ssl-rep-k",
+ "budget_hours": 5.6,
+ "files": [],
+ "jobs": [
+  {
+   "name": "suppbpl_4_s1",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s1",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s1",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s1",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "suppbpl_4_s2",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s2",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s2",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s2",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "suppbpl_4_s3",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s3",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s3",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s3",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "suppbpl_4_s4",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s4",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s4",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s4",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "suppbpl_4_s5",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s5",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s5",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s5",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "sup_4_s4",
+   "args": "--base sup --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 3
+  },
+  {
+   "name": "sup_4_s5",
+   "args": "--base sup --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 3
+  }
+ ]
+}

@@ -424,6 +424,30 @@ def wave6b(it=20000):
         write(slug, [job(n, a, sd, e) for sd in seeds for (n, a, e) in arms], float(os.environ.get("WAVE6_HOURS", 7.8)))
 
 
+def wave7(it=20000):
+    """Phase 7: the labeled loss plus the bilevel term, without the FixMatch loss (the "Sup + MPL /
+    PBPL / EBPL" cells of the ablation table), seeds 1-10, 40 labels.  --lam_u 0 keeps the FixMatch
+    code path but drops its loss: the teacher's forward still includes the unlabeled batches (so
+    BatchNorm sees them) and the held-out student still learns from the teacher's soft
+    pseudo-labels.  supbn is the same without the bilevel term, so supmpl - supbn isolates the
+    meta term; sup (labeled batches only) completes seeds 4-10 (seeds 1-3 are in main-a).  The meta
+    weights are those selected with the FixMatch loss (not re-tuned).  rep-k: seeds 1-5, rep-l:
+    seeds 6-10, seed-major.
+    python sweeps/make_sweeps.py wave7"""
+    SUP0 = "--base fixmatch --lam_u 0"
+
+    def job(name, a, sd, est):
+        return {"name": f"{name}_4_s{sd}", "args": f"{a} --n_per_class 4 --seed {sd} --iters {it}", "est_min": est}
+    arms = [("suppbpl", f"{SUP0} --bilevel two --feedback pess {PESS}", 41),
+            ("supebpl", f"{SUP0} --bilevel two --feedback exp {EXP}", 40),
+            ("supmpl", f"{SUP0} --bilevel two --feedback opt {OPT}", 29),
+            ("supbn", SUP0, 12)]
+    for slug, seeds in (("fmnist-ssl-rep-k", range(1, 6)), ("fmnist-ssl-rep-l", range(6, 11))):
+        jobs = [job(n, a, sd, e) for sd in seeds for (n, a, e) in arms]
+        jobs += [job("sup", "--base sup", sd, 3) for sd in seeds if sd >= 4]
+        write(slug, jobs, float(os.environ.get("WAVE7_HOURS", 5.6)))
+
+
 def remainder():
     """python sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dir> [...]
     Writes a sweep with the jobs of <sweep.json> that have no complete result in the given

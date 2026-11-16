@@ -1,0 +1,132 @@
+{
+ "slug": "fmnist-ssl-rep-l",
+ "budget_hours": 5.6,
+ "files": [],
+ "jobs": [
+  {
+   "name": "suppbpl_4_s6",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s6",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s6",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s6",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "suppbpl_4_s7",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s7",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s7",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s7",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "suppbpl_4_s8",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s8",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s8",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s8",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "suppbpl_4_s9",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s9",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s9",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s9",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "suppbpl_4_s10",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback pess --lam_m 0.1 --radius 0.1 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 41
+  },
+  {
+   "name": "supebpl_4_s10",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback exp --lam_m 0.3 --radius 3.0 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 40
+  },
+  {
+   "name": "supmpl_4_s10",
+   "args": "--base fixmatch --lam_u 0 --bilevel two --feedback opt --lam_m 0.1 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 29
+  },
+  {
+   "name": "supbn_4_s10",
+   "args": "--base fixmatch --lam_u 0 --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "sup_4_s6",
+   "args": "--base sup --n_per_class 4 --seed 6 --iters 20000",
+   "est_min": 3
+  },
+  {
+   "name": "sup_4_s7",
+   "args": "--base sup --n_per_class 4 --seed 7 --iters 20000",
+   "est_min": 3
+  },
+  {
+   "name": "sup_4_s8",
+   "args": "--base sup --n_per_class 4 --seed 8 --iters 20000",
+   "est_min": 3
+  },
+  {
+   "name": "sup_4_s9",
+   "args": "--base sup --n_per_class 4 --seed 9 --iters 20000",
+   "est_min": 3
+  },
+  {
+   "name": "sup_4_s10",
+   "args": "--base sup --n_per_class 4 --seed 10 --iters 20000",
+   "est_min": 3
+  }
+ ]
+}
