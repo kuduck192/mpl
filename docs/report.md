@@ -1213,3 +1213,65 @@ Cùng seed, cùng cấu hình:
 
 Pseudo-label của teacher theo đúng thứ hạng của test accuracy: trust region pessimistic / expected
 không làm pseudo-label đúng hơn, cả so với feedback optimistic lẫn so với FixMatch.
+
+## 17. Bỏ loss FixMatch: labeled loss + MPL / PBPL / EBPL (wave7, 10 seed, 40 nhãn)
+
+Mục đích: kiểm tra giả thuyết Sup + MPL < Sup + FM ≈ Sup + FM + MPL, tức meta objective (một
+likelihood) không đứng được một mình nếu thiếu prior clusterability.
+
+Thiết lập:
+- Các ô có meta: `--base fixmatch --lam_u 0` cộng với cờ bilevel đã chọn ở Mục 4 (MPL λ_m 0.1;
+  PBPL λ_m 0.1, r 0.1; EBPL λ_m 0.3, r 3.0; hai mạng, student held-out). Forward pass giữ nguyên như
+  FixMatch: batch không nhãn (yếu + mạnh) vẫn đi qua BatchNorm, nhưng không có loss FixMatch.
+- Hai đối chứng: `supbn` (cùng forward pass, không meta) và `sup` (`--base sup`, chỉ batch có nhãn).
+- λ_m và bán kính giữ nguyên như khi chọn có FixMatch, không tinh chỉnh lại.
+- Kernel rep-k (seed 1–5, cùng `sup` seed 4–5) và rep-l (seed 6–10). `sup` seed 1–3 có từ trước.
+  Đủ 47/47 job, không job nào bị budget guard cắt.
+- Lệnh: `python3 analysis/fm_meta_grid.py results/fmnist-ssl-*`, thêm `--metric unl_ema`
+  (pseudo-label accuracy của teacher EMA trên X_u) hoặc `--metric test` (teacher live, không EMA).
+
+Teacher EMA ở vòng cuối, test accuracy (pseudo-label accuracy trên X_u trong ngoặc), mean ± sd qua
+10 seed:
+
+| hàm mục tiêu teacher | không meta | + MPL | + PBPL | + EBPL |
+|---|---|---|---|---|
+| L_l, chỉ batch có nhãn (`sup`) | 57.66 ± 4.18 (57.73) | — | — | — |
+| L_l, batch không nhãn qua BN (`supbn`, `supmpl`, …) | 48.30 ± 2.96 (48.51) | 59.49 ± 4.96 (59.69) | 59.24 ± 6.22 (59.40) | 59.52 ± 5.60 (59.74) |
+| L_l + FixMatch | 72.75 ± 3.76 (73.20) | 73.28 ± 3.96 (73.57) | 73.32 ± 3.10 (73.60) | 72.74 ± 2.51 (73.07) |
+
+Teacher live, test accuracy: 60.89 (`sup`); 54.42 / 57.29 / 57.84 / 58.77 (hàng giữa);
+72.50 / 73.13 / 73.31 / 72.59 (FixMatch).
+
+So cặp theo seed (n = 10; MPL / PBPL / EBPL):
+
+| so sánh | teacher EMA | teacher live |
+|---|---|---|
+| Sup + meta − Sup + FM | −13.26 / −13.50 / −13.22, 0/10, Holm p < 0.001 | −15.21 / −14.67 / −13.74, 0/10, Holm p < 0.001 |
+| Sup + meta − Sup (chỉ nhãn) | +1.83 / +1.59 / +1.87, 5–6/10, p ≥ 0.38 | −3.60 / −3.05 / −2.12, 2–3/10, p = 0.046 / 0.12 / 0.27, Holm ≥ 0.14 |
+| meta − không meta, cùng forward pass (`supbn`) | +11.19 / +10.95 / +11.23, 9–10/10, Holm ≤ 0.005 | +2.86 / +3.41 / +4.34, 7–8/10, Holm 0.42 / 0.33 / 0.14 |
+| meta − không meta, có FixMatch | +0.54 / +0.58 / −0.01, n.s. | +0.62 / +0.81 / +0.09, n.s. |
+| PBPL − MPL, EBPL − MPL, không FixMatch | −0.25, +0.04, n.s. | +0.55, +1.48, n.s. |
+| FixMatch − Sup (chỉ nhãn) | +15.09 ± 4.61, 10/10 | +11.62 ± 3.81, 10/10 |
+| batch không nhãn qua BN − chỉ nhãn (không meta) | −9.36, 0/10 | −6.46, 0/10 |
+
+Nhận xét:
+- **Giả thuyết được xác nhận, và mạnh hơn dự kiến.** Sup + meta (59.2–59.5) thua Sup + FM (72.75)
+  khoảng 13 điểm ở cả 10/10 seed, với cả ba biến thể và cả hai cách đo. Sup + FM + meta ≈ Sup + FM.
+- **Không có FixMatch, likelihood chỉ ngang học thuần trên nhãn:** +1.6 đến +1.9 theo EMA, −2.1
+  đến −3.6 theo live, không có ý nghĩa sau Holm. Khớp với toy Mục 13–14: student học trên
+  pseudo-label tối ưu cho likelihood chỉ ở mức student học trên điểm có nhãn.
+- **Pessimism / expectation không giúp** ở cả hàng không FixMatch lẫn hàng có FixMatch.
+- **Bẫy đo: teacher EMA không ổn định khi không có loss nào trên X_u.**
+  - Lớp `EMA` trong `ssl_fmnist.py` lấy trung bình trọng số nhưng chép nguyên buffer BatchNorm của
+    mạng live.
+  - Từ vòng 10k trở đi, test accuracy của EMA trong `sup` / `supbn` có độ lệch chuẩn 9–11 điểm
+    giữa các lần đánh giá, biên độ 30–36 điểm, thấp nhất 10–12%. Mạng live chỉ dao động 1.3–1.7.
+  - Có loss meta thì EMA ổn định (độ lệch chuẩn 1.0–1.7, cao hơn live 0.8–2.2 điểm). Có FixMatch
+    thì EMA ≈ live (sd 0.5–0.6).
+  - Hệ quả: hiệu ứng meta − `supbn` = +11 theo EMA bị phóng đại; theo live chỉ +3 đến +4. Hai so
+    sánh chính (với Sup + FM và với Sup) cho cùng kết luận ở cả hai cách đo.
+- **Riêng forward pass có batch không nhãn làm hại huấn luyện thuần nhãn 6.5 điểm (live).** Cơ chế
+  chưa kiểm tra; nghi do thống kê BN của batch trộn (phần lớn là ảnh không nhãn, một nửa
+  augmentation mạnh).
+- **Giới hạn.** λ_m chưa tinh chỉnh lại cho hàng không có FixMatch. Toy (λ_m = ∞, chỉ likelihood,
+  không có trọng số để tinh chỉnh) cho cùng kết luận.

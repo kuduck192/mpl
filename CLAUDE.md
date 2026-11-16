@@ -2,7 +2,7 @@
 
 File này tóm tắt toàn bộ bối cảnh để một phiên Claude mới làm tiếp mà không cần đọc lại lịch sử
 chat. Số liệu đầy đủ và lập luận chi tiết nằm ở `docs/report.md` (mục 1–15, tiếng Việt) và
-`docs/theory.md`. Cập nhật lần cuối: 2026-11-16, commit `bbe7a2f`.
+`docs/theory.md`. Cập nhật lần cuối: 2026-11-16, sau wave7 (commit `b5df38e`).
 
 ## 0. Quy ước làm việc với người dùng
 
@@ -83,8 +83,9 @@ chat. Số liệu đầy đủ và lập luận chi tiết nằm ở `docs/repor
 | `kaggle_tools/wait_kernels.sh` | chờ kernel tới trạng thái kết thúc |
 | `analysis/tenseed_table.py` | bảng 10 seed; `--tex` in dòng LaTeX, `--ref_avg fixmatch,fixmatchft` lấy mốc trung bình |
 | `analysis/finetune_table.py` | teacher / student EMA và sau finetune; `--tex`, `--ref2`, `--cfg` |
+| `analysis/fm_meta_grid.py` | lưới {chỉ nhãn, batch không nhãn qua BN, FixMatch} × {không meta, MPL, PBPL, EBPL}; `--metric test_ema` / `unl_ema` / `test` (teacher live) |
 | `analysis/{main_table,ablation_table,feedback_dynamics,pool_diag,figures}.py` | các bảng và hình khác |
-| `checks/` | gradient check, chẩn đoán suy biến, Figure 1, ba toy Two Moons |
+| `checks/` | gradient check, chẩn đoán suy biến, Figure 1, ba toy Two Moons; `toy_two_moons_tr.py` và `tr_fiber.py` là toy với V_r / E_s (commit `0baa285`, đẩy từ một phiên khác, chạy qua `slurm_tools/`) |
 | `docs/report.md` | báo cáo đầy đủ |
 | `docs/theory.md` | lý thuyết |
 | `docs/sections_trbpl.tex` | đoạn bản thảo |
@@ -178,6 +179,12 @@ Holm tính qua 12 phép so sánh; p ghi theo dạng t-test / Wilcoxon / Holm.
   +0.13 (một mạng, thang meta-gradient chính xác, seed 1–5; khoảng tin cậy 95% từ −3.9 đến +4.2).
 - **100 nhãn (5 seed):** PBPL +1.66 (p = 0.41), MPL +1.97 (p = 0.35). Đợt nhân bản 100 nhãn trên
   seed 6–10 chưa bao giờ chạy: `rep-c.json` bị ghi đè ở wave3.
+- **Bỏ loss FixMatch (wave7, report Mục 17; `--base fixmatch --lam_u 0` + cờ bilevel).**
+  - Teacher EMA: chỉ nhãn 57.66; L_l + MPL / PBPL / EBPL 59.49 / 59.24 / 59.52; FixMatch 72.75.
+  - So với FixMatch: −13.3 / −13.5 / −13.2, thua ở 10/10 seed, Holm p < 0.001.
+  - So với chỉ nhãn: +1.6 đến +1.9 (n.s.); theo teacher live −2.1 đến −3.6 (n.s. sau Holm).
+  - Tức Sup + meta ≈ Sup < Sup + FM ≈ Sup + FM + meta. PBPL / EBPL − MPL ≈ 0 ở cả hai hàng.
+  - λ_m giữ như khi chọn có FixMatch, chưa tinh chỉnh lại.
 - **Các mốc khác.**
   - Pilot chưa held-out (seed 0): FixMatch 72.5, MPL 71.4, PBPL 68.3.
   - Pool student (Mục 11): hướng feedback có khác nhau nhưng đa dạng về hàm số nhỏ. Không nên theo
@@ -224,7 +231,8 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
   ("nhãn đúng phải cho phép student khớp tập có nhãn"), có N_l·C ràng buộc, và lan nhãn theo kernel
   của mạng. Giả định cụm của FixMatch có N_u ràng buộc và lan nhãn dọc đa tạp dữ liệu. Meta signal
   chỉ thấy những lỗi làm hại labeled loss. Pessimism đổi student dùng để chấm điểm, không thêm
-  thông tin về nhãn.
+  thông tin về nhãn. Wave7 xác nhận trên FashionMNIST: không có FixMatch, meta chỉ ngang học
+  thuần trên nhãn và kém FixMatch 13 điểm.
 - **Thứ thực sự giúp ở 40 nhãn là SAM trên labeled loss của mạng triển khai**, không cần bilevel.
 - **Đánh giá đã đưa cho người dùng.** Bỏ tham vọng "PBPL vượt baseline". Giữ dự án như một kết quả
   phân tích / kết quả âm có kiểm soát chặt, cộng với phát hiện về SAM. Hướng nối tiếp tự nhiên là
@@ -234,7 +242,8 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
 ## 7. Trạng thái và việc còn mở
 
 - **Kaggle quota.**
-  - Tuần từ 2026-11-15: đã dùng khoảng 13.0h trên trần khoảng 29–30h. Trường `totalTimeAllowed` =
+  - Tuần từ 2026-11-15: đã dùng khoảng 23h (13.0h trước đó + wave7 khoảng 10.1h) trên trần
+    khoảng 29–30h. Trường `totalTimeAllowed` =
     21600s của API không phải trần thật. Quota làm mới 2026-11-21 00:00 UTC.
   - Người dùng **chưa chọn** đợt Kaggle tiếp theo:
     - (a) `wave6a`: MPL / PBPL / EBPL hai mạng chạy lại có finetune, khoảng 9.7h, `rep-i` / `rep-j`.
@@ -256,6 +265,7 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
 
 - **Kaggle.**
   - API dễ bị rate limit: poll khoảng mỗi 240 giây.
+  - Kernel có thể nằm QUEUED khoảng 1h40 trước khi chạy (wave5 rep-g, cả hai kernel wave7).
   - Một kernel T4×2 chạy khoảng 6h cho 25 job loại wave5.
   - Runner bỏ qua job khi ngân sách còn lại dưới 1.1 × `est_min`.
 - **Holm trong `tenseed_table.py`** tính trên các phương pháp trong `METHODS` có n ≥ 5. Thêm hàng
@@ -265,6 +275,11 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
 - **IFT:** Hessian thật có thể có độ cong âm khi damping ≤ 10⁻³·λ_max, nên dùng Gauss–Newton.
   Student warm-start chỉ gần dừng (|∇L_u| khoảng 10⁻²).
 - **Bài toán neo:** với λ = 0.1, lặp điểm bất động đôi khi dao động; luôn log phần dư.
+- **Teacher EMA không ổn định khi không có loss nào trên X_u.** Lớp `EMA` lấy trung bình trọng số
+  nhưng chép buffer BN của mạng live. Trong `sup` / `supbn`, test acc của EMA dao động 30–36 điểm
+  sau vòng 10k (live chỉ 1.3–1.7). Với các ô này, đọc thêm `fm_meta_grid.py --metric test`.
+- **Nhánh có thể có commit từ phiên khác** (ví dụ `0baa285`). Push bị từ chối thì fetch, merge
+  rồi push lại, không force-push.
 - **Thư mục scratchpad** của phiên cũ không còn. Mọi thứ cần giữ đều đã nằm trong repo.
 
 ## 9. Mốc commit
@@ -279,3 +294,4 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
 - `dac5bef`: toy Mục 13.
 - `c252c76`: toy Mục 14.
 - `bbe7a2f`: toy Mục 15.
+- `9894576`: `fm_meta_grid.py`; `21238fe` / `b5df38e`: wave7 (bỏ FixMatch); `d2a6082`: `--metric test`.
