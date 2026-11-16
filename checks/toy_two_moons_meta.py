@@ -217,13 +217,14 @@ def summary(R):
         print(f"\n=== {n_l} labeled point(s) per class")
         S = [s for s in st if s["n_l"] == n_l]
         single = np.concatenate([s["single_accs"] for s in S])
+        per_draw = lambda key: ", ".join(f"{s[key]:.3f}" for s in S)  # noqa: E731 (Python 3.11 f-strings)
         print(f"label spreading PL acc: {np.mean([s['ls_acc'] for s in S]):.3f} "
-              f"(per draw {', '.join(f'{s['ls_acc']:.3f}' for s in S)})")
+              f"(per draw {per_draw('ls_acc')})")
         print(f"argmin of the meta signal, one random student: mean {single.mean():.3f}, median "
               f"{np.median(single):.3f}, range {single.min():.3f}-{single.max():.3f}, "
               f"share of students at <= 0.55: {(single <= 0.55).mean():.2f}")
         print(f"argmin of the average over 64 random students: {np.mean([s['avg_acc'] for s in S]):.3f} "
-              f"(per draw {', '.join(f'{s['avg_acc']:.3f}' for s in S)})")
+              f"(per draw {per_draw('avg_acc')})")
         for rule in ("dynamic", "frozen", "sup", "oracle"):
             rs = [r for r in runs if r["n_l"] == n_l and r["rule"] == rule]
             fin = [r["hist"][-1] for r in rs]
