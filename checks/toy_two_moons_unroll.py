@@ -391,6 +391,7 @@ def plots(R):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    import matplotlib.ticker  # noqa: F401
     from matplotlib.colors import LinearSegmentedColormap
     from matplotlib.lines import Line2D
 
@@ -518,6 +519,7 @@ def plots(R):
         for j, lab in enumerate(["5", "20", "100", "IFT"]):
             ax = axes[row, j]
             get = (lambda r: r["IFT"]) if lab == "IFT" else (lambda r, lab=lab: r["K"][lab])
+            xs_all = []
             for key, col in (("trace_uniform", COL["uniform"]), ("trace_truth", COL["truth"])):
                 T = [get(r)[key] for r in rs]
                 L = min(len(t) for t in T)
@@ -526,9 +528,16 @@ def plots(R):
                 ok = np.isfinite(Am)
                 ax.plot(Fm[ok], Am[ok], color=col, lw=1.4)
                 ax.plot(Fm[ok][-1], Am[ok][-1], "o", color=col, ms=4)
+                xs_all += list(Fm[ok])
             Ft = np.median([get(r)["F_true"] for r in rs])
             ax.plot([Ft], [1.0], marker="*", color=INK, ms=8, ls="")
+            xs_all.append(Ft)
             ax.set_xscale("log")
+            lo_, hi_ = np.log10(min(xs_all)), np.log10(max(xs_all))
+            ticks = sorted({float(f"{v:.1g}") for v in 10 ** np.linspace(lo_ + 0.05 * (hi_ - lo_), hi_ - 0.05 * (hi_ - lo_), 3)})
+            ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+            ax.set_xticks(ticks)
+            ax.set_xticklabels([f"{v:.0e}".replace("e-0", "e-") if v < 0.01 else f"{v:g}" for v in ticks])
             ax.set_ylim(0.45, 1.03)
             name = f"K = {lab}" if lab != "IFT" else "IFT"
             ax.set_title(f"{'abcdefgh'[4 * row + j]}. {name}, {n_l} lab./class", fontsize=7.5, loc="left", color=INK)
