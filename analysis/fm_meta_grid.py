@@ -5,14 +5,16 @@
               so BatchNorm sees them, no unlabeled loss) and labeled loss + FixMatch;
     columns : no bilevel term, MPL (optimistic), PBPL (pessimistic), EBPL (expected) feedback.
 
-For the test accuracy of the deployed EMA teacher (--metric test_ema, default) or its pseudo-label
-accuracy on X_u (--metric unl_ema): the grid of means, the effect of the meta term within each row
+For the test accuracy of the deployed EMA teacher (--metric test_ema, default), its pseudo-label
+accuracy on X_u (--metric unl_ema), or the test accuracy of the live, non-averaged teacher
+(--metric test; a check on the EMA, whose BatchNorm buffers are copied from the live model): the grid of means, the effect of the meta term within each row
 (paired by seed against the same row without it), the effect of FixMatch within each column, their
 interaction (meta effect with FixMatch minus meta effect without), and pessimistic / expected
 minus optimistic within each row.  Paired t-test, Wilcoxon, Holm over each family.
 
   python analysis/fm_meta_grid.py results/fmnist-ssl-*
   python analysis/fm_meta_grid.py results/fmnist-ssl-* --metric unl_ema
+  python analysis/fm_meta_grid.py results/fmnist-ssl-* --metric test
 """
 import argparse
 import os
@@ -62,11 +64,13 @@ def report(title, items):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("dirs", nargs="+")
-    ap.add_argument("--metric", default="test_ema", choices=["test_ema", "unl_ema"])
+    ap.add_argument("--metric", default="test_ema", choices=["test_ema", "unl_ema", "test"])
     args = ap.parse_args()
     R = load(args.dirs, metric=args.metric)
-    what = "test accuracy" if args.metric == "test_ema" else "pseudo-label accuracy on X_u"
-    print(f"Deployed EMA teacher, {what}, 40 labels, final iterate; mean ± sd (n seeds)\n")
+    what = {"test_ema": "deployed EMA teacher, test accuracy",
+            "unl_ema": "deployed EMA teacher, pseudo-label accuracy on X_u",
+            "test": "live (non-averaged) teacher, test accuracy"}[args.metric]
+    print(f"{what[0].upper() + what[1:]}, 40 labels, final iterate; mean ± sd (n seeds)\n")
     print("| unlabeled loss | " + " | ".join(c for _, c in COLS) + " |")
     print("|---|" + "---|" * len(COLS))
     for name, cells in ROWS:
@@ -107,6 +111,8 @@ def main():
     report("Pessimistic / expected minus optimistic within each row", pess)
     print("\nLabeled loss + meta (no FixMatch) against FixMatch (labeled loss + FixMatch, no meta):")
     report("Sup + meta vs Sup + FM", [(f"{c} − fixmatch", paired(R, c, "fixmatch")) for c in ("supmpl", "suppbpl", "supebpl")])
+    print("\nLabeled loss + meta (no FixMatch) against training on the labeled batches alone:")
+    report("Sup + meta vs Sup", [(f"{c} − sup", paired(R, c, "sup")) for c in ("supmpl", "suppbpl", "supebpl")])
 
 
 if __name__ == "__main__":
