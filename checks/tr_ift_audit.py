@@ -96,7 +96,7 @@ def summary(path_audit, path_strong, stored_dir):
                 if "IFT" in r:
                     stored.setdefault(tag, {})[(r["n_l"], r["lab_draw"], r["init"])] = r["IFT"]
     print("\nIFT, same students: PL acc opt from uniform t / student on it")
-    print("  student (n_l, draw, init) | MPL (cluster) | TR-PBPL run (cluster) | TR-PBPL run (CPU rerun) | TR-PBPL strong solver")
+    print("  student (n_l, draw, init) | MPL (cluster) | TR-PBPL run (cluster) | TR-PBPL run (audit rerun) | TR-PBPL strong solver")
     for k in sorted(St):
         cells = []
         for src in (stored.get("opt", {}).get(k), stored.get("pess_r1_b10000", {}).get(k), Au.get(k), St[k]):
@@ -106,6 +106,16 @@ def summary(path_audit, path_strong, stored_dir):
             stu = src["train_opt"]["stu_acc"] if "train_opt" in src else src.get("stu_opt")
             cells.append(f"{src['pl_acc_opt']:.3f} / {stu:.3f}")
         print(f"  {str(k):26s}| " + " | ".join(cells))
+    # paired differences in PL acc (points) over these students
+    import numpy as np
+    M = stored.get("opt", {})
+    Rn = stored.get("pess_r1_b10000", {})
+    ks = [k for k in sorted(St) if k in M and k in Rn]
+    d_run = np.array([100 * (Rn[k]["pl_acc_opt"] - M[k]["pl_acc_opt"]) for k in ks])
+    d_str = np.array([100 * (St[k]["pl_acc_opt"] - M[k]["pl_acc_opt"]) for k in ks])
+    print(f"  PL acc - MPL (points), {len(ks)} students: run {d_run.mean():+.2f} (mean |d| {np.abs(d_run).mean():.2f}) | "
+          f"strong solver {d_str.mean():+.2f} (mean |d| {np.abs(d_str).mean():.2f}); strong closer to MPL than run for "
+          f"{int((np.abs(d_str) < np.abs(d_run)).sum())}/{len(ks)}")
 
 
 def main():

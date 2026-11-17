@@ -1,0 +1,25 @@
+# python checks/tr_ift_audit.py --summary checks/tr_ift_audit.json checks/tr_ift_strong.json  (job 447 on the A5000 node)
+n_l=1: 256 meta calls (240 warm) over 4 students
+  (V - L_l) / L_l   run median +2.59e-04 | long median +7.54e-04; share V_long > V_run (rel 1e-6): 0.84; (V_run - L_l) / (V_long - L_l) median 0.43
+  kkt              run median 2.0e+00 | long median 2.0e-02
+  cos(v_run, v_long)     median 0.9955 | 10% 0.7977 | min -0.0025 | warm calls: median 0.9950, 10% 0.7781
+  cos(v_run, grad L_l)   median 0.9977 | 10% 0.7926 | min -0.0199 | warm calls: median 0.9978, 10% 0.7867
+  cos(v_long, grad L_l)  median 0.9975 | 10% 0.9507 | min 0.5367 | warm calls: median 0.9977, 10% 0.9469
+n_l=5: 256 meta calls (240 warm) over 4 students
+  (V - L_l) / L_l   run median +4.23e-04 | long median +1.31e-03; share V_long > V_run (rel 1e-6): 0.96; (V_run - L_l) / (V_long - L_l) median 0.30
+  kkt              run median 3.0e+00 | long median 2.9e-02
+  cos(v_run, v_long)     median 0.9863 | 10% 0.6985 | min 0.0951 | warm calls: median 0.9824, 10% 0.6786
+  cos(v_run, grad L_l)   median 0.9887 | 10% 0.7121 | min -0.0757 | warm calls: median 0.9834, 10% 0.6884
+  cos(v_long, grad L_l)  median 0.9940 | 10% 0.9478 | min 0.2207 | warm calls: median 0.9934, 10% 0.9411
+
+IFT, same students: PL acc opt from uniform t / student on it
+  student (n_l, draw, init) | MPL (cluster) | TR-PBPL run (cluster) | TR-PBPL run (audit rerun) | TR-PBPL strong solver
+  (1, 0, 0)                 | 0.440 / 0.385 | 0.463 / 0.464 | 0.458 / 0.472 | 0.430 / 0.442
+  (1, 1, 4)                 | 0.609 / 0.586 | 0.592 / 0.569 | 0.592 / 0.568 | 0.606 / 0.581
+  (1, 2, 0)                 | 0.628 / 0.609 | 0.599 / 0.585 | 0.599 / 0.585 | 0.595 / 0.580
+  (1, 3, 4)                 | 0.523 / 0.503 | 0.533 / 0.513 | 0.533 / 0.513 | 0.521 / 0.497
+  (5, 0, 0)                 | 0.789 / 0.803 | 0.798 / 0.810 | 0.798 / 0.810 | 0.789 / 0.803
+  (5, 1, 4)                 | 0.746 / 0.746 | 0.753 / 0.753 | 0.753 / 0.753 | 0.750 / 0.751
+  (5, 2, 0)                 | 0.816 / 0.806 | 0.814 / 0.806 | 0.807 / 0.797 | 0.809 / 0.798
+  (5, 3, 4)                 | 0.899 / 0.885 | 0.895 / 0.884 | 0.895 / 0.884 | 0.896 / 0.884
+  PL acc - MPL (points), 8 students: run -0.04 (mean |d| 1.26) | strong solver -0.67 (mean |d| 0.77); strong closer to MPL than run for 6/8
