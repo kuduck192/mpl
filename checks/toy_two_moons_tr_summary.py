@@ -173,6 +173,17 @@ def sec14(R):
                 print(f"  {lab(t):16s} along all mirror-descent steps ({len(E)} students): cos(v, grad L_l) median {med([e['cos_v_opt'] for e in E]):.4f} "
                       f"(5% {q([e['cos_v_opt'] for e in E], 5):.4f}, min {min(e['cos_v_opt'] for e in E):.3f}); (Phi - L_l) / L_l median {med(gap):+.2e} "
                       f"(95% {q(gap, 95):+.2e}); rms dlogit median {med([e.get('rms_dlogit') for e in E]):.1e}; kkt median {med([e.get('kkt') for e in E]):.1e}")
+            if not t.startswith("pess"):
+                continue
+            # a maximum over eps is >= Phi(0) = L_l(theta): a value below L_l is a solver failure.  Ll is the
+            # float32 loss of the student network, F the float64 value, both stored to 5 digits: tolerance 1e-7
+            parts = []
+            for K in KS14:
+                EK = [e for r in by[t].values() if rec14(r, K) for key in ("trace_uniform", "trace_truth")
+                      for e in rec14(r, K)[key] if "Ll" in e]
+                if EK:
+                    parts.append(f"{K} {np.mean([e['F'] < e['Ll'] - 1e-7 for e in EK]):.3f}")
+            print(f"  {lab(t):16s} share of steps with V < L_l(theta) - 1e-7 (solver below Phi(0)), by K: " + ", ".join(parts))
 
 
 # ----------------------------------------------------------------------------------------
@@ -397,7 +408,8 @@ def main():
     sec13(R)
     sec14(R)
     sec15(R)
-    figures(R)
+    if "--nofig" not in sys.argv:  # --nofig: tables only (e.g. for the superseded shards in archive_warmonly)
+        figures(R)
 
 
 if __name__ == "__main__":

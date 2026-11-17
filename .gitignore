@@ -3,3 +3,6 @@
 __pycache__/
 *.pyc
 data/
+
+# TR toy shards of the warm-start-only TR-PBPL solver (superseded; kept on the A5000 node)
+results/toy-two-moons-tr/archive_warmonly/
