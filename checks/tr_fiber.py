@@ -42,6 +42,7 @@ component in the soft tangent space is 1e-3 to 2e-2 of its norm), so the trust-r
 ~0.1-2% of L_l unless the fibre is loose (beta <= 10, unlabeled probabilities moving by >= 5%).
 
   python checks/tr_fiber.py --check      # unit tests and finite-difference gradient checks
+  python checks/tr_fiber.py --pinning    # how strongly X_u pins the labeled predictions (log: tr_fiber_pinning.log)
 """
 import argparse
 import math
@@ -200,7 +201,13 @@ class CurLA:
         if mu != self.mu:
             self.mu = mu
             if self.c > 0:
-                self.L = torch.linalg.cholesky(self.K + (mu / self.c) * self.eye)
+                ridge = mu / self.c
+                for k in range(12):  # K is numerically singular: if mu / c is too small, add a floor
+                    L, info = torch.linalg.cholesky_ex(self.K + ridge * self.eye)
+                    if int(info) == 0:
+                        break
+                    ridge = max(ridge * 10, 1e-12 * self.K.diagonal().max().item())
+                self.L = L
 
     def apply(self, h):
         if self.c == 0:  # no fibre penalty (beta = 0): M = mu I
@@ -297,6 +304,10 @@ def pess(f, Xu, Xl, yl, theta, r, beta, warm=None, starts=("warm", "zero"), n_ra
                 break
         if best is None or val > best["V"]:
             best = {"V": val, "eps": e, "start": name, "iters": it, "kkt": kkt}
+        if name == cand[-1][0] and best["V"] < L0 and not any(c[0] == "zero" for c in cand):
+            # every start ended below Phi(0) = L_l(theta) (a stale warm start after the anchor moved):
+            # eps = 0 is admissible, so restart from it; V >= L_l(theta) is then guaranteed
+            cand.append(("zero", torch.zeros_like(theta)))
     e = best["eps"]
     with torch.enable_grad():
         th = theta.clone().requires_grad_(True)
@@ -515,13 +526,70 @@ def checks(betas=(1e3, 1e4, 1e5), radii=(0.3, 1.0, 3.0)):
             print(f"  {mode} r={r:g}: FD {fdz:+.6e}  back-propagated {an:+.6e}  (rel {abs(fdz - an) / max(abs(fdz), 1e-300):.1e})")
 
 
+def pinning(betas=(1e4, 1e2, 10.0, 1.0), r=1.0):
+    """How strongly X_u pins the labeled predictions of the toy student (report Section 17, Table 17.1).
+    For n_l in (1, 5) and three anchors (random init, 20 steps on uniform t, 1000 steps on the truth):
+    numerical rank of the tangent kernel on X_u at relative cutoffs sigma / sigma_max, and
+    omega = |Pi grad delta(x_l)| / |grad delta(x_l)| (largest over the labeled points), Pi the projector
+    on the directions whose singular value is below the cutoff (free directions); then the trust-region
+    values and their gradients against the fibre weight beta at radius r."""
+    from toy_two_moons_meta import make_data, mlp, tensors
+    from torch.func import jacrev, vmap
+
+    torch.set_default_dtype(torch.float64)
+    f = FlatMLP()
+    cuts = (1e-2, 1e-3, 1e-4, 1e-6, 1e-9)
+    for n_l in (1, 5):
+        Xu, yu, Xt, yt, Xl, yl = make_data(n_l, 1)
+        Xu_, _, Xl_ = [a.double() for a in tensors(Xu, Xt, Xl)]
+        yl_ = torch.tensor(yl)
+        torch.manual_seed(1000)
+        w = flat_params(mlp().double())
+        truth = F.one_hot(torch.tensor(yu), 2).double()
+
+        def train(w0, t, steps, lr=0.1):
+            w_ = w0.clone()
+            for _ in range(steps):
+                w_ = w_.detach().requires_grad_(True)
+                Lu = -(t * F.log_softmax(f.logits(w_, Xu_), 1)).sum(1).mean()
+                w_ = w_ - lr * torch.autograd.grad(Lu, w_)[0]
+            return w_.detach()
+
+        xis = unit_directions(f.d, 16, seed=7)
+        for name, th in (("random init", w), ("20 steps, uniform t", train(w, torch.full_like(truth, 0.5), 20)),
+                         ("1000 steps, truth", train(w, truth, 1000))):
+            Jf = lambda X: vmap(jacrev(lambda ww, x: f.delta(ww, x[None])[0]), in_dims=(None, 0))(th, X)  # noqa: E731
+            J, Jl = Jf(Xu_), Jf(Xl_)
+            _, S, Vh = torch.linalg.svd(J, full_matrices=False)
+            cf = Jl @ Vh.T
+            cells = []
+            for cut in cuts:
+                keep = S > cut * S[0]
+                res = (Jl.pow(2).sum(1) - cf[:, keep].pow(2).sum(1)).clamp_min(0).sqrt() / Jl.norm(dim=1)
+                cells.append(f"{cut:.0e}: rank {int(keep.sum())}, omega {res.max().item():.3f}")
+            L0, g0 = lab_loss_grad(f, th, Xl_, yl_)
+            print(f"\nn_l={n_l}, {name}: L_l = {L0:.3e}, |grad L_l| = {g0.norm().item():.2e}, sigma_max = {S[0].item():.1f}")
+            print("  cutoff sigma/sigma_max -> " + " | ".join(cells))
+            for beta in betas:
+                _, _, ip = pess(f, Xu_, Xl_, yl_, th, r, beta, n_random=1, T=60)
+                _, _, ie = expv(f, Xu_, Xl_, yl_, th, r, beta, xis)
+                print(f"  beta={beta:g}, r={r:g}: TR-PBPL V-L_l {ip['V'] - L0:+.2e}, L_l(worst)-L_l {ip['Ll_adv'] - L0:+.2e} "
+                      f"({100 * (ip['Ll_adv'] - L0) / L0:+.2f}%), |eps*| {ip['eps_norm']:.2f}, rms dlogit {ip['rms_dlogit']:.1e}, "
+                      f"max dp {ip['max_dp']:.1e}, cos(grad V, grad L_l) {ip['cos_v_opt']:.3f} || TR-EBPL E-L_l {ie['V'] - L0:+.2e} "
+                      f"({100 * (ie['V'] - L0) / L0:+.3f}%), rms dlogit {ie['rms_dlogit']:.1e}, cos(grad E, grad L_l) {ie['cos_v_opt']:.3f}",
+                      flush=True)
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--pinning", action="store_true", help="how strongly X_u pins the labeled predictions")
     ap.add_argument("--betas", default="1e3,1e4,1e5")
     ap.add_argument("--radii", default="0.3,1,3")
     ap.add_argument("--threads", type=int, default=8)
     a = ap.parse_args()
+    torch.set_num_threads(a.threads)
     if a.check:
-        torch.set_num_threads(a.threads)
         checks([float(b) for b in a.betas.split(",")], [float(r) for r in a.radii.split(",")])
+    if a.pinning:
+        pinning()

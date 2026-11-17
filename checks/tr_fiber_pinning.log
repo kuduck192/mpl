@@ -1,0 +1,42 @@
+
+n_l=1, random init: L_l = 6.231e-01, |grad L_l| = 1.07e+00, sigma_max = 90.3
+  cutoff sigma/sigma_max -> 1e-02: rank 56, omega 0.019 | 1e-03: rank 209, omega 0.008 | 1e-04: rank 432, omega 0.001 | 1e-06: rank 728, omega 0.000 | 1e-09: rank 778, omega 0.000
+  beta=10000, r=1: TR-PBPL V-L_l +6.66e-04, L_l(worst)-L_l +1.03e-03 (+0.17%), |eps*| 0.34, rms dlogit 1.9e-04, max dp 5.7e-04, cos(grad V, grad L_l) 1.000 || TR-EBPL E-L_l -1.36e-04 (-0.022%), rms dlogit 1.3e-03, cos(grad E, grad L_l) 1.000
+  beta=100, r=1: TR-PBPL V-L_l +6.25e-03, L_l(worst)-L_l +9.75e-03 (+1.56%), |eps*| 0.06, rms dlogit 5.9e-03, max dp 5.7e-03, cos(grad V, grad L_l) 0.988 || TR-EBPL E-L_l -2.68e-04 (-0.043%), rms dlogit 3.0e-03, cos(grad E, grad L_l) 0.999
+  beta=10, r=1: TR-PBPL V-L_l +8.68e-02, L_l(worst)-L_l +1.41e-01 (+22.55%), |eps*| 0.88, rms dlogit 7.3e-02, max dp 7.8e-02, cos(grad V, grad L_l) 0.979 || TR-EBPL E-L_l -2.59e-04 (-0.042%), rms dlogit 5.5e-03, cos(grad E, grad L_l) 0.997
+  beta=1, r=1: TR-PBPL V-L_l +4.86e-01, L_l(worst)-L_l +8.70e-01 (+139.60%), |eps*| 1.00, rms dlogit 6.2e-01, max dp 3.8e-01, cos(grad V, grad L_l) 0.880 || TR-EBPL E-L_l +7.71e-05 (+0.012%), rms dlogit 1.1e-02, cos(grad E, grad L_l) 0.996
+
+n_l=1, 20 steps, uniform t: L_l = 6.703e-01, |grad L_l| = 1.11e+00, sigma_max = 89.1
+  cutoff sigma/sigma_max -> 1e-02: rank 59, omega 0.019 | 1e-03: rank 215, omega 0.009 | 1e-04: rank 440, omega 0.001 | 1e-06: rank 753, omega 0.000 | 1e-09: rank 800, omega 0.000
+  beta=10000, r=1: TR-PBPL V-L_l +7.07e-04, L_l(worst)-L_l +1.05e-03 (+0.16%), |eps*| 0.34, rms dlogit 1.9e-04, max dp 5.4e-04, cos(grad V, grad L_l) 0.998 || TR-EBPL E-L_l -1.31e-04 (-0.020%), rms dlogit 1.3e-03, cos(grad E, grad L_l) 1.000
+  beta=100, r=1: TR-PBPL V-L_l +7.61e-03, L_l(worst)-L_l +1.19e-02 (+1.77%), |eps*| 0.07, rms dlogit 6.5e-03, max dp 7.7e-03, cos(grad V, grad L_l) 0.992 || TR-EBPL E-L_l -1.58e-04 (-0.024%), rms dlogit 2.9e-03, cos(grad E, grad L_l) 0.998
+  beta=10, r=1: TR-PBPL V-L_l +9.43e-02, L_l(worst)-L_l +1.52e-01 (+22.61%), |eps*| 0.99, rms dlogit 7.6e-02, max dp 9.8e-02, cos(grad V, grad L_l) 0.979 || TR-EBPL E-L_l -1.52e-04 (-0.023%), rms dlogit 5.3e-03, cos(grad E, grad L_l) 0.996
+  beta=1, r=1: TR-PBPL V-L_l +5.21e-01, L_l(worst)-L_l +9.45e-01 (+140.99%), |eps*| 1.00, rms dlogit 6.5e-01, max dp 3.7e-01, cos(grad V, grad L_l) 0.925 || TR-EBPL E-L_l -2.50e-04 (-0.037%), rms dlogit 1.1e-02, cos(grad E, grad L_l) 0.994
+
+n_l=1, 1000 steps, truth: L_l = 8.873e-04, |grad L_l| = 1.86e-02, sigma_max = 464.2
+  cutoff sigma/sigma_max -> 1e-02: rank 83, omega 0.025 | 1e-03: rank 251, omega 0.004 | 1e-04: rank 440, omega 0.001 | 1e-06: rank 725, omega 0.000 | 1e-09: rank 771, omega 0.000
+  beta=10000, r=1: TR-PBPL V-L_l +4.85e-07, L_l(worst)-L_l +5.50e-07 (+0.06%), |eps*| 0.16, rms dlogit 2.6e-06, max dp 1.6e-07, cos(grad V, grad L_l) 1.000 || TR-EBPL E-L_l -4.38e-08 (-0.005%), rms dlogit 2.4e-03, cos(grad E, grad L_l) 0.998
+  beta=100, r=1: TR-PBPL V-L_l +1.17e-06, L_l(worst)-L_l +1.82e-06 (+0.20%), |eps*| 0.07, rms dlogit 8.0e-05, max dp 3.6e-06, cos(grad V, grad L_l) 1.000 || TR-EBPL E-L_l +7.55e-07 (+0.085%), rms dlogit 6.0e-03, cos(grad E, grad L_l) 0.997
+  beta=10, r=1: TR-PBPL V-L_l +6.09e-06, L_l(worst)-L_l +1.02e-05 (+1.15%), |eps*| 0.28, rms dlogit 6.4e-04, max dp 3.7e-05, cos(grad V, grad L_l) 0.999 || TR-EBPL E-L_l +1.86e-06 (+0.210%), rms dlogit 1.1e-02, cos(grad E, grad L_l) 0.996
+  beta=1, r=1: TR-PBPL V-L_l +2.60e-05, L_l(worst)-L_l +4.13e-05 (+4.66%), |eps*| 0.34, rms dlogit 3.9e-03, max dp 7.0e-04, cos(grad V, grad L_l) 0.995 || TR-EBPL E-L_l +8.17e-06 (+0.920%), rms dlogit 2.6e-02, cos(grad E, grad L_l) 0.995
+
+n_l=5, random init: L_l = 6.383e-01, |grad L_l| = 7.89e-01, sigma_max = 90.3
+  cutoff sigma/sigma_max -> 1e-02: rank 56, omega 0.076 | 1e-03: rank 209, omega 0.015 | 1e-04: rank 432, omega 0.005 | 1e-06: rank 728, omega 0.003 | 1e-09: rank 778, omega 0.002
+  beta=10000, r=1: TR-PBPL V-L_l +2.56e-04, L_l(worst)-L_l +4.28e-04 (+0.07%), |eps*| 0.34, rms dlogit 1.3e-04, max dp 2.8e-04, cos(grad V, grad L_l) 1.000 || TR-EBPL E-L_l +1.25e-05 (+0.002%), rms dlogit 1.3e-03, cos(grad E, grad L_l) 1.000
+  beta=100, r=1: TR-PBPL V-L_l +5.47e-03, L_l(worst)-L_l +9.03e-03 (+1.41%), |eps*| 0.29, rms dlogit 6.0e-03, max dp 7.5e-03, cos(grad V, grad L_l) 0.998 || TR-EBPL E-L_l +1.23e-04 (+0.019%), rms dlogit 3.0e-03, cos(grad E, grad L_l) 0.999
+  beta=10, r=1: TR-PBPL V-L_l +3.20e-02, L_l(worst)-L_l +5.45e-02 (+8.55%), |eps*| 0.63, rms dlogit 4.7e-02, max dp 6.3e-02, cos(grad V, grad L_l) 0.996 || TR-EBPL E-L_l +3.36e-04 (+0.053%), rms dlogit 5.5e-03, cos(grad E, grad L_l) 0.998
+  beta=1, r=1: TR-PBPL V-L_l +2.47e-01, L_l(worst)-L_l +4.72e-01 (+73.89%), |eps*| 1.00, rms dlogit 4.7e-01, max dp 4.0e-01, cos(grad V, grad L_l) 0.971 || TR-EBPL E-L_l +8.39e-04 (+0.131%), rms dlogit 1.1e-02, cos(grad E, grad L_l) 0.997
+
+n_l=5, 20 steps, uniform t: L_l = 6.737e-01, |grad L_l| = 8.10e-01, sigma_max = 89.1
+  cutoff sigma/sigma_max -> 1e-02: rank 59, omega 0.071 | 1e-03: rank 215, omega 0.017 | 1e-04: rank 440, omega 0.005 | 1e-06: rank 753, omega 0.002 | 1e-09: rank 800, omega 0.002
+  beta=10000, r=1: TR-PBPL V-L_l +3.20e-04, L_l(worst)-L_l +5.21e-04 (+0.08%), |eps*| 0.33, rms dlogit 1.4e-04, max dp 2.8e-04, cos(grad V, grad L_l) 0.999 || TR-EBPL E-L_l +2.26e-05 (+0.003%), rms dlogit 1.3e-03, cos(grad E, grad L_l) 0.999
+  beta=100, r=1: TR-PBPL V-L_l +4.91e-03, L_l(worst)-L_l +8.00e-03 (+1.19%), |eps*| 0.38, rms dlogit 5.6e-03, max dp 6.9e-03, cos(grad V, grad L_l) 0.996 || TR-EBPL E-L_l +1.21e-04 (+0.018%), rms dlogit 2.9e-03, cos(grad E, grad L_l) 0.998
+  beta=10, r=1: TR-PBPL V-L_l +2.92e-02, L_l(worst)-L_l +4.93e-02 (+7.32%), |eps*| 0.40, rms dlogit 4.5e-02, max dp 5.8e-02, cos(grad V, grad L_l) 0.995 || TR-EBPL E-L_l +3.44e-04 (+0.051%), rms dlogit 5.3e-03, cos(grad E, grad L_l) 0.997
+  beta=1, r=1: TR-PBPL V-L_l +2.57e-01, L_l(worst)-L_l +4.96e-01 (+73.57%), |eps*| 1.00, rms dlogit 4.9e-01, max dp 3.9e-01, cos(grad V, grad L_l) 0.964 || TR-EBPL E-L_l +7.25e-04 (+0.108%), rms dlogit 1.1e-02, cos(grad E, grad L_l) 0.995
+
+n_l=5, 1000 steps, truth: L_l = 7.288e-03, |grad L_l| = 9.12e-02, sigma_max = 464.2
+  cutoff sigma/sigma_max -> 1e-02: rank 83, omega 0.154 | 1e-03: rank 251, omega 0.018 | 1e-04: rank 440, omega 0.005 | 1e-06: rank 725, omega 0.001 | 1e-09: rank 771, omega 0.001
+  beta=10000, r=1: TR-PBPL V-L_l +3.24e-05, L_l(worst)-L_l +4.03e-05 (+0.55%), |eps*| 0.37, rms dlogit 2.8e-05, max dp 4.1e-05, cos(grad V, grad L_l) 0.997 || TR-EBPL E-L_l +8.95e-06 (+0.123%), rms dlogit 2.4e-03, cos(grad E, grad L_l) 1.000
+  beta=100, r=1: TR-PBPL V-L_l +2.24e-04, L_l(worst)-L_l +3.26e-04 (+4.48%), |eps*| 0.11, rms dlogit 1.0e-03, max dp 2.1e-03, cos(grad V, grad L_l) 0.989 || TR-EBPL E-L_l +3.00e-05 (+0.412%), rms dlogit 6.0e-03, cos(grad E, grad L_l) 0.993
+  beta=10, r=1: TR-PBPL V-L_l +8.75e-04, L_l(worst)-L_l +1.36e-03 (+18.72%), |eps*| 0.15, rms dlogit 7.0e-03, max dp 1.9e-02, cos(grad V, grad L_l) 0.979 || TR-EBPL E-L_l +5.78e-05 (+0.793%), rms dlogit 1.1e-02, cos(grad E, grad L_l) 0.986
+  beta=1, r=1: TR-PBPL V-L_l +4.78e-03, L_l(worst)-L_l +9.09e-03 (+124.69%), |eps*| 0.51, rms dlogit 6.6e-02, max dp 1.7e-01, cos(grad V, grad L_l) 0.964 || TR-EBPL E-L_l +1.82e-04 (+2.493%), rms dlogit 2.6e-02, cos(grad E, grad L_l) 0.987

@@ -1,0 +1,77 @@
+[forward] max |logits - nn.Sequential| = 0.0e+00
+[jvp] rel err 2.6e-16   [vjp] rel err 1.0e-15   [gram] rel err 1.9e-16
+[batched] jvp 1.4e-14, vjp 7.1e-15, logits 0.0e+00
+[(mu I + c J^T J)^-1, mu=1] rel err 1.9e-12
+[(mu I + c J^T J)^-1, mu=0.001] rel err 1.4e-09
+
+=== anchor: init; L_l = 6.231e-01, |grad L_l| = 1.07e+00, lambda_max(K) = 8.16e+03
+  pess beta=1e+04 r=0.3: V-L_l +6.356e-04  L_l(adv)-L_l +9.443e-04  |eps| 0.114  rms dlogit 1.8e-04 (max 2.1e-03, max dp 5.2e-04)  kkt 1.3e-02 it 60 (rand1, 377 trial steps)  cos(v,opt) 1.000 cos(v,fixed) 1.000  7.0s
+      single starts: zero +6.041e-04 (kkt 1e-02); rand +6.047e-04 (kkt 1e-02)
+      FD -1.444860e-02  Danskin -1.468464e-02 (rel 1.6e-02)  fixed-eps -1.510821e-02  opt -1.471125e-02
+  exp  beta=1e+04 r=0.3: E-L_l -2.188e-05  sd 6.6e-05  |eps| 0.300  rms dlogit 2.1e-04 (max 1.8e-03)  retraction: grad 5.7e+00, q drop 4.8e-03, last 7.2e-05  cos(v,opt) 1.000  FD +4.139482e-02 autograd -1.484982e-02 (rel 1.4e+00)  1.5s
+  pess beta=1e+04 r=1: V-L_l +6.661e-04  L_l(adv)-L_l +1.032e-03  |eps| 0.335  rms dlogit 1.9e-04 (max 2.3e-03, max dp 5.7e-04)  kkt 1.3e-02 it 58 (rand0, 387 trial steps)  cos(v,opt) 1.000 cos(v,fixed) 0.998  7.3s
+      single starts: zero +6.102e-04 (kkt 1e-02); rand +5.665e-04 (kkt 1e-02)
+      FD +9.708543e-03  Danskin +9.525597e-03 (rel 1.9e-02)  fixed-eps +9.741729e-03  opt +9.598723e-03
+  exp  beta=1e+04 r=1: E-L_l -1.362e-04  sd 3.2e-04  |eps| 0.998  rms dlogit 1.3e-03 (max 1.1e-02)  retraction: grad 3.1e+01, q drop 5.2e-01, last 1.6e-02  cos(v,opt) 1.000  FD +9.900416e-03 autograd +9.540459e-03 (rel 3.6e-02)  2.0s
+  pess beta=1e+01 r=0.3: V-L_l +4.438e-02  L_l(adv)-L_l +6.999e-02  |eps| 0.300  rms dlogit 5.1e-02 (max 1.9e-01, max dp 4.6e-02)  kkt 9.4e-01 it 36 (zero, 349 trial steps)  cos(v,opt) 0.981 cos(v,fixed) 0.958  16.2s
+      single starts: zero +4.438e-02 (kkt 9e-01); rand +4.398e-02 (kkt 1e+00)
+      FD +2.226576e-02  Danskin +2.341284e-02 (rel 5.2e-02)  fixed-eps +2.508698e-02  opt +2.191111e-02
+  exp  beta=1e+01 r=0.3: E-L_l -1.242e-04  sd 1.8e-04  |eps| 0.300  rms dlogit 1.6e-03 (max 7.6e-03)  retraction: grad 2.5e-02, q drop 6.4e-05, last 2.8e-07  cos(v,opt) 1.000  FD +2.160612e-02 autograd +2.177944e-02 (rel 8.0e-03)  1.7s
+  pess beta=1e+01 r=1: V-L_l +8.678e-02  L_l(adv)-L_l +1.405e-01  |eps| 0.884  rms dlogit 7.3e-02 (max 3.2e-01, max dp 7.8e-02)  kkt 2.3e-01 it 60 (zero, 369 trial steps)  cos(v,opt) 0.979 cos(v,fixed) 0.842  14.7s
+      single starts: zero +8.678e-02 (kkt 2e-01); rand +8.855e-02 (kkt 2e-01)
+      FD -8.951777e-03  Danskin -9.893379e-03 (rel 1.1e-01)  fixed-eps -4.159015e-02  opt -8.975726e-03
+  exp  beta=1e+01 r=1: E-L_l -2.593e-04  sd 9.1e-04  |eps| 0.999  rms dlogit 5.5e-03 (max 2.7e-02)  retraction: grad 2.6e-01, q drop 3.6e-03, last 4.3e-05  cos(v,opt) 0.997  FD -8.172146e-03 autograd -8.377407e-03 (rel 2.5e-02)  2.0s
+
+=== anchor: 20 steps on uniform t; L_l = 6.703e-01, |grad L_l| = 1.11e+00, lambda_max(K) = 7.93e+03
+  pess beta=1e+04 r=0.3: V-L_l +6.624e-04  L_l(adv)-L_l +9.588e-04  |eps| 0.113  rms dlogit 1.7e-04 (max 2.0e-03, max dp 5.0e-04)  kkt 3.7e-02 it 35 (rand1, 330 trial steps)  cos(v,opt) 0.999 cos(v,fixed) 0.999  8.1s
+      single starts: zero +6.228e-04 (kkt 3e-02); rand +5.128e-04 (kkt 5e-02)
+      FD +2.270595e-02  Danskin +2.289358e-02 (rel 8.3e-03)  fixed-eps +2.270617e-02  opt +2.227389e-02
+  exp  beta=1e+04 r=0.3: E-L_l -1.860e-05  sd 6.8e-05  |eps| 0.299  rms dlogit 2.0e-04 (max 1.2e-03)  retraction: grad 3.9e+00, q drop 4.7e-03, last 4.1e-05  cos(v,opt) 1.000  FD +2.190030e-02 autograd +2.207953e-02 (rel 8.2e-03)  2.0s
+  pess beta=1e+04 r=1: V-L_l +7.076e-04  L_l(adv)-L_l +1.064e-03  |eps| 0.335  rms dlogit 1.9e-04 (max 2.2e-03, max dp 5.6e-04)  kkt 2.8e-02 it 60 (rand1, 379 trial steps)  cos(v,opt) 1.000 cos(v,fixed) 0.996  11.7s
+      single starts: zero +6.436e-04 (kkt 2e-02); rand +5.562e-04 (kkt 5e-02)
+      FD +1.674649e-02  Danskin +1.678471e-02 (rel 2.3e-03)  fixed-eps +1.598929e-02  opt +1.623544e-02
+  exp  beta=1e+04 r=1: E-L_l -1.311e-04  sd 3.6e-04  |eps| 0.998  rms dlogit 1.3e-03 (max 9.8e-03)  retraction: grad 4.6e+01, q drop 4.1e-01, last 3.2e-03  cos(v,opt) 1.000  FD +1.715501e-02 autograd +1.669120e-02 (rel 2.7e-02)  3.2s
+  pess beta=1e+01 r=0.3: V-L_l +4.606e-02  L_l(adv)-L_l +7.324e-02  |eps| 0.300  rms dlogit 5.2e-02 (max 2.0e-01, max dp 5.0e-02)  kkt 9.4e-01 it 41 (rand1, 325 trial steps)  cos(v,opt) 0.987 cos(v,fixed) 0.954  12.4s
+      single starts: zero +4.066e-02 (kkt 2e-01); rand +4.561e-02 (kkt 9e-01)
+      FD +1.480026e-02  Danskin +1.528573e-02 (rel 3.3e-02)  fixed-eps +2.091144e-02  opt +1.136539e-02
+  exp  beta=1e+01 r=0.3: E-L_l -6.690e-05  sd 1.9e-04  |eps| 0.300  rms dlogit 1.6e-03 (max 8.5e-03)  retraction: grad 1.2e-02, q drop 8.5e-05, last 4.5e-08  cos(v,opt) 0.998  FD +1.289544e-02 autograd +1.210242e-02 (rel 6.1e-02)  2.0s
+  pess beta=1e+01 r=1: V-L_l +9.429e-02  L_l(adv)-L_l +1.516e-01  |eps| 0.988  rms dlogit 7.6e-02 (max 4.0e-01, max dp 9.8e-02)  kkt 2.2e-01 it 60 (rand0, 348 trial steps)  cos(v,opt) 0.979 cos(v,fixed) 0.710  13.6s
+      single starts: zero +6.556e-02 (kkt 1e-01); rand +8.053e-02 (kkt 2e-01)
+      FD -2.967532e-02  Danskin -3.379192e-02 (rel 1.4e-01)  fixed-eps -5.359252e-02  opt -2.621332e-02
+  exp  beta=1e+01 r=1: E-L_l -1.516e-04  sd 8.3e-04  |eps| 0.999  rms dlogit 5.3e-03 (max 2.7e-02)  retraction: grad 1.6e-01, q drop 5.0e-03, last 3.6e-05  cos(v,opt) 0.996  FD -2.877968e-02 autograd -2.548344e-02 (rel 1.1e-01)  1.9s
+
+=== anchor: 1000 steps on truth; L_l = 8.873e-04, |grad L_l| = 1.86e-02, lambda_max(K) = 2.16e+05
+  pess beta=1e+04 r=0.3: V-L_l +4.905e-07  L_l(adv)-L_l +5.505e-07  |eps| 0.186  rms dlogit 2.5e-06 (max 4.0e-05, max dp 1.8e-07)  kkt 1.5e-02 it 60 (rand0, 363 trial steps)  cos(v,opt) 0.999 cos(v,fixed) 0.999  11.1s
+      single starts: zero +4.871e-07 (kkt 2e-02); rand +4.845e-07 (kkt 2e-02)
+      FD -1.406725e-04  Danskin -1.334986e-04 (rel 5.1e-02)  fixed-eps -1.486279e-04  opt -1.483286e-04
+  exp  beta=1e+04 r=0.3: E-L_l -4.205e-08  sd 1.7e-07  |eps| 0.299  rms dlogit 2.7e-04 (max 2.5e-03)  retraction: grad 2.6e+01, q drop 9.0e-03, last 8.4e-05  cos(v,opt) 1.000  FD -1.484141e-04 autograd -1.481774e-04 (rel 1.6e-03)  2.2s
+  pess beta=1e+04 r=1: V-L_l +4.846e-07  L_l(adv)-L_l +5.497e-07  |eps| 0.155  rms dlogit 2.6e-06 (max 4.7e-05, max dp 1.6e-07)  kkt 2.2e-02 it 51 (zero, 372 trial steps)  cos(v,opt) 1.000 cos(v,fixed) 0.999  10.3s
+      single starts: zero +4.846e-07 (kkt 2e-02); rand +3.919e-07 (kkt 4e-03)
+      FD -2.713367e-05  Danskin -3.054264e-05 (rel 1.3e-01)  fixed-eps -2.718087e-05  opt -2.690829e-05
+  exp  beta=1e+04 r=1: E-L_l -4.377e-08  sd 1.1e-06  |eps| 0.998  rms dlogit 2.4e-03 (max 2.3e-02)  retraction: grad 7.9e+02, q drop 2.0e+00, last 3.5e-02  cos(v,opt) 0.998  FD -1.642249e-05 autograd -1.717521e-05 (rel 4.6e-02)  3.1s
+  pess beta=1e+01 r=0.3: V-L_l +6.149e-06  L_l(adv)-L_l +1.022e-05  |eps| 0.300  rms dlogit 6.4e-04 (max 1.4e-02, max dp 3.1e-05)  kkt 1.0e+00 it 43 (zero, 384 trial steps)  cos(v,opt) 0.999 cos(v,fixed) 0.998  11.4s
+      single starts: zero +6.149e-06 (kkt 1e+00); rand +6.151e-06 (kkt 1e+00)
+      FD +3.237329e-04  Danskin +3.236723e-04 (rel 1.9e-04)  fixed-eps +3.446264e-04  opt +3.318469e-04
+  exp  beta=1e+01 r=0.3: E-L_l +4.845e-07  sd 1.3e-06  |eps| 0.299  rms dlogit 3.3e-03 (max 2.0e-02)  retraction: grad 1.4e-02, q drop 1.9e-04, last 1.4e-07  cos(v,opt) 0.997  FD +3.115391e-04 autograd +3.060363e-04 (rel 1.8e-02)  0.9s
+  pess beta=1e+01 r=1: V-L_l +6.085e-06  L_l(adv)-L_l +1.018e-05  |eps| 0.281  rms dlogit 6.4e-04 (max 1.4e-02, max dp 3.7e-05)  kkt 1.9e-03 it 58 (zero, 407 trial steps)  cos(v,opt) 0.999 cos(v,fixed) 0.999  6.0s
+      single starts: zero +6.085e-06 (kkt 2e-03); rand +5.987e-06 (kkt 3e-03)
+      FD -2.037924e-04  Danskin -2.040707e-04 (rel 1.4e-03)  fixed-eps -1.850283e-04  opt -1.828736e-04
+  exp  beta=1e+01 r=1: E-L_l +1.860e-06  sd 4.0e-06  |eps| 0.996  rms dlogit 1.1e-02 (max 6.9e-02)  retraction: grad 9.4e-01, q drop 8.8e-03, last 1.8e-04  cos(v,opt) 0.996  FD -2.548231e-04 autograd -2.080914e-04 (rel 1.8e-01)  1.4s
+
+=== end to end through K = 5 unrolled student steps (soft pseudo-labels t = softmax(z))
+  pess r=0.3: FD +8.061330e-05  back-propagated +9.966784e-05  (rel 2.4e-01)
+  pess r=1: FD +3.617862e-04  back-propagated +3.584816e-04  (rel 9.1e-03)
+  exp r=0.3: FD +2.835232e-04  back-propagated +2.835664e-04  (rel 1.5e-04)
+  exp r=1: FD +1.028220e-04  back-propagated +1.027749e-04  (rel 4.6e-04)
+
+=== TR-EBPL, random init, beta=1e4, r=0.3: FD step scan of the one large discrepancy above (FD +4.1e-2 vs autograd -1.5e-2)
+E has jumps of ~1e-6 from the discrete line-search branches of the retraction, so the central difference grows like 1/h as h -> 0;
+at h = 1e-3 it agrees with autograd to 1%.
+autograd -1.484982e-02
+h=1e-03: FD -1.469246e-02
+h=3e-04: FD -1.166965e-02
+h=1e-04: FD -5.608719e-03
+h=3e-05: FD +3.862408e-03
+h=1e-05: FD +4.139482e-02
+h=3e-06: FD +1.728091e-01
+h=1e-06: FD +5.471691e-01

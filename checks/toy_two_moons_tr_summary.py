@@ -40,7 +40,10 @@ def load(d):
     R = defaultdict(list)
     for p in sorted(glob.glob(os.path.join(d, "*.json"))):
         D = json.load(open(p))
-        R[(D["meta"]["protocol"], tag_of(D["meta"]["cfg"]))] += D["runs"]
+        bad = [r for r in D["runs"] if "error" in r]
+        if bad:
+            print(f"{os.path.basename(p)}: {len(bad)} failed jobs skipped ({bad[0]['error'][:80]})")
+        R[(D["meta"]["protocol"], tag_of(D["meta"]["cfg"]))] += [r for r in D["runs"] if "error" not in r]
     return R
 
 
@@ -262,9 +265,9 @@ def figures(R):
     if T:
         fig, axes = plt.subplots(2, 3, figsize=(8.6, 5.0))
         for row, n_l in enumerate((1, 5)):
-            for j, (title, f) in enumerate((("pseudo-label acc., optimised from uniform t", lambda x: x["pl_acc_opt"]),
-                                            ("student trained on them (test acc.)", lambda x: x["train_opt"]["stu_acc"]),
-                                            ("pseudo-label acc., optimised from the truth", lambda x: x["pl_acc_from_truth"]))):
+            for j, (title, f) in enumerate((("PL acc., from uniform t", lambda x: x["pl_acc_opt"]),
+                                            ("student on them (test)", lambda x: x["train_opt"]["stu_acc"]),
+                                            ("PL acc., from the truth", lambda x: x["pl_acc_from_truth"]))):
                 ax = axes[row, j]
                 for t in T:
                     rs = [r for r in R[("sec14", t)] if r["n_l"] == n_l]
@@ -281,9 +284,9 @@ def figures(R):
                 ax.set_title(f"{'abcdef'[3 * row + j]}. {title}, {n_l} lab./class", fontsize=7.3, loc="left", color=INK)
         handles = [Line2D([], [], color=STY[t][0], ls=STY[t][1], marker="o", ms=3, label=lab(t)) for t in T if t in STY]
         fig.legend(handles=handles, loc="lower center", ncol=len(handles), fontsize=7, bbox_to_anchor=(0.5, -0.01))
-        fig.text(0.01, 0.045, "Medians over the random students of the Sec. 14 protocol (5 labeled draws x 8 inits per row); "
-                 "mirror descent on the soft pseudo-labels against L_l (MPL) or the trust-region value (TR) of the student.",
-                 fontsize=6.3, color=INK2)
+        fig.text(0.01, 0.045, "Medians over the 40 random students of the Sec. 14 protocol per row (5 labeled draws x 8 inits); "
+                 "30 mirror-descent steps on the soft pseudo-labels against L_l (MPL) or the trust-region value (TR) of the "
+                 "student.\nWhere a line is not visible it lies under another one.", fontsize=6.3, color=INK2)
         fig.tight_layout(rect=(0, 0.07, 1, 1))
         paths.append(os.path.join(FIG, "toy_tr_unroll.png"))
         fig.savefig(paths[-1], bbox_inches="tight")
@@ -312,8 +315,10 @@ def figures(R):
                 ax.set_title(f"{'abcdef'[3 * row + j]}. K = {K}, {n_l} lab./class", fontsize=7.3, loc="left", color=INK)
         handles = [Line2D([], [], color=STY[t][0], ls=STY[t][1], marker="o", ms=3, label=lab(t)) for t in T if t in STY]
         fig.legend(handles=handles, loc="lower center", ncol=len(handles), fontsize=7, bbox_to_anchor=(0.5, -0.01))
-        fig.text(0.01, 0.045, "Means over 20 random students per row (5 labeled draws x 4 inits, one FixMatch teacher per draw). "
-                 "Above 0: the meta signal corrects more teacher errors than it creates.", fontsize=6.3, color=INK2)
+        n_st = len([r for r in R[("sec15", T[0])] if r["n_l"] == 1])
+        fig.text(0.01, 0.045, f"Means over {n_st} random students per row (5 labeled draws x {n_st // 5} inits, one FixMatch teacher per "
+                 "draw). Above 0: the meta signal corrects more teacher errors than it creates.\nWhere a line is not visible it "
+                 "lies under another one.", fontsize=6.3, color=INK2)
         fig.tight_layout(rect=(0, 0.07, 1, 1))
         paths.append(os.path.join(FIG, "toy_tr_anchor.png"))
         fig.savefig(paths[-1], bbox_inches="tight")
@@ -366,8 +371,10 @@ def figures(R):
                 v = np.sort(np.clip(vals, 1e-12, None))
                 ax.plot(v, np.linspace(0, 1, len(v)), color=col, ls=ls, label=lab(t))
         axes[0].set_xscale("log")
+        axes[0].set_xlim(1e-6, 2)
         axes[0].set_xlabel("1 - cos(grad of the TR value, grad L_l) at the same student")
         axes[1].set_xscale("log")
+        axes[1].set_xlim(1e-6, 1e2)
         axes[1].set_xlabel("|TR value - L_l| / L_l")
         for ax, ttl in zip(axes, ("a. direction of the meta signal", "b. size of the trust-region correction")):
             ax.set_ylabel("fraction of students visited")

@@ -458,14 +458,20 @@ def specs_for(a):
 
 def dispatch(job):
     t0 = time.time()
-    if job.get("kind") == "statics":
-        out = statics13(job)
-    elif job.get("kind") == "run":
-        out = run13(job)
-    elif "lams" in job:
-        out = job15(job)
-    else:
-        out = job14(job)
+    try:
+        if job.get("kind") == "statics":
+            out = statics13(job)
+        elif job.get("kind") == "run":
+            out = run13(job)
+        elif "lams" in job:
+            out = job15(job)
+        else:
+            out = job14(job)
+    except Exception as exc:  # one failing job must not lose the whole shard
+        import traceback
+        traceback.print_exc()
+        out = {k: v for k, v in job.items() if k != "q"}
+        out["error"] = repr(exc)
     print(f"  done {job.get('kind', '')} n_l={job['n_l']} draw={job['lab_draw']} init={job.get('init', '-')} "
           f"rule={job.get('rule', '-')} in {time.time() - t0:.0f}s", flush=True)
     return out
