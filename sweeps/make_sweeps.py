@@ -448,6 +448,47 @@ def wave7(it=20000):
         write(slug, jobs, float(os.environ.get("WAVE7_HOURS", 5.6)))
 
 
+def wave8(it=20000):
+    """Phase 8: variants from the variational view of pseudo-labeling (docs/bayes_view.md).  The
+    bound log P(Y_u | X, Y_l) >= E_q[log P(Y_u | h, X_u) + log P(Y_l | h, X_l)] - KL(q || P(h | X))
+    is maximized by coordinate ascent: a Y_u-step (pseudo-labels = argmax of E_q log p_h) and a
+    q-step (fit q to labels + pseudo-labels under the prior).  FixMatch is the point-mass q; a
+    ball around theta with the expectation bounded by the max gives SAM.  Arms (seeds 1-5, 40
+    labels, radius 0.1 as selected for SAM on L_l, nothing re-tuned):
+      fmsamfull     q-step: SAM on the whole likelihood L_l + lam_u L_u (the bound itself)
+      fmsamfulladv  + Y_u-step at the perturbed hypothesis (alternating min_Y max_h)
+      labsamadv     SAM on L_l (best row) + pseudo-labels of the labeled-worst hypothesis
+      fmemapl       Y_u-step under the trajectory (EMA) posterior, FixMatch otherwise
+      supsam        SAM on L_l without unlabeled data (is the SAM gain specific to SSL?)
+      plsam / mtsam / flexsam   SAM on L_l with other priors -log P(h | X): Pseudo-Label, Mean
+                    Teacher, FlexMatch; their plain baselines exist for seeds 1-3 and get 4-5 here
+    References at seeds 1-10 already exist: fixmatch, abl_labsam, sup.  rep-m and rep-n are
+    balanced by estimated minutes, seed-major within each kernel.
+    python sweeps/make_sweeps.py wave8"""
+    SAM = "--lab_reg sam --radius 0.1"
+
+    def job(name, a, sd, est):
+        return {"name": f"{name}_4_s{sd}", "args": f"{a} --n_per_class 4 --seed {sd} --iters {it}", "est_min": est}
+    m_arms = [("fmsamfull", "--base fixmatch --lab_reg samfull --radius 0.1", 25),
+              ("fmsamfulladv", "--base fixmatch --lab_reg samfull --radius 0.1 --pl_src adv", 25),
+              ("mtsam", f"--base meanteacher --lam_u 50 {SAM}", 13),
+              ("supsam", f"--base sup {SAM}", 5)]
+    n_arms = [("labsamadv", f"--base fixmatch {SAM} --pl_src adv", 19),
+              ("fmemapl", "--base fixmatch --pl_src ema", 15),
+              ("flexsam", f"--base flexmatch {SAM}", 15),
+              ("plsam", f"--base pseudolabel {SAM}", 7)]
+    n_base = [("meanteacher", "--base meanteacher --lam_u 50", 11), ("flexmatch", "--base flexmatch", 12),
+              ("pseudolabel", "--base pseudolabel", 6)]
+    hours = float(os.environ.get("WAVE8_HOURS", 3.6))
+    write("fmnist-ssl-rep-m", [job(n, a, sd, e) for sd in range(1, 6) for (n, a, e) in m_arms], hours)
+    jobs = []
+    for sd in range(1, 6):
+        jobs += [job(n, a, sd, e) for (n, a, e) in n_arms]
+        if sd >= 4:
+            jobs += [job(n, a, sd, e) for (n, a, e) in n_base]
+    write("fmnist-ssl-rep-n", jobs, hours)
+
+
 def remainder():
     """python sweeps/make_sweeps.py remainder <sweep.json> <new-slug> <hours> <results-dir> [...]
     Writes a sweep with the jobs of <sweep.json> that have no complete result in the given

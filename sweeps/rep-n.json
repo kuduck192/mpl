@@ -1,0 +1,137 @@
+{
+ "slug": "fmnist-ssl-rep-n",
+ "budget_hours": 3.6,
+ "files": [],
+ "jobs": [
+  {
+   "name": "labsamadv_4_s1",
+   "args": "--base fixmatch --lab_reg sam --radius 0.1 --pl_src adv --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 19
+  },
+  {
+   "name": "fmemapl_4_s1",
+   "args": "--base fixmatch --pl_src ema --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "flexsam_4_s1",
+   "args": "--base flexmatch --lab_reg sam --radius 0.1 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "plsam_4_s1",
+   "args": "--base pseudolabel --lab_reg sam --radius 0.1 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 7
+  },
+  {
+   "name": "labsamadv_4_s2",
+   "args": "--base fixmatch --lab_reg sam --radius 0.1 --pl_src adv --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 19
+  },
+  {
+   "name": "fmemapl_4_s2",
+   "args": "--base fixmatch --pl_src ema --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "flexsam_4_s2",
+   "args": "--base flexmatch --lab_reg sam --radius 0.1 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "plsam_4_s2",
+   "args": "--base pseudolabel --lab_reg sam --radius 0.1 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 7
+  },
+  {
+   "name": "labsamadv_4_s3",
+   "args": "--base fixmatch --lab_reg sam --radius 0.1 --pl_src adv --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 19
+  },
+  {
+   "name": "fmemapl_4_s3",
+   "args": "--base fixmatch --pl_src ema --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "flexsam_4_s3",
+   "args": "--base flexmatch --lab_reg sam --radius 0.1 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "plsam_4_s3",
+   "args": "--base pseudolabel --lab_reg sam --radius 0.1 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 7
+  },
+  {
+   "name": "labsamadv_4_s4",
+   "args": "--base fixmatch --lab_reg sam --radius 0.1 --pl_src adv --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 19
+  },
+  {
+   "name": "fmemapl_4_s4",
+   "args": "--base fixmatch --pl_src ema --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "flexsam_4_s4",
+   "args": "--base flexmatch --lab_reg sam --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "plsam_4_s4",
+   "args": "--base pseudolabel --lab_reg sam --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 7
+  },
+  {
+   "name": "meanteacher_4_s4",
+   "args": "--base meanteacher --lam_u 50 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 11
+  },
+  {
+   "name": "flexmatch_4_s4",
+   "args": "--base flexmatch --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "pseudolabel_4_s4",
+   "args": "--base pseudolabel --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 6
+  },
+  {
+   "name": "labsamadv_4_s5",
+   "args": "--base fixmatch --lab_reg sam --radius 0.1 --pl_src adv --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 19
+  },
+  {
+   "name": "fmemapl_4_s5",
+   "args": "--base fixmatch --pl_src ema --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "flexsam_4_s5",
+   "args": "--base flexmatch --lab_reg sam --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 15
+  },
+  {
+   "name": "plsam_4_s5",
+   "args": "--base pseudolabel --lab_reg sam --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 7
+  },
+  {
+   "name": "meanteacher_4_s5",
+   "args": "--base meanteacher --lam_u 50 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 11
+  },
+  {
+   "name": "flexmatch_4_s5",
+   "args": "--base flexmatch --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 12
+  },
+  {
+   "name": "pseudolabel_4_s5",
+   "args": "--base pseudolabel --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 6
+  }
+ ]
+}

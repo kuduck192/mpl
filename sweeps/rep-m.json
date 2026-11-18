@@ -1,0 +1,107 @@
+{
+ "slug": "fmnist-ssl-rep-m",
+ "budget_hours": 3.6,
+ "files": [],
+ "jobs": [
+  {
+   "name": "fmsamfull_4_s1",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "fmsamfulladv_4_s1",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --pl_src adv --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "mtsam_4_s1",
+   "args": "--base meanteacher --lam_u 50 --lab_reg sam --radius 0.1 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 13
+  },
+  {
+   "name": "supsam_4_s1",
+   "args": "--base sup --lab_reg sam --radius 0.1 --n_per_class 4 --seed 1 --iters 20000",
+   "est_min": 5
+  },
+  {
+   "name": "fmsamfull_4_s2",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "fmsamfulladv_4_s2",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --pl_src adv --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "mtsam_4_s2",
+   "args": "--base meanteacher --lam_u 50 --lab_reg sam --radius 0.1 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 13
+  },
+  {
+   "name": "supsam_4_s2",
+   "args": "--base sup --lab_reg sam --radius 0.1 --n_per_class 4 --seed 2 --iters 20000",
+   "est_min": 5
+  },
+  {
+   "name": "fmsamfull_4_s3",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "fmsamfulladv_4_s3",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --pl_src adv --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "mtsam_4_s3",
+   "args": "--base meanteacher --lam_u 50 --lab_reg sam --radius 0.1 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 13
+  },
+  {
+   "name": "supsam_4_s3",
+   "args": "--base sup --lab_reg sam --radius 0.1 --n_per_class 4 --seed 3 --iters 20000",
+   "est_min": 5
+  },
+  {
+   "name": "fmsamfull_4_s4",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "fmsamfulladv_4_s4",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --pl_src adv --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "mtsam_4_s4",
+   "args": "--base meanteacher --lam_u 50 --lab_reg sam --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 13
+  },
+  {
+   "name": "supsam_4_s4",
+   "args": "--base sup --lab_reg sam --radius 0.1 --n_per_class 4 --seed 4 --iters 20000",
+   "est_min": 5
+  },
+  {
+   "name": "fmsamfull_4_s5",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "fmsamfulladv_4_s5",
+   "args": "--base fixmatch --lab_reg samfull --radius 0.1 --pl_src adv --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 25
+  },
+  {
+   "name": "mtsam_4_s5",
+   "args": "--base meanteacher --lam_u 50 --lab_reg sam --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 13
+  },
+  {
+   "name": "supsam_4_s5",
+   "args": "--base sup --lab_reg sam --radius 0.1 --n_per_class 4 --seed 5 --iters 20000",
+   "est_min": 5
+  }
+ ]
+}

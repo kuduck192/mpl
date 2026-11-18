@@ -797,7 +797,11 @@ def main(argv=None):
     ap.add_argument("--pess_solver", default="retract", choices=["retract", "penalty"])
     ap.add_argument("--eps_reset", type=int, default=0)
     # one-network labeled-loss regularizers (controls): SAM / fiber-SAM (teacher-anchored PBPL)
-    ap.add_argument("--lab_reg", default="none", choices=["none", "sam", "fibersam"])
+    ap.add_argument("--lab_reg", default="none", choices=["none", "sam", "fibersam", "samfull"],
+                    help="sam: SAM on L_l only; samfull: SAM on L_l + lam_u L_u (one perturbation)")
+    ap.add_argument("--pl_src", default="point", choices=["point", "ema", "adv"],
+                    help="hypothesis the pseudo-labels are read from: the live network (point), the "
+                         "EMA network (ema), or the SAM-perturbed network (adv, needs --lab_reg sam/samfull)")
     ap.add_argument("--lab_radius", type=float, default=-1.0,
                     help="radius of --lab_reg (default: --radius); lets SAM on L_l run with the "
                          "bilevel feedback at its own trust-region radius")
@@ -818,6 +822,14 @@ def main(argv=None):
     scaler = torch.amp.GradScaler("cuda", enabled=AMP)
     if args.check_amp:
         return check_amp(args, torch.device(args.device))
+    if args.lab_reg == "samfull":
+        assert args.base in ("fixmatch", "pseudolabel") and args.bilevel == "none", \
+            "--lab_reg samfull: FixMatch or Pseudo-Label base, no bilevel term"
+    if args.base == "sup":
+        assert args.lab_reg in ("none", "sam") and args.pl_src == "point", "sup: only --lab_reg sam"
+    if args.pl_src != "point":
+        assert args.base in ("fixmatch", "flexmatch", "pseudolabel"), "--pl_src needs a pseudo-label base"
+        assert args.pl_src != "adv" or args.lab_reg in ("sam", "samfull"), "--pl_src adv needs a SAM perturbation"
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -942,6 +954,31 @@ def main(argv=None):
     def push(key, val):
         run_stats.setdefault(key, []).append(float(val))
 
+    def log_pl(pl_, mask_, iu_, suffix=""):
+        """Mask rate and accuracy (masked / all) of the pseudo-labels pl_ of the batch iu_."""
+        push("mask" + suffix, mask_.mean().item())
+        push("pl_acc_masked" + suffix, ((pl_ == Yu_true[iu_]).float() * mask_).sum().item() / max(mask_.sum().item(), 1))
+        push("pl_acc_all" + suffix, (pl_ == Yu_true[iu_]).float().mean().item())
+
+    def manual_step(g):
+        """Teacher step with the gradient dict g computed outside the scaler (SAM-type passes).
+        GradScaler.step needs a scale, which only scaler.scale() creates: initialize it first."""
+        scaler.scale(torch.zeros((), device=dev))
+        t_opt.zero_grad(set_to_none=True)
+        sc = scaler.get_scale() if AMP else 1.0
+        for n, p in teacher.named_parameters():
+            p.grad = g[n] * sc
+        scaler.step(t_opt)
+        scaler.update()
+
+    def lab_sam_eps(xl, yl_):
+        """SAM perturbation of the labeled loss at the current teacher, norm lab_r."""
+        tp = leaf(pdict(teacher))
+        with bn_frozen_stats(teacher):
+            l0 = F.cross_entropy(functional_call(teacher, tp, (xl,)), yl_)
+        g0 = grads_of(l0, tp)
+        return dscale(g0, lab_r / (dnorm(g0) + 1e-12))
+
     def wcos(a, b):
         return ((a * b).sum() / (a.norm() * b.norm() + 1e-12)).item()
 
@@ -1041,7 +1078,20 @@ def main(argv=None):
         il = torch.randint(0, nl, (args.bl,), device=dev)
         xl_w, yl = weak_aug(Xl[il]), Yl[il]
 
-        if args.base == "sup":
+        if args.base == "sup" and args.lab_reg == "sam":
+            # SAM on the labeled loss without any unlabeled data (control for --lab_reg sam):
+            # ascent and perturbed passes as in the SSL bases, the plain pass only updates BN stats
+            pe = leaf(dadd(pdict(teacher), lab_sam_eps(xl_w, yl)))
+            with bn_frozen_stats(teacher):
+                l_adv = F.cross_entropy(functional_call(teacher, pe, (xl_w,)), yl)
+            g_adv = grads_of(l_adv, pe)
+            with torch.no_grad():
+                teacher(xl_w)  # running statistics at theta, as in the plain supervised step
+            manual_step(g_adv)
+            t_ema.update(teacher)
+            if k % args.log_every == 0:
+                push("lab_loss_adv", l_adv.item())
+        elif args.base == "sup":
             loss = F.cross_entropy(teacher(xl_w), yl)
             t_opt.zero_grad(set_to_none=True)
             scaler.scale(loss).backward()
@@ -1063,7 +1113,8 @@ def main(argv=None):
             else:  # pseudolabel: target and prediction on the same weak view
                 xu_s = None
             parts = [xl_w, xu_w] + ([xu_s] if xu_s is not None else [])
-            logits = teacher(torch.cat(parts).contiguous(memory_format=mf))
+            x_cat = torch.cat(parts).contiguous(memory_format=mf)
+            logits = teacher(x_cat)
             if xu_s is None:
                 zl, zw = logits.split([args.bl, bu])
                 zs = zw
@@ -1071,6 +1122,10 @@ def main(argv=None):
                 zl, zw, zs = logits.split([args.bl, bu, bu])
             l_sup = F.cross_entropy(zl, yl)
             ramp = min(1.0, k / (0.4 * args.iters)) if args.base in ("meanteacher", "pseudolabel") else 1.0
+            log_now = (k % args.log_every == 0)
+            # SAM perturbation of the labeled loss, needed before the pseudo-labels when they are
+            # read off the perturbed hypothesis (--pl_src adv with --lab_reg sam)
+            eps_pre = lab_sam_eps(xl_w, yl) if (args.pl_src == "adv" and args.lab_reg == "sam") else None
             if args.base == "meanteacher":
                 with torch.no_grad(), bn_frozen_stats(t_ema.model):
                     t_ema.model.train()
@@ -1083,17 +1138,36 @@ def main(argv=None):
                 with torch.no_grad():
                     q = F.softmax(zw.detach(), 1)
                     conf, pl = q.max(1)
+                    if args.pl_src != "point":
+                        # Y_u-step of the ELBO under another q: the point pseudo-labels of the
+                        # live network are kept for the logs, the used ones are read off the EMA
+                        # network or the SAM-perturbed one, on the same batch (same BN statistics)
+                        pl_point, mask_point = pl, (conf >= args.tau).float()
+                        if args.pl_src == "ema":
+                            with bn_frozen_stats(t_ema.model):
+                                t_ema.model.train()
+                                zw_q = t_ema.model(x_cat)[args.bl:args.bl + bu]
+                                t_ema.model.eval()
+                            q = F.softmax(zw_q.float(), 1)
+                        elif eps_pre is not None:
+                            with bn_frozen_stats(teacher):
+                                zw_q = functional_call(teacher, dadd(pdict(teacher), eps_pre), (x_cat,))[args.bl:args.bl + bu]
+                            q = F.softmax(zw_q.float(), 1)
+                        conf, pl = q.max(1)  # samfull + adv: still the point labels (adv ones below)
                     if flex is not None:
                         mask = flex.mask_and_update(conf, pl, iu)
                     else:
                         mask = (conf >= args.tau).float()
                 l_fm = (F.cross_entropy(zs, pl, reduction="none") * mask).mean()
             total = l_sup + args.lam_u * ramp * l_fm
-            log_now = (k % args.log_every == 0)
             if log_now:
-                push("mask", mask.mean().item())
-                push("pl_acc_masked", ((pl == Yu_true[iu]).float() * mask).sum().item() / max(mask.sum().item(), 1))
-                push("pl_acc_all", (pl == Yu_true[iu]).float().mean().item())
+                late_pl_log = args.lab_reg == "samfull" and args.pl_src == "adv"  # logged after the ascent
+                if not late_pl_log:
+                    log_pl(pl, mask, iu)
+                if args.pl_src != "point":
+                    log_pl(pl_point, mask_point, iu, "_point")
+                    if not late_pl_log:
+                        push("pl_agree", (pl == pl_point).float().mean().item())
                 push("ent_u", -(q * torch.log(q.clamp_min(1e-8))).sum(1).mean().item())
 
             # ---- bilevel pseudo-labeling regularizer --------------------------------
@@ -1155,14 +1229,42 @@ def main(argv=None):
                         with torch.no_grad():
                             push("stu_pl_agree", (s_logits.argmax(1) == pl[:nb]).float().mean().item())
 
+            # ---- SAM on the whole likelihood L_l + lam_u L_u (sharpness bound of the ELBO) ----
+            if args.lab_reg == "samfull":
+                # one perturbation along the gradient of the summed loss at theta (point pseudo-
+                # labels), then the gradient of the same sum at theta + eps; with --pl_src adv the
+                # pseudo-labels and mask of that second pass are read off the perturbed network
+                # (the alternating solution of min over Y_u of max over the ball)
+                g0 = grads_of(total, dict(teacher.named_parameters()))
+                g0n = dnorm(g0)
+                eps = dscale(g0, lab_r / (g0n + 1e-12)) if torch.isfinite(g0n) else dzeros(g0)  # fp16 overflow: plain step
+                pe = leaf(dadd(pdict(teacher), eps))
+                with bn_frozen_stats(teacher):
+                    zp = functional_call(teacher, pe, (x_cat,))
+                zl_p, zw_p = zp[:args.bl], zp[args.bl:args.bl + bu]
+                zs_p = zp[args.bl + bu:] if xu_s is not None else zw_p
+                if args.pl_src == "adv":
+                    with torch.no_grad():
+                        q_p = F.softmax(zw_p.detach().float(), 1)
+                        conf_p, pl_p = q_p.max(1)
+                        mask_p = (conf_p >= args.tau).float()
+                else:
+                    pl_p, mask_p = pl, mask
+                l_adv = F.cross_entropy(zl_p, yl) + args.lam_u * ramp * (
+                    F.cross_entropy(zs_p, pl_p, reduction="none") * mask_p).mean()
+                g_adv = grads_of(l_adv, pe)
+                manual_step(g_adv)
+                if log_now:
+                    push("loss_center", total.item())
+                    push("loss_adv", l_adv.item())
+                    push("lab_loss_adv", F.cross_entropy(zl_p.detach().float(), yl).item())
+                    if args.pl_src == "adv":
+                        log_pl(pl_p, mask_p, iu)
+                        push("pl_agree", (pl_p == pl).float().mean().item())
             # ---- one-network labeled-loss regularizers (controls) --------------------
-            if args.lab_reg != "none":
+            elif args.lab_reg != "none":
                 if args.lab_reg == "sam":
-                    tp = leaf(pdict(teacher))
-                    with bn_frozen_stats(teacher):
-                        l0 = F.cross_entropy(functional_call(teacher, tp, (xl_w,)), yl)
-                    g0 = grads_of(l0, tp)
-                    eps_l = dscale(g0, lab_r / (dnorm(g0) + 1e-12))
+                    eps_l = eps_pre if eps_pre is not None else lab_sam_eps(xl_w, yl)
                 else:
                     if lab_eps is None:
                         lab_eps = dzeros(pdict(teacher))
