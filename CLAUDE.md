@@ -2,7 +2,7 @@
 
 File này tóm tắt toàn bộ bối cảnh để một phiên Claude mới làm tiếp mà không cần đọc lại lịch sử
 chat. Số liệu đầy đủ và lập luận chi tiết nằm ở `docs/report.md` (mục 1–15, tiếng Việt) và
-`docs/theory.md`. Cập nhật lần cuối: 2026-11-16, sau wave7 (commit `b5df38e`).
+`docs/theory.md`. Cập nhật lần cuối: 2026-11-18, sau wave8 (report Mục 18).
 
 ## 0. Quy ước làm việc với người dùng
 
@@ -83,6 +83,7 @@ chat. Số liệu đầy đủ và lập luận chi tiết nằm ở `docs/repor
 | `kaggle_tools/wait_kernels.sh` | chờ kernel tới trạng thái kết thúc |
 | `analysis/tenseed_table.py` | bảng 10 seed; `--tex` in dòng LaTeX, `--ref_avg fixmatch,fixmatchft` lấy mốc trung bình |
 | `analysis/finetune_table.py` | teacher / student EMA và sau finetune; `--tex`, `--ref2`, `--cfg` |
+| `analysis/wave8_table.py`, `analysis/wave8_figure.py` | wave8: so cặp hai họ, chẩn đoán pseudo-label, quỹ đạo (`--traj`), mốc hai run (`--ref_avg`), `--metric test` |
 | `analysis/fm_meta_grid.py` | lưới {chỉ nhãn, batch không nhãn qua BN, FixMatch} × {không meta, MPL, PBPL, EBPL}; `--metric test_ema` / `unl_ema` / `test` (teacher live) |
 | `analysis/{main_table,ablation_table,feedback_dynamics,pool_diag,figures}.py` | các bảng và hình khác |
 | `checks/` | gradient check, chẩn đoán suy biến, Figure 1, ba toy Two Moons; `toy_two_moons_tr.py` và `tr_fiber.py` là toy với V_r / E_s (commit `0baa285`, đẩy từ một phiên khác, chạy qua `slurm_tools/`) |
@@ -185,6 +186,21 @@ Holm tính qua 12 phép so sánh; p ghi theo dạng t-test / Wilcoxon / Holm.
   - So với chỉ nhãn: +1.6 đến +1.9 (n.s.); theo teacher live −2.1 đến −3.6 (n.s. sau Holm).
   - Tức Sup + meta ≈ Sup < Sup + FM ≈ Sup + FM + meta. PBPL / EBPL − MPL ≈ 0 ở cả hai hàng.
   - λ_m giữ như khi chọn có FixMatch, chưa tinh chỉnh lại.
+- **Biến thể variational (wave8, report Mục 18, seed 1–5, ρ = 0.1 không tinh chỉnh lại).**
+  - Bước q / Y_u của FixMatch đều n.s. so với SAM trên L_l (75.05):
+    - SAM trên L_l + λ_u L_u (`fmsamfull`) 74.16, tức −0.9;
+    - cộng pseudo-label tại θ + ε* (`fmsamfulladv`) 74.88;
+    - SAM-L_l với pseudo-label tại θ + ε*_l (`labsamadv`) 74.36;
+    - pseudo-label từ mạng EMA (`fmemapl`) 72.49, tức +1.5 so với FixMatch.
+    - Pseudo-label adv / EMA trùng 97.7–99.1% với pseudo-label điểm.
+  - SAM trên L_l theo prior:
+    - không X_u +4.0 (live; EMA +6.1 bị phóng đại), 5/5;
+    - Pseudo-Label +8.6 (5/5, Holm 0.005), đưa PL lên 70.7, ngang FixMatch;
+    - FixMatch +4.1;
+    - Mean Teacher −0.9; FlexMatch −0.7.
+  - Quan sát post-hoc: SAM cho lợi thế sớm (1–2k vòng; sau đó labeled loss tại điểm nhiễu ≤ 0.02).
+    Prior có ngưỡng cố định giữ lại lợi thế này; prior dùng cả X_u từ đầu (FlexMatch warm-up, MT)
+    xóa nó. Chênh lệch +7.1, p = 0.002, nhưng nhóm được chọn sau khi thấy dữ liệu.
 - **Các mốc khác.**
   - Pilot chưa held-out (seed 0): FixMatch 72.5, MPL 71.4, PBPL 68.3.
   - Pool student (Mục 11): hướng feedback có khác nhau nhưng đa dạng về hàm số nhỏ. Không nên theo
@@ -234,6 +250,8 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
   thông tin về nhãn. Wave7 xác nhận trên FashionMNIST: không có FixMatch, meta chỉ ngang học
   thuần trên nhãn và kém FixMatch 13 điểm.
 - **Thứ thực sự giúp ở 40 nhãn là SAM trên labeled loss của mạng triển khai**, không cần bilevel.
+  Wave8: nó là regularizer cho phần khớp nhãn (giúp cả học thuần trên nhãn), không phải "làm phẳng
+  posterior" (cận trên đúng nghĩa không hơn), và lợi ích phụ thuộc prior.
 - **Đánh giá đã đưa cho người dùng.** Bỏ tham vọng "PBPL vượt baseline". Giữ dự án như một kết quả
   phân tích / kết quả âm có kiểm soát chặt, cộng với phát hiện về SAM. Hướng nối tiếp tự nhiên là
   sharpness của labeled loss trong SSL; có thể xem FlatMatch (NeurIPS 2023, cross-sharpness), cần
@@ -246,7 +264,8 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
   `~/.kaggle/access_token` hiện trỏ tài khoản A (từ 2026-11-18). Không ghi username vào repo.
 - **Kaggle quota.**
   - Tài khoản B, tuần từ 2026-11-14: đã dùng khoảng 23h (13.0h trước đó + wave7 khoảng 10.1h) trên trần
-    khoảng 29–30h. Tài khoản A, cùng tuần: rep-c…rep-f khoảng 14h, cộng wave8 khoảng 5.5h. Trường `totalTimeAllowed` =
+    khoảng 29–30h. Tài khoản A, cùng tuần: rep-c…rep-f khoảng 14h, cộng wave8 khoảng 5.8h (rep-n
+    13:17–16:11, rep-m 13:45–16:16 UTC). Trường `totalTimeAllowed` =
     21600s của API không phải trần thật. Quota làm mới 2026-11-21 00:00 UTC.
   - Người dùng **chưa chọn** đợt Kaggle tiếp theo:
     - (a) `wave6a`: MPL / PBPL / EBPL hai mạng chạy lại có finetune, khoảng 9.7h, `rep-i` / `rep-j`.
@@ -254,6 +273,12 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
     - (b) `wave6b`: fiber-SAM × BPL, khoảng 14.8h. Đã soạn. Ít giá trị sau kết quả Mục 12.
     - (c) Đề xuất của tôi: MPL / PBPL **một mạng** + SAM + finetune, khoảng 6.2h. **Chưa viết.**
       Đây là tổ hợp duy nhất chưa thử của hai thành phần tốt nhất.
+    - (d) Đề xuất sau wave8 (**chưa viết**, khoảng 3.5h): kiểm định cơ chế "lợi thế sớm + ngưỡng khóa
+      lại":
+      - SAM chỉ trong 2k vòng đầu, với FixMatch và PL;
+      - FixMatch τ thấp ± SAM;
+      - FlexMatch bỏ warm-up ± SAM;
+      - cộng `plsam` / `supsam` lên 10 seed.
   - Script phân tích đã đăng ký sẵn tên `mplft`, `pbplft`, `ebplft`, `fsmpl`, `fspbpl`, `fsebpl`,
     `fibersamft`.
 - **Việc có thể làm tiếp** (chỉ làm khi người dùng yêu cầu):
@@ -299,4 +324,5 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
 - `bbe7a2f`: toy Mục 15.
 - `9894576`: `fm_meta_grid.py`; `21238fe` / `b5df38e`: wave7 (bỏ FixMatch); `d2a6082`: `--metric test`.
 - `1a13a2e`: wave8 (biến thể variational: `--lab_reg samfull`, `--pl_src {ema, adv}`, SAM cho `sup`);
-  `a1d9892`: khung ELBO + cận sharpness trong `docs/bayes_view.md`; `9742253`: `analysis/wave8_table.py`.
+  `a1d9892`: khung ELBO + cận sharpness trong `docs/bayes_view.md`; `9742253`: `analysis/wave8_table.py`;
+  `ca9deda`: kết quả rep-n; commit sau đó: rep-m, report Mục 18, `analysis/wave8_figure.py`.

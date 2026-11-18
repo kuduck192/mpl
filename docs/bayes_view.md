@@ -120,3 +120,25 @@ cho SAM trên $L_l$), không tinh chỉnh lại; so cặp theo seed. Cột cuố
     bán kính cho hướng ngẫu nhiên;
   - bước $Y_u$ mềm, khi lấy tổng theo $Y_u$ thay vì argmax:
     $\hat y_i \propto \exp(\mathbb E_q \log p_h(\cdot \mid x_i))$.
+
+### Kết quả wave8 (chi tiết ở `docs/report.md` Mục 18)
+
+Seed 1–5, teacher EMA, so cặp theo seed:
+- **Bước $q$:**
+  - Cận trên đúng nghĩa (`fmsamfull`) kém SAM chỉ trên $L_l$ 0.9 điểm (1/5 seed thắng, n.s.).
+  - Hướng ascent do $L_u$ chi phối: labeled loss tại điểm nhiễu 0.001.
+  - Vậy $q$ hỗn hợp (quả cầu cho $L_l$, một điểm cho $L_u$) không thua cận trên, và ở cỡ mẫu này cũng
+    không thắng.
+- **Bước $Y_u$:** pseudo-label đọc từ giả thuyết xấu nhất hay từ mạng EMA trùng 97.7–99.1% với
+  pseudo-label điểm, và không đổi accuracy một cách đo được: +0.7, −0.7 và +1.5 điểm, đều n.s.
+- **Prior:** SAM trên $L_l$ giúp ở ba trong năm prior, không giúp ở hai.
+  - Giúp: không có $X_u$ +4.0 (teacher live, 5/5), Pseudo-Label +8.6 (5/5, Holm 0.005), FixMatch
+    +4.1.
+  - Không giúp: Mean Teacher −0.9, FlexMatch −0.7.
+  - Lợi ích không đặc thù cho SSL, và không chung cho mọi prior.
+- **Đọc lại theo khung (V).** Phần có tác dụng là regularizer cho $\log P(Y_l \mid h, X_l)$ trong
+  giai đoạn đầu.
+  - Prior dùng ngưỡng cố định (FixMatch, Pseudo-Label) giữ lại lợi thế đó qua bước $Y_u$: giả
+    thuyết nào khớp nhãn phẳng hơn thì chọn pseudo-label tự tin đúng hơn ngay từ đầu.
+  - Prior dùng toàn bộ $X_u$ từ đầu (FlexMatch với warm-up ngưỡng, Mean Teacher) xóa lợi thế đó.
+  - Đây là quan sát post-hoc. Ba kiểm định ở cuối Mục 18 của report sẽ tách được cơ chế.

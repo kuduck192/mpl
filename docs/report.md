@@ -1275,3 +1275,163 @@ Nhận xét:
   augmentation mạnh).
 - **Giới hạn.** λ_m chưa tinh chỉnh lại cho hàng không có FixMatch. Toy (λ_m = ∞, chỉ likelihood,
   không có trọng số để tinh chỉnh) cho cùng kết luận.
+
+## 18. Biến thể từ góc nhìn variational (wave8, seed 1–5, 40 nhãn)
+
+Mục đích: thử các biến thể suy ra từ khung ELBO + cận sharpness trong `docs/bayes_view.md` (mục
+"Từ MAP đến variational"). Mỗi biến thể nới một xấp xỉ của FixMatch: bước $q$ (một điểm, một quả cầu
+cho $L_l$, hay một quả cầu cho cả likelihood) và bước $Y_u$ (pseudo-label đọc từ mạng nào). Thêm
+nhóm thứ hai: SAM trên $L_l$ với các prior $-\log P(h \mid X)$ khác (không có $X_u$, Pseudo-Label,
+Mean Teacher, FlexMatch). Dự đoán ghi trong `docs/bayes_view.md` trước khi chạy.
+
+Thiết lập:
+- Bán kính $\rho = 0.1$ (đã chọn cho SAM trên $L_l$ với FixMatch), không tinh chỉnh lại cho biến
+  thể nào. Mean Teacher dùng `--lam_u 50` như baseline của Mục 4.
+- Cờ: `fmsamfull` = `--base fixmatch --lab_reg samfull --radius 0.1`; `fmsamfulladv` thêm
+  `--pl_src adv`; `labsamadv` = `--lab_reg sam --radius 0.1 --pl_src adv`; `fmemapl` =
+  `--pl_src ema`; `supsam`, `plsam`, `mtsam`, `flexsam` = `--base {sup, pseudolabel, meanteacher,
+  flexmatch} --lab_reg sam --radius 0.1`.
+- Kernel rep-m và rep-n (tài khoản A). Đủ 46/46 job, không job nào bị budget guard cắt. Rep-n còn
+  chạy `pseudolabel`, `meanteacher`, `flexmatch` seed 4–5; seed 1–3 của ba baseline này có từ main-a/b.
+  `fixmatch`, `abl_labsam`, `sup` có sẵn từ các wave trước.
+- Lệnh:
+
+  ```bash
+  python3 analysis/wave8_table.py results/fmnist-ssl-* [--metric test] [--ref_avg] [--traj]
+  ```
+
+  ```bash
+  python3 analysis/wave8_figure.py results/fmnist-ssl-*
+  ```
+
+  `--ref_avg` thay mốc FixMatch và SAM trên $L_l$ bằng trung bình hai run mỗi seed
+  (`fixmatch` + `fixmatchft`, `abl_labsam` + `labsamft`).
+
+Test accuracy ở vòng cuối, mean ± sd qua seed 1–5:
+
+| arm | teacher EMA | teacher live |
+|---|---|---|
+| FixMatch (`fixmatch`) | 70.96 ± 3.69 | 70.60 ± 3.37 |
+| FixMatch + SAM trên $L_l$ (`abl_labsam`) | **75.05 ± 3.34** | 74.65 ± 3.51 |
+| SAM trên $L_l + \lambda_u L_u$ (`fmsamfull`) | 74.16 ± 3.25 | 73.73 ± 3.22 |
+| SAM-full, pseudo-label tại $\theta + \varepsilon^*$ (`fmsamfulladv`) | 74.88 ± 3.15 | **74.94 ± 3.11** |
+| SAM trên $L_l$, pseudo-label tại $\theta + \varepsilon^*_l$ (`labsamadv`) | 74.36 ± 3.39 | 72.40 ± 3.51 |
+| FixMatch, pseudo-label từ mạng EMA (`fmemapl`) | 72.49 ± 1.81 | 72.33 ± 2.02 |
+| chỉ nhãn (`sup`) | 56.85 ± 1.45 | 59.58 ± 1.81 |
+| chỉ nhãn + SAM (`supsam`) | 62.98 ± 0.84 | 63.56 ± 1.26 |
+| Pseudo-Label (`pseudolabel`) | 62.12 ± 3.14 | 60.89 ± 4.50 |
+| Pseudo-Label + SAM (`plsam`) | 70.71 ± 2.78 | 70.64 ± 2.93 |
+| Mean Teacher (`meanteacher`) | 58.30 ± 2.63 | 58.70 ± 3.56 |
+| Mean Teacher + SAM (`mtsam`) | 57.40 ± 3.39 | 57.68 ± 3.34 |
+| FlexMatch (`flexmatch`) | 72.05 ± 2.15 | 71.92 ± 1.44 |
+| FlexMatch + SAM (`flexsam`) | 71.38 ± 3.69 | 71.45 ± 3.68 |
+
+Mốc hai run mỗi seed (teacher EMA): FixMatch 71.68 ± 2.38, SAM trên $L_l$ 74.88 ± 3.63.
+
+So cặp theo seed (n = 5), họ 1: các bước $q$ và $Y_u$ của FixMatch. Holm qua 6 phép so sánh trong họ.
+Với n = 5, p Wilcoxon hai phía nhỏ nhất là 0.062.
+
+| so sánh | teacher EMA | teacher live | mốc hai run (EMA) |
+|---|---|---|---|
+| SAM-full − FixMatch | +3.20 ± 4.63, 3/5, p 0.20 | +3.13 ± 4.19, 3/5, p 0.17 | +2.48 ± 3.25, 4/5, p 0.16 |
+| SAM-full − SAM trên $L_l$ | −0.89 ± 2.09, 1/5, p 0.39 | −0.92 ± 1.72, 1/5, p 0.30 | −0.72 ± 3.11, 1/5, p 0.63 |
+| SAM-full adv − SAM-full | +0.72 ± 2.34, 3/5, p 0.53 | +1.21 ± 2.35, 3/5, p 0.31 | — |
+| SAM-full adv − SAM trên $L_l$ | −0.17 ± 2.08, 3/5, p 0.87 | +0.29 ± 2.06, 3/5, p 0.77 | +0.00 ± 2.91, 2/5, p 1.00 |
+| SAM trên $L_l$ adv − SAM trên $L_l$ | −0.69 ± 2.07, 1/5, p 0.50 | −2.25 ± 1.45, 0/5, p 0.025, Holm 0.15 | −0.52 ± 3.11, 1/5, p 0.73 |
+| pseudo-label EMA − FixMatch | +1.53 ± 4.80, 2/5, p 0.52 | +1.73 ± 4.78, 2/5, p 0.47 | +0.81 ± 3.47, 3/5, p 0.63 |
+
+Mọi Holm p trong họ 1 ≥ 0.15.
+
+Họ 2: SAM trên $L_l$ − cùng phương pháp không SAM, theo từng prior. Holm qua 5 phép so sánh.
+
+| prior | teacher EMA | teacher live |
+|---|---|---|
+| FixMatch (mốc) | +4.09 ± 3.65, 4/5, p 0.066, Holm 0.20 | +4.05 ± 3.40, 4/5, p 0.056, Holm 0.17 |
+| không có $X_u$ | +6.13 ± 1.15, 5/5, p < 0.001, Holm 0.001 | +3.98 ± 1.77, 5/5, p 0.007, Holm 0.030 |
+| Pseudo-Label | **+8.60 ± 2.38, 5/5, p 0.001, Holm 0.005** | **+9.75 ± 3.19, 5/5, p 0.002, Holm 0.012** |
+| Mean Teacher | −0.90 ± 3.30, 3/5, p 0.58 | −1.01 ± 2.48, 2/5, p 0.41 |
+| FlexMatch | −0.67 ± 3.38, 1/5, p 0.68 | −0.48 ± 2.98, 1/5, p 0.74 |
+
+Với `sup`, đọc cột live: teacher EMA của run không có loss trên $X_u$ không ổn định (Mục 17), nên
++6.13 theo EMA bị phóng đại.
+
+Chẩn đoán pseudo-label, trung bình qua 1/4 cuối huấn luyện. "Trùng" là tỉ lệ pseudo-label thực sự
+dùng trùng với pseudo-label FixMatch tại mạng live, trên cùng batch.
+
+| arm | mask | accuracy PL được dùng | accuracy PL trên cả batch | trùng |
+|---|---|---|---|---|
+| `fixmatch` | 0.905 | 0.741 | 0.709 | — |
+| `abl_labsam` | 0.891 | 0.790 | 0.751 | — |
+| `fmsamfull` | 0.876 | 0.787 | 0.743 | — |
+| `fmsamfulladv` | 0.873 | 0.796 | 0.752 | 0.991 |
+| `labsamadv` | 0.875 | 0.774 | 0.730 | 0.984 |
+| `fmemapl` | 0.883 | 0.765 | 0.723 | 0.977 |
+| `pseudolabel` | 0.891 | 0.638 | 0.610 | — |
+| `plsam` | 0.857 | 0.757 | 0.708 | — |
+| `meanteacher` | 1.000 | 0.579 | 0.579 | — |
+| `mtsam` | 1.000 | 0.581 | 0.581 | — |
+| `flexmatch` | 0.922 | 0.747 | 0.718 | — |
+| `flexsam` | 0.918 | 0.744 | 0.713 | — |
+
+Ở `fmsamfull`, bước ascent tăng loss tổng từ 0.072 lên 0.119 nats, nhưng labeled loss tại điểm nhiễu
+chỉ 0.001. Ở mọi arm có SAM, labeled loss tại điểm nhiễu trung bình 0.54–0.58 trong 1000 vòng đầu và
+≤ 0.02 từ vòng 2000 trở đi.
+
+Quỹ đạo, SAM − không SAM (điểm phần trăm, trung bình 5 seed, không ghép cặp):
+
+| prior | mask ở 1k (không SAM) | test live ở 1k / 4k / 20k | accuracy PL được dùng ở 2k / 20k |
+|---|---|---|---|
+| không có $X_u$ | — | +1.8 / +4.7 / +4.0 | — |
+| FixMatch | 0.51 | +3.9 / +4.4 / +4.0 | +3.6 / +4.3 |
+| Pseudo-Label | 0.30 | −0.4 / +6.4 / +9.7 | +4.1 / +12.7 |
+| FlexMatch | 0.99 | +2.0 / −0.1 / −0.5 | −0.5 / −0.3 |
+| Mean Teacher | 1.00 (không ngưỡng) | +6.1 / +4.6 / −1.0 | +5.6 / 0.0 |
+
+![wave8](figures/wave8.png)
+
+![wave8 trajectories](figures/wave8_traj.png)
+
+Đối chiếu với dự đoán ghi trước:
+
+| arm | dự đoán | kết quả |
+|---|---|---|
+| `fmsamfull` | ≥ SAM trên $L_l$ nếu lợi ích là làm phẳng posterior; kém hơn nếu chỉ là chống học thuộc 40 nhãn | −0.9, 1/5, n.s.: nghiêng về vế sau, chưa phân biệt được ở n = 5 |
+| `fmsamfulladv` | mask thấp hơn, pseudo-label giữ lại đúng hơn; accuracy chưa rõ | đúng hướng nhưng rất nhỏ (mask −0.3 điểm, PL +0.9 điểm, 99.1% trùng); accuracy +0.7, n.s. |
+| `labsamadv` | gần SAM trên $L_l$ | 98.4% trùng; −0.7 (EMA), −2.3 (live, 0/5, Holm 0.15) |
+| `fmemapl` | trong ±1 điểm quanh FixMatch | +1.5 (EMA), +0.8 so với mốc hai run; 97.7% trùng |
+| `supsam` | tăng khoảng 3 điểm thì lợi ích không đặc thù cho SSL | +4.0 (live), 5/5: **lợi ích không đặc thù cho SSL** |
+| `plsam`, `mtsam`, `flexsam` | tăng 2–4 điểm ở cả ba nếu lợi ích là chung | +8.6 / −0.9 / −0.7: **không chung, phụ thuộc prior** |
+
+Nhận xét:
+- **Các biến thể bước $q$ và bước $Y_u$ không đổi được gì đo được.**
+  - Pseudo-label từ giả thuyết xấu nhất hay từ mạng EMA trùng 97.7–99.1% với pseudo-label điểm của
+    FixMatch.
+  - Cận trên đúng nghĩa (`fmsamfull`) không hơn $q$ hỗn hợp (SAM chỉ trên $L_l$); hướng ascent của
+    nó do $L_u$ chi phối, và hầu như không làm tăng labeled loss.
+  - Không biến thể nào của FixMatch vượt SAM trên $L_l$ (75.05, seed 1–5).
+- **SAM trên $L_l$ là một regularizer cho phần khớp 40 nhãn, hoạt động chủ yếu trong 1–2k vòng đầu.**
+  - Nó giúp cả học thuần trên nhãn: +4.0 điểm (live), 5/5 seed.
+  - Sau vòng 2000, labeled loss tại điểm nhiễu ≤ 0.02, nên bước SAM gần như trùng bước thường.
+- **Lợi ích còn lại đến cuối hay không tùy prior (quan sát, chưa kiểm định):**
+  - Với hai prior có ngưỡng cố định τ = 0.95 (FixMatch, Pseudo-Label), lợi thế ban đầu giữ nguyên
+    hoặc lớn dần. Ở vòng 20k, accuracy của pseudo-label được dùng hơn 4.3 điểm (FixMatch, mask gần
+    như nhau) và 12.7 điểm (Pseudo-Label, mask thấp hơn khoảng 3 điểm). SAM chặn được sự suy giảm
+    dần accuracy pseudo-label của Pseudo-Label (0.716 ở 2k xuống 0.636 ở cuối; có SAM giữ 0.76).
+  - Với hai prior dùng gần như toàn bộ batch không nhãn ngay từ đầu (FlexMatch nhờ warm-up ngưỡng,
+    Mean Teacher không có ngưỡng), lợi thế ở 1k (+2.0 và +6.1 điểm) mất hết trước vòng 20k.
+  - Kiểm định post-hoc (nhóm chọn sau khi thấy dữ liệu, chỉ để sinh giả thuyết): lợi ích trung bình
+    (FixMatch, Pseudo-Label) − (FlexMatch, Mean Teacher) = +7.1 ± 2.2, 5/5, p = 0.002 (EMA); +7.6,
+    p = 0.008 (live).
+- **Pseudo-Label + SAM (70.7) ngang FixMatch (71.0)** dù chỉ dùng augmentation yếu.
+- **Giới hạn.**
+  - 5 seed: với độ lệch chuẩn của hiệu cặp khoảng 3 điểm, n = 5 chỉ phát hiện được (power 80%)
+    hiệu ứng từ khoảng 5 điểm. Các kết quả "≈ 0" trong họ 1 không loại được hiệu ứng 2–3 điểm.
+  - ρ chưa tinh chỉnh lại cho SAM-full và cho các prior khác.
+  - Seed 1–3 của ba baseline Pseudo-Label, Mean Teacher, FlexMatch chạy ở wave cũ, cùng đường code.
+
+Việc có thể làm tiếp (chưa chạy):
+- Kiểm định cơ chế "lợi thế sớm + ngưỡng khóa lại":
+  - SAM chỉ trong 2k vòng đầu, với FixMatch và Pseudo-Label;
+  - FixMatch với τ thấp (0.5 hoặc 0), có và không có SAM;
+  - FlexMatch bỏ warm-up ngưỡng, có và không có SAM.
+- Nâng `plsam` và `supsam` lên 10 seed.

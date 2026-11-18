@@ -1,0 +1,102 @@
+[
+ {
+  "name": "fmsamfull_4_s1",
+  "rc": 0,
+  "minutes": 20.32569078207016
+ },
+ {
+  "name": "fmsamfulladv_4_s1",
+  "rc": 0,
+  "minutes": 21.646029448509218
+ },
+ {
+  "name": "supsam_4_s1",
+  "rc": 0,
+  "minutes": 5.262002305189768
+ },
+ {
+  "name": "mtsam_4_s1",
+  "rc": 0,
+  "minutes": 12.820575372378032
+ },
+ {
+  "name": "fmsamfull_4_s2",
+  "rc": 0,
+  "minutes": 21.333612124125164
+ },
+ {
+  "name": "fmsamfulladv_4_s2",
+  "rc": 0,
+  "minutes": 19.979052340984346
+ },
+ {
+  "name": "supsam_4_s2",
+  "rc": 0,
+  "minutes": 5.089273611704509
+ },
+ {
+  "name": "mtsam_4_s2",
+  "rc": 0,
+  "minutes": 13.88439773718516
+ },
+ {
+  "name": "fmsamfull_4_s3",
+  "rc": 0,
+  "minutes": 20.01451111237208
+ },
+ {
+  "name": "fmsamfulladv_4_s3",
+  "rc": 0,
+  "minutes": 21.617303256193797
+ },
+ {
+  "name": "supsam_4_s3",
+  "rc": 0,
+  "minutes": 5.039840145905813
+ },
+ {
+  "name": "mtsam_4_s3",
+  "rc": 0,
+  "minutes": 12.6945210536321
+ },
+ {
+  "name": "fmsamfull_4_s4",
+  "rc": 0,
+  "minutes": 21.530427487691245
+ },
+ {
+  "name": "fmsamfulladv_4_s4",
+  "rc": 0,
+  "minutes": 20.040123605728148
+ },
+ {
+  "name": "supsam_4_s4",
+  "rc": 0,
+  "minutes": 4.995423054695129
+ },
+ {
+  "name": "mtsam_4_s4",
+  "rc": 0,
+  "minutes": 13.89419754743576
+ },
+ {
+  "name": "fmsamfull_4_s5",
+  "rc": 0,
+  "minutes": 19.878931264082592
+ },
+ {
+  "name": "fmsamfulladv_4_s5",
+  "rc": 0,
+  "minutes": 21.672983860969545
+ },
+ {
+  "name": "mtsam_4_s5",
+  "rc": 0,
+  "minutes": 12.695503763357799
+ },
+ {
+  "name": "supsam_4_s5",
+  "rc": 0,
+  "minutes": 4.9913615703582765
+ }
+]

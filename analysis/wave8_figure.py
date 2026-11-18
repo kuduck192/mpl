@@ -2,14 +2,16 @@
 """Figure for wave8 (docs/figures/wave8.png), 40 labels, seeds 1-5.
 
   (a) paired difference in test accuracy of the EMA teacher for every comparison of
-      analysis/wave8_table.py: one dot per seed, the mean and its 95% t-interval;
+      analysis/wave8_table.py: one dot per seed, the mean and its 95% t-interval; the supervised
+      row uses the live teacher, since the EMA of a run with no loss on X_u is unstable (its
+      BatchNorm buffers are copied from the live network; report section 17);
   (b) accuracy of the pseudo-labels the teacher trains on (masked, mean over the last quarter of
       training) against final test accuracy, one arrow per prior from the plain method to the
-      same method with SAM on L_l, and the FixMatch variants of the Y_u- and q-steps as points.
+      same method with SAM on L_l.
 
 docs/figures/wave8_traj.png: for each prior, the fraction of the unlabeled batch that passes the
-threshold and the accuracy of those pseudo-labels along training, plain method vs + SAM on L_l
-(mean over seeds 1-5).
+threshold, the accuracy of those pseudo-labels and the test accuracy of the live teacher along
+training, plain method vs + SAM on L_l (mean over seeds 1-5).
 
   python analysis/wave8_figure.py results/fmnist-ssl-*
 """
@@ -40,13 +42,17 @@ plt.rcParams.update({
 })
 PRIORS = [("FixMatch", "fixmatch", "abl_labsam"), ("FlexMatch", "flexmatch", "flexsam"),
           ("Pseudo-Label", "pseudolabel", "plsam"), ("Mean Teacher", "meanteacher", "mtsam")]
-VARIANTS = [("SAM-full", "fmsamfull"), ("SAM-full, adv. PL", "fmsamfulladv"),
-            ("SAM on L_l, adv. PL", "labsamadv"), ("EMA PL", "fmemapl")]
+LIVE_ROWS = {"supsam"}  # rows drawn with the live teacher
+# label offsets (points) and alignment of each prior's name next to its plain-method point
+LABEL_AT = {"FixMatch": ((-8, 0), "right"), "FlexMatch": ((-5, 6), "right"),
+            "Pseudo-Label": ((5, -7), "left"), "Mean Teacher": ((7, 3), "left")}
 
 
-def forest(ax, R):
-    rows = [(lab, paired(R, a, b), SERIES[0]) for lab, a, b in FAM_Q] + \
-           [(lab, paired(R, a, b), SERIES[1]) for lab, a, b in FAM_P]
+def forest(ax, R, R_live):
+    def pr(lab, a, b):
+        return (lab + " (live)", paired(R_live, a, b)) if a in LIVE_ROWS else (lab, paired(R, a, b))
+    rows = [pr(lab, a, b) + (SERIES[0],) for lab, a, b in FAM_Q] + \
+           [pr(lab, a, b) + (SERIES[1],) for lab, a, b in FAM_P]
     rows = [r for r in rows if r[1] is not None]
     for k, (lab, r, col) in enumerate(rows):
         y = len(rows) - 1 - k
@@ -63,7 +69,8 @@ def forest(ax, R):
     ax.plot([], [], "o", ms=6, color=SERIES[0], label="Y_u- / q-step variants of FixMatch")
     ax.plot([], [], "o", ms=6, color=SERIES[1], label="SAM on L_l, plain vs + SAM")
     ax.plot([], [], "o", ms=3.5, mfc="white", mec=INK2, label="one seed")
-    ax.legend(fontsize=7, loc="lower right")
+    ax.legend(fontsize=7, loc="upper center", bbox_to_anchor=(0.4, -0.16), ncol=3, handletextpad=0.3,
+              columnspacing=1.0)
     ax.set_title("(a) paired by seed; bar = 95% t-interval of the mean", fontsize=8, color=INK, loc="left")
 
 
@@ -81,17 +88,11 @@ def arrows(ax, R, D):
             ax.annotate("", xy=pb, xytext=pa, zorder=2,
                         arrowprops=dict(arrowstyle="-|>", color=SERIES[1], lw=1.6, shrinkA=3, shrinkB=3))
             ax.plot(*pb, "o", ms=5, color=SERIES[1], zorder=3)
-        ax.annotate(name, pa, xytext=(-4, -2), textcoords="offset points", ha="right", va="top", fontsize=7, color=INK)
-    for name, m in VARIANTS:
-        p = pt(m)
-        if p is None:
-            continue
-        ax.plot(*p, "s", ms=5, color=SERIES[0], zorder=3)
-        ax.annotate(name, p, xytext=(4, 2), textcoords="offset points", fontsize=7, color=INK)
-    ax.margins(x=0.18, y=0.08)
+        off, ha = LABEL_AT.get(name, ((5, -7), "left"))
+        ax.annotate(name, pa, xytext=off, textcoords="offset points", ha=ha, va="center", fontsize=7, color=INK)
+    ax.margins(x=0.12, y=0.1)
     ax.plot([], [], "o", ms=5, color=INK2, label="plain method")
     ax.plot([], [], "o", ms=5, color=SERIES[1], label="+ SAM on L_l (arrow)")
-    ax.plot([], [], "s", ms=5, color=SERIES[0], label="FixMatch variant")
     ax.legend(fontsize=7, loc="lower right")
     ax.set_xlabel("accuracy of the pseudo-labels used (%, last quarter)")
     ax.set_ylabel("test accuracy, EMA teacher (%)")
@@ -106,8 +107,10 @@ def curve(hists, key):
 
 def traj_figure(H, out):
     pri = [p for p in PRIORS if p[1] in H]
-    keys = [("mask", "fraction of X_u batch used"), ("pl_acc_masked", "accuracy of used pseudo-labels")]
-    fig, axes = plt.subplots(len(keys), len(pri), figsize=(2.15 * len(pri), 3.9), squeeze=False)
+    keys = [("mask", "fraction of X_u batch used"), ("pl_acc_masked", "accuracy of used pseudo-labels"),
+            ("test", "test accuracy, live teacher")]
+    lims = {"mask": (0, 1.02), "pl_acc_masked": (0.3, 0.9), "test": (0.45, 0.8)}
+    fig, axes = plt.subplots(len(keys), len(pri), figsize=(2.15 * len(pri), 5.6), squeeze=False)
     for j, (name, a, b) in enumerate(pri):
         for i, (key, ylab) in enumerate(keys):
             ax = axes[i][j]
@@ -115,7 +118,7 @@ def traj_figure(H, out):
                 if m in H:
                     x, y = curve(H[m], key)
                     ax.plot(x / 1000, y, color=col, lw=2, label=lab)
-            ax.set_ylim(0, 1.02) if key == "mask" else ax.set_ylim(0.3, 0.9)
+            ax.set_ylim(*lims[key])
             ax.set_xticks([0, 10, 20])
             if i == 0:
                 ax.set_title(name, fontsize=8, color=INK)
@@ -139,9 +142,10 @@ def main():
     a, b = (int(x) for x in args.seeds.split("-"))
     seeds = range(a, b + 1)
     R = load(args.dirs, seeds=seeds)
+    R_live = load(args.dirs, seeds=seeds, metric="test")
     D = diagnostics(args.dirs, seeds)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.6, 3.6), gridspec_kw={"width_ratios": [1.15, 1]})
-    forest(ax1, R)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.6, 3.9), gridspec_kw={"width_ratios": [1.15, 1]})
+    forest(ax1, R, R_live)
     arrows(ax2, R, D)
     fig.tight_layout()
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
