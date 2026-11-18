@@ -241,9 +241,12 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
 
 ## 7. Trạng thái và việc còn mở
 
+- **Kaggle: hai tài khoản, quota tính riêng.** Tài khoản A chạy rep-a…rep-f, ablate và wave8
+  (rep-m / rep-n); tài khoản B chạy rep-g / rep-h, pool-diag, rep-k / rep-l. `.kaggle_user` và
+  `~/.kaggle/access_token` hiện trỏ tài khoản A (từ 2026-11-18). Không ghi username vào repo.
 - **Kaggle quota.**
-  - Tuần từ 2026-11-15: đã dùng khoảng 23h (13.0h trước đó + wave7 khoảng 10.1h) trên trần
-    khoảng 29–30h. Trường `totalTimeAllowed` =
+  - Tài khoản B, tuần từ 2026-11-14: đã dùng khoảng 23h (13.0h trước đó + wave7 khoảng 10.1h) trên trần
+    khoảng 29–30h. Tài khoản A, cùng tuần: rep-c…rep-f khoảng 14h, cộng wave8 khoảng 5.5h. Trường `totalTimeAllowed` =
     21600s của API không phải trần thật. Quota làm mới 2026-11-21 00:00 UTC.
   - Người dùng **chưa chọn** đợt Kaggle tiếp theo:
     - (a) `wave6a`: MPL / PBPL / EBPL hai mạng chạy lại có finetune, khoảng 9.7h, `rep-i` / `rep-j`.
@@ -295,3 +298,5 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
 - `c252c76`: toy Mục 14.
 - `bbe7a2f`: toy Mục 15.
 - `9894576`: `fm_meta_grid.py`; `21238fe` / `b5df38e`: wave7 (bỏ FixMatch); `d2a6082`: `--metric test`.
+- `1a13a2e`: wave8 (biến thể variational: `--lab_reg samfull`, `--pl_src {ema, adv}`, SAM cho `sup`);
+  `a1d9892`: khung ELBO + cận sharpness trong `docs/bayes_view.md`; `9742253`: `analysis/wave8_table.py`.
