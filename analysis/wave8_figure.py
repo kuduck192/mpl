@@ -7,6 +7,10 @@
       training) against final test accuracy, one arrow per prior from the plain method to the
       same method with SAM on L_l, and the FixMatch variants of the Y_u- and q-steps as points.
 
+docs/figures/wave8_traj.png: for each prior, the fraction of the unlabeled batch that passes the
+threshold and the accuracy of those pseudo-labels along training, plain method vs + SAM on L_l
+(mean over seeds 1-5).
+
   python analysis/wave8_figure.py results/fmnist-ssl-*
 """
 import argparse
@@ -23,7 +27,7 @@ from scipy import stats  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fm_meta_grid import paired  # noqa: E402
 from tenseed_table import load  # noqa: E402
-from wave8_table import FAM_P, FAM_Q, diagnostics  # noqa: E402
+from wave8_table import FAM_P, FAM_Q, diagnostics, histories  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
@@ -94,6 +98,38 @@ def arrows(ax, R, D):
     ax.set_title("(b) arm means, seeds 1-5", fontsize=8, color=INK, loc="left")
 
 
+def curve(hists, key):
+    its = sorted({r["iter"] for h in hists for r in h if key in r})
+    ys = [np.mean([r[key] for h in hists for r in h if r["iter"] == i and key in r]) for i in its]
+    return np.array(its), np.array(ys)
+
+
+def traj_figure(H, out):
+    pri = [p for p in PRIORS if p[1] in H]
+    keys = [("mask", "fraction of X_u batch used"), ("pl_acc_masked", "accuracy of used pseudo-labels")]
+    fig, axes = plt.subplots(len(keys), len(pri), figsize=(2.15 * len(pri), 3.9), squeeze=False)
+    for j, (name, a, b) in enumerate(pri):
+        for i, (key, ylab) in enumerate(keys):
+            ax = axes[i][j]
+            for m, col, lab in ((a, INK2, "plain"), (b, SERIES[1], "+ SAM on L_l")):
+                if m in H:
+                    x, y = curve(H[m], key)
+                    ax.plot(x / 1000, y, color=col, lw=2, label=lab)
+            ax.set_ylim(0, 1.02) if key == "mask" else ax.set_ylim(0.3, 0.9)
+            ax.set_xticks([0, 10, 20])
+            if i == 0:
+                ax.set_title(name, fontsize=8, color=INK)
+            if i == len(keys) - 1:
+                ax.set_xlabel("iteration (thousands)")
+            if j == 0:
+                ax.set_ylabel(ylab)
+            if i == 0 and j == 0:
+                ax.legend(fontsize=7, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(out)
+    print("wrote", out)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("dirs", nargs="+")
@@ -111,6 +147,7 @@ def main():
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     fig.savefig(args.out)
     print("wrote", args.out)
+    traj_figure(histories(args.dirs, seeds), args.out.replace(".png", "_traj.png"))
 
 
 if __name__ == "__main__":

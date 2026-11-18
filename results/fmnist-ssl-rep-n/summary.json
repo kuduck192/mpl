@@ -1,0 +1,132 @@
+[
+ {
+  "name": "fmemapl_4_s1",
+  "rc": 0,
+  "minutes": 14.308568020661673
+ },
+ {
+  "name": "labsamadv_4_s1",
+  "rc": 0,
+  "minutes": 17.394259933630625
+ },
+ {
+  "name": "plsam_4_s1",
+  "rc": 0,
+  "minutes": 8.582721507549286
+ },
+ {
+  "name": "flexsam_4_s1",
+  "rc": 0,
+  "minutes": 13.430486186345417
+ },
+ {
+  "name": "fmemapl_4_s2",
+  "rc": 0,
+  "minutes": 14.033861176172893
+ },
+ {
+  "name": "labsamadv_4_s2",
+  "rc": 0,
+  "minutes": 17.399606430530547
+ },
+ {
+  "name": "plsam_4_s2",
+  "rc": 0,
+  "minutes": 8.523556677500407
+ },
+ {
+  "name": "flexsam_4_s2",
+  "rc": 0,
+  "minutes": 13.58546648422877
+ },
+ {
+  "name": "labsamadv_4_s3",
+  "rc": 0,
+  "minutes": 17.548968652884167
+ },
+ {
+  "name": "fmemapl_4_s3",
+  "rc": 0,
+  "minutes": 14.293904733657836
+ },
+ {
+  "name": "plsam_4_s3",
+  "rc": 0,
+  "minutes": 9.190349046389262
+ },
+ {
+  "name": "flexsam_4_s3",
+  "rc": 0,
+  "minutes": 13.998143963019054
+ },
+ {
+  "name": "labsamadv_4_s4",
+  "rc": 0,
+  "minutes": 17.27560664017995
+ },
+ {
+  "name": "fmemapl_4_s4",
+  "rc": 0,
+  "minutes": 14.507852554321289
+ },
+ {
+  "name": "plsam_4_s4",
+  "rc": 0,
+  "minutes": 9.334369758764902
+ },
+ {
+  "name": "flexsam_4_s4",
+  "rc": 0,
+  "minutes": 13.946725912888844
+ },
+ {
+  "name": "meanteacher_4_s4",
+  "rc": 0,
+  "minutes": 11.78416664203008
+ },
+ {
+  "name": "flexmatch_4_s4",
+  "rc": 0,
+  "minutes": 11.583725611368815
+ },
+ {
+  "name": "pseudolabel_4_s4",
+  "rc": 0,
+  "minutes": 5.751875181992848
+ },
+ {
+  "name": "labsamadv_4_s5",
+  "rc": 0,
+  "minutes": 17.42398720184962
+ },
+ {
+  "name": "fmemapl_4_s5",
+  "rc": 0,
+  "minutes": 14.810479092597962
+ },
+ {
+  "name": "plsam_4_s5",
+  "rc": 0,
+  "minutes": 9.441066495577495
+ },
+ {
+  "name": "flexsam_4_s5",
+  "rc": 0,
+  "minutes": 14.396102639039357
+ },
+ {
+  "name": "meanteacher_4_s5",
+  "rc": 0,
+  "minutes": 11.845248512427013
+ },
+ {
+  "name": "flexmatch_4_s5",
+  "rc": 0,
+  "minutes": 11.72246325413386
+ },
+ {
+  "name": "pseudolabel_4_s5",
+  "rc": 0,
+  "minutes": 5.7828195254007975
+ }
+]
