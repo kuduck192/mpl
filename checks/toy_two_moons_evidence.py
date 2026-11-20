@@ -51,8 +51,10 @@ Pre-registered predictions (written before the full run):
       fit in K steps); elbo_mean lies near ens.
   P4  st1 / st8 stay near the supervised labeling (it is a fixed point of coordinate ascent); FixMatch >> sup.
 
-  python checks/toy_two_moons_evidence.py               # runs (4 processes, about an hour on CPU)
+  python checks/toy_two_moons_evidence.py               # runs (4 processes, about 90 minutes on CPU)
   python checks/toy_two_moons_evidence.py --summary     # tables and figures from results/toy-two-moons/evidence.json
+  python checks/toy_two_moons_evidence.py --snapshot 1,8   # labelings of one draw (same seeds), about 10 minutes
+Results: report Section 19.
 """
 import argparse
 import json
@@ -76,7 +78,7 @@ import toy_two_moons_anchor as A15  # noqa: E402
 from toy_two_moons_meta import FIG, ROOT, _round, label_spreading, make_data, tensors  # noqa: E402
 
 OUT_JSON = os.path.join(ROOT, "results", "toy-two-moons", "evidence.json")
-SNAP_JSON = os.path.join(ROOT, "results", "toy-two-moons", "evidence_snapshot.json")
+SNAP_JSON = "evidence_snapshot_{n_l}_{d}.json"                  # next to --out
 H = 64
 BILEVEL = ["mpl1", "ens", "ens_lme", "elbo_mean", "elbo_sum", "elbo_mean_sup", "elbo_lab"]
 GP_SETS = [("nngp", 0.01), ("rbf", 0.01), ("nngp", 0.1), ("rbf", 0.1)]
@@ -372,7 +374,7 @@ def snapshot(a, n_l, d):
     Xu, yu, _, _, Xl, yl = make_data(n_l, d)
     snap = {"n_l": n_l, "lab_draw": d, "Xu": Xu.tolist(), "yu": yu.tolist(), "Xl": Xl.tolist(), "yl": yl.tolist(),
             "labels": {k: v.long().tolist() for k, v in labels.items()}}
-    path = os.path.join(os.path.dirname(os.path.abspath(a.out)), os.path.basename(SNAP_JSON))
+    path = os.path.join(os.path.dirname(os.path.abspath(a.out)), SNAP_JSON.format(n_l=n_l, d=d))
     json.dump(_round(snap), open(path, "w"))
     print("snapshot ->", path)
     return path
@@ -394,9 +396,29 @@ def main_runs(a):
 # ----------------------------------------------------------------------------------------
 # summary and figures
 # ----------------------------------------------------------------------------------------
-GROUPS = [("B. bilevel, neural students", [f"{v}" for v in BILEVEL]),
-          ("A. exact evidence, GP students", ["gp_nngp_sup", "gp_nngp_icm", "gp_nngp_best", "gp_rbf_icm", "gp_rbf_best"]),
+GROUPS = [("B. bilevel, neural students", BILEVEL),
+          ("A. exact evidence, GP posterior", ["gp_nngp_sup", "gp_nngp_icm", "gp_nngp_best", "gp_rbf_icm", "gp_rbf_best"]),
           ("C. coordinate ascent and references", ["sup_ens", "st1", "st8", "fixmatch", "ls", "oracle"])]
+LABEL = {"mpl1": "mpl1: MPL, one student", "ens": "ens: 8 students", "ens_lme": "ens_lme: log-mean-exp",
+         "elbo_mean": "elbo_mean: + CE on X_u", "elbo_sum": "elbo_sum: ELBO weights + KL",
+         "elbo_mean_sup": "elbo_mean_sup: from sup_ens", "elbo_lab": "elbo_lab: students see Y_l",
+         "gp_nngp_sup": "gp_nngp_sup: NNGP mean given Y_l", "gp_nngp_icm": "gp_nngp_icm: NNGP, ICM from it",
+         "gp_nngp_best": "gp_nngp_best: NNGP, best search", "gp_rbf_icm": "gp_rbf_icm: RBF, ICM from mean",
+         "gp_rbf_best": "gp_rbf_best: RBF, best search", "sup_ens": "sup_ens: 8 students on Y_l",
+         "st1": "st1: coordinate ascent, 1 student", "st8": "st8: coordinate ascent, 8", "fixmatch": "fixmatch",
+         "ls": "ls: label spreading", "oracle": "oracle: true labels"}
+# paired contrasts between labelings (fresh students, per draw)
+PAIRS = [("gp_rbf_best", "gp_rbf_icm", "evidence search vs the same prior's supervised labeling, RBF"),
+         ("gp_nngp_best", "gp_nngp_sup", "evidence search vs the same prior's supervised labeling, NNGP"),
+         ("gp_nngp_sup", "sup_ens", "exact NNGP posterior mean vs 8 SGD students, both from Y_l only"),
+         ("ens", "mpl1", "8 students vs one"),
+         ("ens_lme", "ens", "log-mean-exp vs mean labeled CE"),
+         ("elbo_mean", "ens", "adding the CE on X_u"),
+         ("elbo_lab", "elbo_mean", "students that also see Y_l (degenerate bilevel)"),
+         ("elbo_mean_sup", "sup_ens", "bilevel started at the supervised labeling vs that labeling"),
+         ("st8", "sup_ens", "coordinate ascent vs its starting point"),
+         ("gp_rbf_best", "ls", "best exact-evidence labeling vs label spreading"),
+         ("gp_rbf_best", "fixmatch", "best exact-evidence labeling vs FixMatch")]
 
 
 def holm(p):
@@ -408,55 +430,97 @@ def holm(p):
     return adj
 
 
+def sets_of(r, name):
+    return [k for k in r["sets"] if k == name or k.split("#")[0] == name]
+
+
+def stu_acc(r, name, key="pl_only"):
+    """Mean over repeats and evaluation students of the test accuracy of students trained on labeling `name`."""
+    return float(np.mean([np.mean(r["sets"][k][key]) for k in sets_of(r, name)]))
+
+
 def per_draw(runs, name, key):
     """name -> per-draw mean over repeats and evaluation students of (student acc - supervised-only acc)."""
-    out = []
-    for r in runs:
-        names = [k for k in r["sets"] if k == name or k.split("#")[0] == name]
-        if not names:
-            continue
-        diffs = [np.mean(np.array(r["sets"][k][key]) - np.array(r["sup"])) for k in names]
-        out.append(float(np.mean(diffs)))
-    return np.array(out)
+    return np.array([stu_acc(r, name, key) - np.mean(r["sup"]) for r in runs if sets_of(r, name)])
+
+
+def tests(d):
+    p_t = stats.ttest_1samp(d, 0).pvalue if len(d) > 1 and d.std() > 0 else np.nan
+    p_w = stats.wilcoxon(d).pvalue if len(d) >= 5 and np.any(d != 0) else np.nan
+    return p_t, p_w
+
+
+def rows_for(rs, key="pl_only"):
+    """One row per labeling: mean PL acc, student acc and class-0 share, per-draw differences to supervised-only,
+    t-test, Wilcoxon and Holm (over all labelings but the oracle) p-values."""
+    rows = []
+    for title, names in GROUPS:
+        for n in names:
+            sets = [(r, k) for r in rs for k in sets_of(r, n)]
+            if not sets:
+                continue
+            d = per_draw(rs, n, key)
+            p_t, p_w = tests(d)
+            rows.append({"group": title[0], "name": n, "pl": np.mean([r["sets"][k]["pl_acc"] for r, k in sets]),
+                         "stu": np.mean([np.mean(r["sets"][k][key]) for r, k in sets]),
+                         "f0": np.mean([r["sets"][k]["frac0"] for r, k in sets]), "d": d, "p_t": p_t, "p_w": p_w,
+                         "holm": np.nan})
+    tested = [i for i, row in enumerate(rows) if row["name"] != "oracle" and np.isfinite(row["p_t"])]
+    for i, h in zip(tested, holm([rows[i]["p_t"] for i in tested])):
+        rows[i]["holm"] = h
+    return rows
 
 
 def summary(R, key="pl_only"):
     runs = R["runs"]
     for n_l in (1, 5):
-        rs = [r for r in runs if r["n_l"] == n_l]
+        rs = sorted([r for r in runs if r["n_l"] == n_l], key=lambda r: r["lab_draw"])
         sup = np.mean([np.mean(r["sup"]) for r in rs])
         print(f"\n=== {n_l} labeled point(s) per class, {len(rs)} draws, {len(rs[0]['sup'])} fresh students each; "
               f"supervised-only {sup:.3f}; students trained on {'pseudo-labels only' if key == 'pl_only' else 'pseudo-labels + labeled points'}")
-        rows = []
-        for title, names in GROUPS:
-            for n in names:
-                sets = [(r, k) for r in rs for k in r["sets"] if k == n or k.split("#")[0] == n]
-                if not sets:
-                    continue
-                d = per_draw(rs, n, key)
-                p_t = stats.ttest_1samp(d, 0).pvalue if len(d) > 1 and d.std() > 0 else np.nan
-                p_w = stats.wilcoxon(d).pvalue if len(d) >= 5 and np.any(d != 0) else np.nan
-                rows.append((title, n, np.mean([r["sets"][k]["pl_acc"] for r, k in sets]),
-                             np.mean([np.mean(r["sets"][k][key]) for r, k in sets]),
-                             np.mean([r["sets"][k]["frac0"] for r, k in sets]), d, p_t, p_w))
-        tested = [i for i, row in enumerate(rows) if row[1] != "oracle" and np.isfinite(row[6])]
-        adj = np.full(len(rows), np.nan)
-        adj[tested] = holm([rows[i][6] for i in tested])
         print("| group | labeling | PL acc | student acc | frac class 0 | − sup (per draw) | draws better | t p | Wilcoxon p | Holm p |")
         print("|---|---|---|---|---|---|---|---|---|---|")
-        for (title, n, pa, sa, f0, d, pt, pw), h in zip(rows, adj):
-            print(f"| {title.split('.')[0]} | {n} | {pa:.3f} | {sa:.3f} | {f0:.2f} | {d.mean():+.3f} ± {d.std(ddof=1):.3f} | "
-                  f"{int((d > 0).sum())}/{len(d)} | {pt:.3g} | {pw:.3g} | {h:.3g} |")
+        for w in rows_for(rs, key):
+            d = w["d"]
+            print(f"| {w['group']} | {w['name']} | {w['pl']:.3f} | {w['stu']:.3f} | {w['f0']:.2f} | {d.mean():+.3f} ± {d.std(ddof=1):.3f} | "
+                  f"{int((d > 0).sum())}/{len(d)} | {w['p_t']:.3g} | {w['p_w']:.3g} | {w['holm']:.3g} |")
+        if key == "pl_only" and "pl_lab" in rs[0]["sets"]["oracle"]:
+            dd = [np.mean(v["pl_lab"]) - np.mean(v["pl_only"]) for r in rs for v in r["sets"].values()]
+            print(f"Students trained on pseudo-labels + labeled points instead: difference in test accuracy {np.mean(dd):+.4f} "
+                  f"on average, at most {np.max(np.abs(dd)):.4f} over all (draw, labeling) pairs")
+        pa = np.array([v["pl_acc"] for r in rs for v in r["sets"].values()])
+        sa = np.array([np.mean(v[key]) for r in rs for v in r["sets"].values()])
+        print(f"Student acc vs PL acc over {len(pa)} (draw, labeling) pairs: correlation {np.corrcoef(pa, sa)[0, 1]:.4f}, "
+              f"student - PL {np.mean(sa - pa):+.4f} on average ({np.min(sa - pa):+.3f} .. {np.max(sa - pa):+.3f})")
+        print("\nPaired contrasts between labelings (fresh-student test accuracy, per draw)")
+        print("| a - b | contrast | mean ± sd | draws a > b | t p | Wilcoxon p |")
+        print("|---|---|---|---|---|---|")
+        for a_, b_, what in PAIRS:
+            x = np.array([stu_acc(r, a_, key) - stu_acc(r, b_, key) for r in rs])
+            p_t, p_w = tests(x)
+            print(f"| {a_} - {b_} | {what} | {x.mean():+.3f} ± {x.std(ddof=1):.3f} | {int((x > 0).sum())}/{len(x)} | {p_t:.3g} | {p_w:.3g} |")
+        out = {"one class": 0, "PL acc >= 0.8": 0, "PL acc <= 0.2 (classes swapped)": 0, "other": 0}
+        for r in rs:
+            for k in sets_of(r, "elbo_sum"):
+                s = r["sets"][k]
+                out["one class" if min(s["frac0"], 1 - s["frac0"]) <= 0.03 else "PL acc >= 0.8" if s["pl_acc"] >= 0.8
+                    else "PL acc <= 0.2 (classes swapped)" if s["pl_acc"] <= 0.2 else "other"] += 1
+        print("elbo_sum outcomes over draws and repeats:", ", ".join(f"{k} {v}" for k, v in out.items()))
         print("\nExact evidence (GP), mean over draws: accuracy of the labelings, and f - f(truth) where f = -2 log evidence + const")
-        print("| prior | sup acc | f(sup) - f(truth) | truth beats sup | ICM from sup | sphere + ICM | random + ICM | best found (acc, f - f(truth)) | best found worse than truth | ICM from truth |")
-        print("|---|---|---|---|---|---|---|---|---|---|")
+        print("| prior | sup acc | f(sup) - f(truth) | truth beats sup | ICM from sup | sphere + ICM | random + ICM | best found (acc, f - f(truth)) "
+              "| best found worse than truth | ICM from truth (acc, f - f(truth)) | best found beats ICM from truth |")
+        print("|---|---|---|---|---|---|---|---|---|---|---|")
         for key_gp in R["meta"]["gp_sets"]:
             G = [r["gp"][key_gp] for r in rs]
             m = lambda k: np.mean([g[k] for g in G])  # noqa: E731
-            print(f"| {key_gp} | {m('acc_sup'):.3f} | {np.median([g['df_sup'] for g in G]):+.0f} (median) | "
-                  f"{sum(g['truth_beats_sup'] for g in G)}/{len(G)} | {m('acc_icm_sup'):.3f} | {m('acc_sphere'):.3f} | "
-                  f"{m('acc_random'):.3f} | {m('acc_best'):.3f}, {np.median([g['df_best'] for g in G]):+.0f} | "
-                  f"{sum(g['search_gap'] for g in G)}/{len(G)} | {m('acc_truth_icm'):.3f} |")
+            med = lambda k: np.median([g[k] for g in G])  # noqa: E731
+            print(f"| {key_gp} | {m('acc_sup'):.3f} | {med('df_sup'):+.0f} (median) | {sum(g['truth_beats_sup'] for g in G)}/{len(G)} | "
+                  f"{m('acc_icm_sup'):.3f} | {m('acc_sphere'):.3f} | {m('acc_random'):.3f} | {m('acc_best'):.3f}, {med('df_best'):+.0f} | "
+                  f"{sum(g['search_gap'] for g in G)}/{len(G)} | {m('acc_truth_icm'):.3f}, {med('df_truth_icm'):+.0f} | "
+                  f"{sum(g['df_best'] < g['df_truth_icm'] for g in G)}/{len(G)} |")
+        for key_gp in R["meta"]["gp_sets"]:
+            G = [r["gp"][key_gp] for r in rs]
+            print(f"  {key_gp}: best search per draw " + ", ".join(f"{k} {sum(g['best'] == k for g in G)}" for k in ("icm_sup", "sphere", "random")))
         print("\nBilevel traces, mean over draws and repeats: PL acc / class-0 share / labeled CE of the students at outer step 0, 10, 20, 40")
         for v in BILEVEL:
             T = [r["bilevel"][k]["trace"] for r in rs for k in r["bilevel"] if k.split("#")[0] == v]
@@ -474,49 +538,64 @@ def summary(R, key="pl_only"):
                   + f"; changed in the last round {np.mean([t[-1]['changed'] for t in T]):.4f}")
 
 
-def plots(R, fig_dir=FIG):
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+BLUE, ORANGE, AQUA = "#2a78d6", "#eb6834", "#1baf7a"
+INK, INK2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 
-    BLUE, ORANGE, AQUA = "#2a78d6", "#eb6834", "#1baf7a"
-    INK, INK2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
+
+def _style(plt):
     plt.rcParams.update({
         "font.size": 8, "axes.edgecolor": INK2, "axes.labelcolor": INK, "xtick.color": INK2,
         "ytick.color": INK2, "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.6,
         "axes.spines.top": False, "axes.spines.right": False, "legend.frameon": False,
         "lines.linewidth": 2.0, "savefig.dpi": 200, "figure.facecolor": "white"})
-    runs = R["runs"]
+
+
+def plots(R, fig_dir=FIG):
+    """Forest plot: per labeling, fresh-student test accuracy minus supervised-only, one dot per labeled draw,
+    the mean and its 95% t-interval; the text column gives the accuracy of the pseudo-labels."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    _style(plt)
     col = {"B": BLUE, "A": ORANGE, "C": AQUA}
-    fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.9), sharey=True)
-    for ax, n_l in zip(axes, (1, 5)):
-        rs = [r for r in runs if r["n_l"] == n_l]
-        lo = 0.45
-        ax.plot([lo, 1], [lo, 1], color=INK2, lw=0.8, ls=(0, (4, 3)), zorder=1)
+    fig, axes = plt.subplots(1, 2, figsize=(8.4, 5.0), sharey=True)
+    for ax, n_l, tag in zip(axes, (1, 5), "ab"):
+        rs = [r for r in R["runs"] if r["n_l"] == n_l]
+        rows = rows_for(rs)
+        pos, y, prev = [], 0.0, None
+        for w in rows:
+            if prev is not None and w["group"] != prev:
+                y += 0.7
+            pos.append(y)
+            prev, y = w["group"], y + 1
+        ys = max(pos) - np.array(pos)
+        for w, yy in zip(rows, ys):
+            d = 100 * w["d"]
+            c = INK2 if w["name"] == "oracle" else col[w["group"]]
+            half = stats.t.ppf(0.975, len(d) - 1) * d.std(ddof=1) / np.sqrt(len(d))
+            ax.plot(d, np.full(len(d), yy), "o", ms=2.8, mfc="white", mec=INK2, mew=0.6, zorder=2)
+            ax.plot([d.mean() - half, d.mean() + half], [yy, yy], color=c, lw=2, solid_capstyle="round", zorder=3)
+            ax.plot([d.mean()], [yy], "o", ms=5.5, color=c, mec="white", mew=1.0, zorder=4)
+            ax.annotate(f"{w['pl']:.2f}" + (" *" if w["holm"] < 0.05 else ""), (1.0, yy), xycoords=("axes fraction", "data"),
+                        xytext=(3, 0), textcoords="offset points", va="center", fontsize=6.5, color=INK2, annotation_clip=False)
+        ax.annotate("PL acc", (1.0, ys.max() + 1.0), xycoords=("axes fraction", "data"), xytext=(3, 0),
+                    textcoords="offset points", va="center", fontsize=6.5, color=INK, annotation_clip=False)
+        ax.axvline(0, color=INK2, lw=0.8, zorder=1)
+        ax.set_yticks(ys)
+        ax.set_yticklabels([LABEL.get(w["name"], w["name"]) for w in rows], fontsize=6.5, color=INK)
+        ax.set_ylim(-0.8, ys.max() + 1.5)
+        ax.grid(axis="y", visible=False)
         sup = np.mean([np.mean(r["sup"]) for r in rs])
-        ax.axvline(sup, color=INK2, lw=1.0, ls=(0, (1, 2)), zorder=1)
-        ax.annotate(f"labeled points only\n{sup:.3f}", (sup, lo + 0.01), xytext=(3, 0), textcoords="offset points",
-                    fontsize=6.5, color=INK2, va="bottom")
-        for title, names in GROUPS:
-            g = title[0]
-            for n in names:
-                if n == "oracle":
-                    continue
-                sets = [(r, k) for r in rs for k in r["sets"] if k == n or k.split("#")[0] == n]
-                if not sets:
-                    continue
-                x = np.mean([np.mean(r["sets"][k]["pl_only"]) for r, k in sets])
-                y = np.mean([r["sets"][k]["pl_acc"] for r, k in sets])
-                ax.scatter([x], [y], s=26, color=col[g], edgecolors="white", linewidths=0.6, zorder=3)
-                ax.annotate(n, (x, y), xytext=(4, 2), textcoords="offset points", fontsize=6, color=INK)
-        ax.set_xlim(lo, 1.0)
-        ax.set_ylim(lo, 1.02)
-        ax.set_xlabel("fresh-student test accuracy (mean over draws)")
-        ax.set_title(f"{n_l} labeled point{'s' if n_l > 1 else ''} per class", fontsize=8, color=INK, loc="left")
-    axes[0].set_ylabel("pseudo-label accuracy on X_u")
-    handles = [plt.Line2D([], [], marker="o", ls="", color=col[t[0]], ms=5, label=t) for t, _ in GROUPS]
-    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=7, bbox_to_anchor=(0.5, -0.02))
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
+        ax.set_title(f"({tag}) {n_l} labeled point{'s' if n_l > 1 else ''} per class; labeled points only {100 * sup:.1f}%",
+                     fontsize=8, color=INK, loc="left")
+        ax.set_xlabel("test accuracy minus labeled points only (points)")
+    handles = [plt.Line2D([], [], marker="o", ls="", color=col[t[0]], ms=5.5, label=t) for t, _ in GROUPS]
+    handles.append(plt.Line2D([], [], marker="o", ls="", mfc="white", mec=INK2, ms=3.5, label="one labeled draw"))
+    fig.subplots_adjust(left=0.215, right=0.945, top=0.93, bottom=0.2, wspace=0.16)
+    fig.legend(handles=handles, loc="lower center", ncol=4, fontsize=7, bbox_to_anchor=(0.55, 0.04), handletextpad=0.3,
+               columnspacing=1.2)
+    fig.text(0.55, 0.01, "bar: 95% t-interval of the mean over 10 draws;  PL acc: accuracy of the pseudo-labels on X_u;  "
+             "* Holm p < 0.05 over 17 labelings", ha="center", va="bottom", fontsize=6.5, color=INK2)
     p = os.path.join(fig_dir, "toy_moons_evidence.png")
     fig.savefig(p, bbox_inches="tight")
     plt.close(fig)
@@ -527,20 +606,21 @@ def plot_snapshot(S, R, fig_dir=FIG):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-
-    BLUE, ORANGE = "#2a78d6", "#eb6834"
-    INK, INK2 = "#0b0b0b", "#52514e"
     plt.rcParams.update({"font.size": 8, "savefig.dpi": 200, "figure.facecolor": "white"})
     Xu, yu, Xl, yl = (np.array(S[k]) for k in ("Xu", "yu", "Xl", "yl"))
     run = next(r for r in R["runs"] if r["n_l"] == S["n_l"] and r["lab_draw"] == S["lab_draw"])
-    panels = [("sup_ens", "supervised ensemble"), ("mpl1#0", "B. mpl1 (one student)"), ("ens#0", "B. ens (8 students)"),
-              ("elbo_mean#0", "B. elbo_mean"), ("elbo_sum#0", "B. elbo_sum"), ("elbo_lab#0", "B. elbo_lab"),
-              ("gp_nngp_best", "A. GP evidence, NNGP prior"), ("gp_rbf_best", "A. GP evidence, RBF prior"),
-              ("st8", "C. coordinate ascent, 8 students"), ("fixmatch", "C. FixMatch"), ("ls", "label spreading")]
+    diff = {k: (round(float((np.array(v) == yu).mean()), 4), run["sets"][k]["pl_acc"]) for k, v in S["labels"].items()
+            if k in run["sets"] and abs(float((np.array(v) == yu).mean()) - run["sets"][k]["pl_acc"]) > 1e-3}
+    print("labelings whose accuracy differs from the main run:", diff or "none")
+    panels = [("oracle", "true labels"), ("sup_ens", "sup_ens: 8 students on Y_l"), ("mpl1#0", "B. mpl1: one student"),
+              ("ens#0", "B. ens: 8 students"), ("elbo_mean#0", "B. elbo_mean"), ("elbo_lab#0", "B. elbo_lab: students see Y_l"),
+              ("elbo_sum#0", "B. elbo_sum, repeat 0"), ("elbo_sum#1", "B. elbo_sum, repeat 1"),
+              ("gp_nngp_best", "A. evidence, NNGP prior"), ("gp_rbf_best", "A. evidence, RBF prior"),
+              ("fixmatch", "C. FixMatch teacher"), ("ls", "C. label spreading")]
     panels = [p for p in panels if p[0] in S["labels"]]
     nc = 4
     nr = math.ceil(len(panels) / nc)
-    fig, axes = plt.subplots(nr, nc, figsize=(7.6, 1.95 * nr))
+    fig, axes = plt.subplots(nr, nc, figsize=(7.6, 1.6 * nr))
     for ax in axes.ravel():
         ax.axis("off")
     for ax, (k, title) in zip(axes.ravel(), panels):
@@ -548,18 +628,18 @@ def plot_snapshot(S, R, fig_dir=FIG):
         wrong = pl != yu
         cols = np.where(pl == 0, BLUE, ORANGE)
         ax.scatter(Xu[~wrong, 0], Xu[~wrong, 1], s=2.5, c=cols[~wrong], lw=0)
-        ax.scatter(Xu[wrong, 0], Xu[wrong, 1], s=6, c=cols[wrong], marker="x", lw=0.5)
+        ax.scatter(Xu[wrong, 0], Xu[wrong, 1], s=7, c=cols[wrong], marker="x", lw=0.6)
         for c_, col_ in ((0, BLUE), (1, ORANGE)):
             m = yl == c_
-            ax.scatter(Xl[m, 0], Xl[m, 1], s=40, c=col_, edgecolors=INK, linewidths=1.0, zorder=5)
-        stu = np.mean(run["sets"][k]["pl_only"]) if k in run["sets"] else float("nan")
+            ax.scatter(Xl[m, 0], Xl[m, 1], s=42, c=col_, edgecolors=INK, linewidths=1.0, zorder=5)
+        stu = stu_acc(run, k) if k in run["sets"] else float("nan")
         ax.set_title(f"{title}\nPL {(pl == yu).mean():.3f}, students {stu:.3f}", fontsize=7, color=INK, loc="left")
         ax.set_aspect("equal")
-    fig.text(0.01, 0.0, f"{S['n_l']} labeled point(s) per class, draw {S['lab_draw']} (large dots).  Colour = pseudo-label, "
-             f"x = wrong; students = mean test accuracy of 8 fresh students trained on the labeling; supervised-only "
+    fig.text(0.01, 0.0, f"{S['n_l']} labeled point(s) per class, draw {S['lab_draw']} (large dots). Colour = pseudo-label, "
+             f"x = wrong. students = mean test accuracy of 8 fresh students trained on the labeling; labeled points only "
              f"{np.mean(run['sup']):.3f}.", fontsize=6.5, color=INK2)
     fig.tight_layout(rect=(0, 0.03, 1, 1))
-    p = os.path.join(fig_dir, "toy_moons_evidence_snapshot.png")
+    p = os.path.join(fig_dir, f"toy_moons_evidence_snapshot_{S['n_l']}.png")
     fig.savefig(p, bbox_inches="tight")
     plt.close(fig)
     print(p)
@@ -582,6 +662,7 @@ if __name__ == "__main__":
     ap.add_argument("--out", default=OUT_JSON)
     ap.add_argument("--fig_dir", default=FIG)
     ap.add_argument("--snapshot", default="", help="n_l,draw: recompute and keep the labelings of one draw")
+    ap.add_argument("--pl_lab", action="store_true", help="also the table for students trained on pseudo-labels + Y_l")
     a = ap.parse_args()
     if a.snapshot:
         path = snapshot(a, *(int(x) for x in a.snapshot.split(",")))
@@ -591,5 +672,6 @@ if __name__ == "__main__":
         main_runs(a)
     R = json.load(open(a.out))
     summary(R)
-    summary(R, key="pl_lab")
+    if a.pl_lab:
+        summary(R, key="pl_lab")
     plots(R, a.fig_dir)

@@ -1,8 +1,8 @@
 # CLAUDE.md: ngữ cảnh dự án cho phiên làm việc tiếp theo
 
 File này tóm tắt toàn bộ bối cảnh để một phiên Claude mới làm tiếp mà không cần đọc lại lịch sử
-chat. Số liệu đầy đủ và lập luận chi tiết nằm ở `docs/report.md` (mục 1–15, tiếng Việt) và
-`docs/theory.md`. Cập nhật lần cuối: 2026-11-18, sau wave8 (report Mục 18).
+chat. Số liệu đầy đủ và lập luận chi tiết nằm ở `docs/report.md` (mục 1–19, tiếng Việt) và
+`docs/theory.md`. Cập nhật lần cuối: 2026-11-20, sau toy evidence (report Mục 19).
 
 ## 0. Quy ước làm việc với người dùng
 
@@ -86,13 +86,13 @@ chat. Số liệu đầy đủ và lập luận chi tiết nằm ở `docs/repor
 | `analysis/wave8_table.py`, `analysis/wave8_figure.py` | wave8: so cặp hai họ, chẩn đoán pseudo-label, quỹ đạo (`--traj`), mốc hai run (`--ref_avg`), `--metric test` |
 | `analysis/fm_meta_grid.py` | lưới {chỉ nhãn, batch không nhãn qua BN, FixMatch} × {không meta, MPL, PBPL, EBPL}; `--metric test_ema` / `unl_ema` / `test` (teacher live) |
 | `analysis/{main_table,ablation_table,feedback_dynamics,pool_diag,figures}.py` | các bảng và hình khác |
-| `checks/` | gradient check, chẩn đoán suy biến, Figure 1, ba toy Two Moons; `toy_two_moons_tr.py` và `tr_fiber.py` là toy với V_r / E_s (commit `0baa285`, đẩy từ một phiên khác, chạy qua `slurm_tools/`) |
+| `checks/` | gradient check, chẩn đoán suy biến, Figure 1, bốn toy Two Moons (Mục 13–15, 19; `toy_two_moons_evidence.py` là toy evidence); `toy_two_moons_tr.py` và `tr_fiber.py` là toy với V_r / E_s (commit `0baa285`, đẩy từ một phiên khác, chạy qua `slurm_tools/`) |
 | `docs/report.md` | báo cáo đầy đủ |
 | `docs/theory.md` | lý thuyết |
 | `docs/sections_trbpl.tex` | đoạn bản thảo |
 | `docs/tables_tenseed.tex` | dòng LaTeX của bảng 10 seed và bảng finetune |
 | `results/fmnist-ssl-*/` | output Kaggle; mỗi run là `results/<name>.json` gồm `args`, `hist`, `final`, `ft` |
-| `results/toy-two-moons/{results,unroll,anchor}.json` | kết quả toy |
+| `results/toy-two-moons/{results,unroll,anchor,evidence}.json` | kết quả toy; `evidence_snapshot_<n_l>_<draw>.json` giữ bộ nhãn của một lần rút cho hình snapshot |
 
 - **Tên run** có dạng `<method>_<n_per_class>_s<seed>`; các script phân tích lọc theo tên này.
   Run bị cắt bởi budget guard (`stopped_early`) bị bỏ qua.
@@ -207,7 +207,7 @@ Holm tính qua 12 phép so sánh; p ghi theo dạng t-test / Wilcoxon / Holm.
     tiếp.
   - Chi phí so với FixMatch: PBPL 3.6×, EBPL 3.5×, MPL 2.5×, SAM 1.25×.
 
-## 5. Toy Two Moons (report Mục 13–15; chạy CPU vài phút đến khoảng 20 phút)
+## 5. Toy Two Moons (report Mục 13–15 và 19; chạy CPU vài phút đến khoảng 90 phút)
 
 Thiết lập chung: nhiễu 0.1, 1000 điểm không nhãn, 1 hoặc 5 nhãn mỗi lớp, student MLP 2-64-64-2
 ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi tạo × 5 lần rút nhãn).
@@ -236,6 +236,31 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
   - Ô dương duy nhất: IFT, λ = 1, 5 nhãn/lớp, +0.2 điểm.
   - Teacher kém (0.628) không được sửa, vì cách gán nhãn sai của nó vẫn đủ để student khớp các
     điểm có nhãn.
+- **Mục 19: pseudo-label tối đa evidence P(Y_l, Ŷ_u | X), khung variational**
+  (`checks/toy_two_moons_evidence.py`, 88 phút trên 4 tiến trình).
+  - Thiết lập: 10 lần rút × {1, 5} nhãn/lớp; mỗi bộ nhãn đánh giá bằng 8 student mới; so cặp với
+    supervised-only (71.8 / 83.0).
+  - **Lý thuyết.**
+    - Đẳng thức đúng với mọi q, nên min theo q vô nghĩa; chỉ ELBO làm q có vai trò.
+    - Nghiệm là mode đồng thời của posterior predictive: nhãn cứng là cốt lõi; nới thành số thực
+      thì trùng supervised.
+    - PL / FixMatch / (gần đúng) MT là cực tiểu ELBO luân phiên.
+    - MPL đến từ tách log P(Ŷ|X) + log P(Y_l|X,Ŷ) rồi bỏ số hạng Occam log P(Ŷ|X).
+    - Bilevel suy biến nếu student học cả Y_l (envelope); không suy biến nếu student held-out.
+  - **Bảy biến thể bilevel với student MLP** (MPL một student, ensemble 8, log-mean-exp, ELBO
+    mean / sum, xuất phát từ sup, student thấy Y_l):
+    - 1 nhãn/lớp −3.3…+1.1, 5 nhãn/lớp +0.9…+2.1; không ô nào có ý nghĩa, kể cả trước Holm.
+    - `elbo_sum` (trọng số của chính ELBO) sụp: một lớp ở 10/20 và 5/20 run, còn lại là biên gần
+      thẳng; −17.3 / −6.8.
+  - **Evidence GP chính xác** (s² = 0.01):
+    - Nhãn thật hơn nhãn supervised ở 10/10 lần rút (425–835 nat), với cả NNGP lẫn RBF.
+    - Phép tìm là chỗ khó: ICM từ sup đứng yên; chỉ nghiệm nới trên mặt cầu (≈ phổ) với RBF tìm ra
+      vùng tốt.
+    - RBF: +15.8 / +12.0 (10/10, Holm 0.040 / 0.0015). NNGP (prior của chính student): +3.4 / +3.2
+      (Holm ≥ 0.2). Với NNGP s² = 0.1, objective ưu tiên bộ nhãn xa nhãn thật.
+    - Vẫn kém LS (−4.6 / −4.4) và, ở 5 nhãn/lớp, kém FixMatch (−2.4, n.s.).
+  - Student chép pseudo-label (tương quan 0.997 / 0.991). Cực tiểu luân phiên (`st1` / `st8`) dừng
+    ngay tại nhãn supervised.
 
 ## 6. Kết luận khoa học hiện tại
 
@@ -252,6 +277,12 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
 - **Thứ thực sự giúp ở 40 nhãn là SAM trên labeled loss của mạng triển khai**, không cần bilevel.
   Wave8: nó là regularizer cho phần khớp nhãn (giúp cả học thuần trên nhãn), không phải "làm phẳng
   posterior" (cận trên đúng nghĩa không hơn), và lợi ích phụ thuộc prior.
+- **Khung evidence / ELBO (Mục 19) không cứu được bilevel với student mạng nơ-ron.**
+  - Dạng chính xác của khung vượt supervised-only chỉ khi có đủ hai điều kiện:
+    - prior cục bộ (RBF);
+    - phép tìm toàn cục trên nhãn cứng.
+  - Khi đó nó thực chất là một phương pháp kernel / phổ, và vẫn kém label spreading.
+  - Prior của chính student (NNGP) gần như không mang giả định cụm.
 - **Đánh giá đã đưa cho người dùng.** Bỏ tham vọng "PBPL vượt baseline". Giữ dự án như một kết quả
   phân tích / kết quả âm có kiểm soát chặt, cộng với phát hiện về SAM. Hướng nối tiếp tự nhiên là
   sharpness của labeled loss trong SSL; có thể xem FlatMatch (NeurIPS 2023, cross-sharpness), cần
@@ -326,3 +357,4 @@ ReLU chỉ học trên pseudo-label. Mỗi cấu hình có 40 student (8 khởi 
 - `1a13a2e`: wave8 (biến thể variational: `--lab_reg samfull`, `--pl_src {ema, adv}`, SAM cho `sup`);
   `a1d9892`: khung ELBO + cận sharpness trong `docs/bayes_view.md`; `9742253`: `analysis/wave8_table.py`;
   `ca9deda`: kết quả rep-n; commit sau đó: rep-m, report Mục 18, `analysis/wave8_figure.py`.
+- `8a0a465`: code toy evidence; commit sau đó: kết quả, hình và report Mục 19.

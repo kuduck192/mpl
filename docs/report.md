@@ -1435,3 +1435,308 @@ Việc có thể làm tiếp (chưa chạy):
   - FixMatch với τ thấp (0.5 hoặc 0), có và không có SAM;
   - FlexMatch bỏ warm-up ngưỡng, có và không có SAM.
 - Nâng `plsam` và `supsam` lên 10 seed.
+
+## 19. Toy Two Moons: pseudo-label tối đa evidence P(Y_l, Ŷ_u | X) (khung variational, thuật bilevel so với supervised-only)
+
+**Câu hỏi.** Trực giác: pseudo-label tốt phải giúp được nhiều mô hình, không chỉ một. Với mọi phân
+phối q trên giả thuyết h,
+
+$$\log P(Y_l, \hat Y_u \mid X) = \mathbb E_q[\log P(Y_l \mid X_l, h) + \log P(\hat Y_u \mid X_u, h)]
+- \mathrm{KL}(q \,\|\, P(h \mid X)) + \mathrm{KL}(q \,\|\, P(h \mid X, Y_l, \hat Y_u)).$$
+
+Bỏ số hạng KL cuối (≥ 0) thì được ELBO. Hai câu hỏi:
+- khung này sinh ra những thuật toán nào (Pseudo-Label, Mean Teacher, FixMatch, MPL)?
+- có thuật bilevel nào cho pseudo-label giúp student hơn student chỉ học trên điểm có nhãn
+  (supervised-only) trên Two Moons không?
+
+### 19.1 Phân tích (không phụ thuộc thí nghiệm)
+
+- **Đẳng thức đúng với mọi q, nên vế phải là hằng theo q.**
+  - Vì vậy "min theo (Ŷ_u, q)" của biểu thức có đủ ba số hạng chỉ là min theo Ŷ_u; q không có vai
+    trò gì.
+  - q chỉ có vai trò sau khi bỏ KL cuối: ELBO là cận dưới của log evidence, chặt khi q là posterior.
+- **Nghiệm là mode đồng thời của posterior predictive.**
+  - argmax theo Ŷ_u của P(Y_l, Ŷ_u | X) bằng argmax theo Ŷ_u của P(Ŷ_u | X, Y_l), vì P(Y_l | X)
+    không phụ thuộc Ŷ_u.
+  - Nếu prior trên h không phụ thuộc X_u, thì X_u chỉ đi vào qua một yêu cầu: một giả thuyết phải
+    giải thích được cả bộ nhãn cứng cùng lúc. Vì thế mode đồng thời khác mode của từng điểm (tức nhãn
+    supervised).
+  - Nới nhãn thành số thực thì mất hiệu ứng này. Với GP hồi quy, nghiệm nới là trung bình posterior
+    khi chỉ có Y_l, tức đúng là supervised.
+- **Các thành viên: cực tiểu ELBO luân phiên.**
+  - Hai bước luân phiên:
+    - bước q: q = P(h | X, Y_l, Ŷ_u), tức học trên nhãn cộng pseudo-label;
+    - bước Ŷ: ŷ_i = argmax_y E_q log p_h(y | x_i).
+  - **Pseudo-Label:** q = δ_θ (self-training cứng). Tương đương cực tiểu
+    L_l + Σ_i min_y CE(y, p_θ(x_i)), một dạng entropy minimization.
+  - **FixMatch:** q = δ_θ; likelihood của Ŷ đánh giá trên view mạnh, bước Ŷ trên view yếu. Ngưỡng τ
+    không suy ra từ ELBO; có thể xem nó cho phép Ŷ_u bỏ trống các điểm có max prob < τ.
+  - **Mean Teacher:** chỉ gần đúng. q là trung bình EMA của quỹ đạo, bước Ŷ mềm (kỳ vọng thay cho
+    argmax), và likelihood bình phương thay cho log-likelihood.
+  - **MPL không phải thành viên của phép cực tiểu luân phiên này.** Nó đến từ một cách tách khác:
+    log P(Y_l, Ŷ_u | X) = log P(Ŷ_u | X) + log P(Y_l | X, Ŷ_u).
+    - MPL giữ số hạng thứ hai, với P(h | X, Ŷ_u) thay bằng một student sau một bước SGD trên Ŷ_u
+      (student không thấy Y_l).
+    - MPL bỏ log P(Ŷ_u | X), tức evidence của riêng bộ pseudo-label: một số hạng kiểu Occam.
+- **Cấu trúc bilevel.**
+  - **Suy biến khi tầng dưới khớp q với chính ELBO** (student học cả Y_l và Ŷ_u). Theo định lý
+    envelope, hypergradient bằng đạo hàm riêng tại q cố định, tức hướng của bước Ŷ. Bài toán bilevel
+    khi đó có cùng điểm dừng với cực tiểu luân phiên; không có tín hiệu meta. Hiện tượng này giống
+    N2(a).
+  - **Không suy biến khi tầng dưới khớp q chỉ với Ŷ_u** (student held-out).
+    - ELBO tại q₁(Ŷ_u) = P(h | X, Ŷ_u) vẫn là cận dưới của log P(Y_l, Ŷ_u | X).
+    - Hypergradient có thêm phần meta, đi qua q₁ vào số hạng có nhãn.
+    - Đây là họ MPL. Lấy q₁ là một ensemble student thì đúng là "giúp nhiều mô hình".
+
+### 19.2 Thiết kế
+
+Script `checks/toy_two_moons_evidence.py`, kết quả trong `results/toy-two-moons/evidence.json`.
+Dữ liệu, kiến trúc student (MLP 2-64-64-2 ReLU), các lần rút nhãn và lịch huấn luyện giống Mục 13–15.
+Lần rút 0–9, với 1 và 5 nhãn mỗi lớp. Chạy 88 phút trên 4 tiến trình CPU.
+
+- **A. Evidence chính xác: posterior GP dạng đóng thay cho tầng dưới.**
+  - GP hồi quy trên nhãn ±1: log P(y | X) = −½ yᵀ(K + s²I)⁻¹y + const. Đặt f(y) = yᵀ(K + s²I)⁻¹y,
+    tức f = −2 log evidence + const.
+  - K là kernel NNGP của chính student MLP ở khởi tạo PyTorch (prior của student), hoặc RBF với
+    ℓ = 0.3 trên input đã chuẩn hóa (đặt cố định từ prototype, không quét). Cả hai được chuẩn hóa
+    về phương sai prior trung bình 1. s² ∈ {0.01, 0.1}.
+  - Tìm nhãn cứng bằng ba cách, Y_l cố định:
+    - lật từng điểm tham lam (ICM), xuất phát từ nhãn supervised của chính GP đó;
+    - nới trên mặt cầu ‖y_u‖² = n_u (bài toán trust-region, giải toàn cục bằng phân rã riêng), làm
+      tròn rồi ICM;
+    - 10 điểm xuất phát ngẫu nhiên + ICM.
+  - "best" là bộ nhãn có f nhỏ nhất trong ba cách; lựa chọn này chỉ dùng objective, không dùng nhãn
+    thật.
+  - Để tách objective khỏi phép tìm, log thêm f của nhãn thật và của ICM xuất phát từ nhãn thật.
+- **B. Bilevel với student mạng nơ-ron (câu hỏi chính).**
+  - Pseudo-label mềm tự do t = softmax(z) trên X_u.
+  - Student held-out (không thấy Y_l): từ khởi tạo ngẫu nhiên θ₀ ~ P, K = 20 bước SGD toàn batch
+    (lr 0.1) trên (X_u, t). Như vậy q là luật của student sau huấn luyện.
+  - z đi 40 bước mirror descent, hypergradient chuẩn hóa RMS, bước 0.3 (như Mục 14), lấy bằng
+    backprop qua K bước.
+  - Mỗi biến thể chạy hai lần lặp với seed khác nhau.
+
+  | biến thể | student | mục tiêu tầng trên |
+  |---|---|---|
+  | `mpl1` | một student cố định | CE trung bình trên Y_l (MPL với pseudo-label tự do, Mục 14) |
+  | `ens` | 8 student rút lại mỗi bước | CE trung bình trên Y_l ("giúp nhiều mô hình") |
+  | `ens_lme` | 8 student | −log mean_m exp(−Σ_l CE_m), ước lượng Monte Carlo của log P(Y_l \| X, Ŷ_u) |
+  | `elbo_mean` | 8 student | CE trên Y_l + CE(t, p) trên X_u, cả hai lấy trung bình |
+  | `elbo_sum` | 8 student | Σ CE trên Y_l + Σ CE(t, p) trên X_u + KL (trọng số của chính ELBO) |
+  | `elbo_mean_sup` | 8 student | như `elbo_mean`, xuất phát từ nhãn của `sup_ens` |
+  | `elbo_lab` | 8 student, học cả Y_l | như `elbo_mean`: q khớp với cả ELBO, nên dự đoán là suy biến |
+
+  - KL trong `elbo_sum` là KL từ N(θ_K, s²I) tới N(θ₀, s²I), với s² = 1/(3·fan_in) của từng lớp (phương
+    sai khởi tạo).
+  - CE(t, p) tuyến tính theo t (không có entropy của t), tức là max cứng theo Ŷ_u.
+- **C. Các thành viên khác và mốc so sánh.**
+  - `sup_ens`: nhãn của 8 student học trên Y_l (argmax của log-prob trung bình); đây là bước q mà
+    không có Ŷ_u.
+  - `st1`, `st8`: cực tiểu ELBO luân phiên. Bước q là 1 hoặc 8 student mới học trên Y_l + Ŷ_u (1000
+    bước); bước Ŷ là argmax_y E_q log p_h(y | x). 5 vòng, xuất phát từ nhãn supervised.
+  - `fixmatch`: teacher FixMatch của Mục 15 (q = khối lượng điểm, likelihood nhất quán qua
+    augmentation, có ngưỡng). PL acc ở lần rút 0–4 với 1 nhãn/lớp trùng Mục 15 tới ba chữ số.
+  - `ls`: label spreading trên đồ thị kNN. `oracle`: nhãn thật.
+- **Đánh giá.**
+  - Mỗi lần rút có 8 student mới, không dùng trong bất kỳ phép tối ưu nào. Chúng học 3000 bước SGD
+    toàn batch (lr 0.1) trên (X_u, pseudo-label).
+  - So cặp với chính 8 student đó học trên điểm có nhãn (supervised-only).
+  - Mỗi lần rút cho một hiệu (trung bình theo student và lần lặp). t-test, Wilcoxon, Holm qua 17 bộ
+    nhãn (trừ oracle).
+  - Học trên pseudo-label cộng điểm có nhãn cho kết quả trùng: lệch trung bình 0.0000 / +0.0001, lớn
+    nhất 0.003 / 0.010. Vì vậy chỉ báo cáo bản học trên pseudo-label.
+- **Dự đoán ghi trước khi chạy** (docstring của script):
+  - P1: với s² = 0.01, nhãn thật có evidence cao hơn nhãn supervised ở hầu hết lần rút, với cả hai
+    prior; các phép tìm của khung không tới được nó một cách ổn định.
+  - P2: `ens` / `ens_lme` có PL acc ≥ `mpl1`, hơn supervised-only vài điểm (nhiều hơn khi 1
+    nhãn/lớp), và dưới label spreading và FixMatch.
+  - P3: `elbo_sum` sụp về một lớp; `elbo_mean` gần `ens`.
+  - P4: `st1` / `st8` ở gần nhãn supervised (đó là điểm bất động của cực tiểu luân phiên);
+    FixMatch ≫ supervised-only.
+
+### 19.3 Kết quả
+
+Bảng chính: hiệu test accuracy (điểm phần trăm) giữa student học trên pseudo-label và student
+supervised-only, trung bình ± độ lệch chuẩn qua 10 lần rút. Supervised-only đạt 71.8% (1 nhãn/lớp)
+và 83.0% (5 nhãn/lớp).
+
+| nhóm | bộ nhãn | 1 nhãn/lớp: PL acc | − sup | thắng | Holm p | 5 nhãn/lớp: PL acc | − sup | thắng | Holm p |
+|---|---|---|---|---|---|---|---|---|---|
+| B | `mpl1` | 0.700 | −3.3 ± 7.9 | 6/10 | 1 | 0.854 | +0.9 ± 3.3 | 6/10 | 1 |
+| B | `ens` | 0.706 | −2.7 ± 7.4 | 4/10 | 1 | 0.858 | +1.3 ± 2.5 | 7/10 | 1 |
+| B | `ens_lme` | 0.707 | −2.5 ± 7.8 | 5/10 | 1 | 0.857 | +1.3 ± 2.4 | 7/10 | 1 |
+| B | `elbo_mean` | 0.703 | −3.2 ± 10.7 | 7/10 | 1 | 0.869 | +2.1 ± 4.6 | 6/10 | 1 |
+| B | `elbo_sum` | 0.548 | −17.3 ± 21.3 | 1/10 | 0.46 | 0.783 | −6.8 ± 14.8 | 5/10 | 1 |
+| B | `elbo_mean_sup` | 0.746 | +1.1 ± 7.1 | 8/10 | 1 | 0.858 | +0.9 ± 3.1 | 5/10 | 1 |
+| B | `elbo_lab` | 0.718 | −1.6 ± 9.1 | 6/10 | 1 | 0.861 | +1.4 ± 2.8 | 7/10 | 1 |
+| A | `gp_nngp_sup` | 0.746 | +1.7 ± 4.3 | 6/10 | 1 | 0.862 | +2.1 ± 2.3 | 10/10 | 0.20 |
+| A | `gp_nngp_icm` | 0.744 | +1.4 ± 4.5 | 5/10 | 1 | 0.869 | +2.8 ± 2.9 | 10/10 | 0.19 |
+| A | `gp_nngp_best` | 0.764 | +3.4 ± 6.3 | 5/10 | 1 | 0.874 | +3.2 ± 3.5 | 10/10 | 0.21 |
+| A | `gp_rbf_icm` | 0.753 | +2.3 ± 4.7 | 6/10 | 1 | 0.911 | +7.1 ± 2.7 | 10/10 | 2.9·10⁻⁴ |
+| A | `gp_rbf_best` | 0.882 | **+15.8 ± 12.0** | 10/10 | **0.040** | 0.953 | **+12.0 ± 5.8** | 10/10 | **0.0015** |
+| C | `sup_ens` | 0.733 | +0.2 ± 2.5 | 7/10 | 1 | 0.844 | +0.1 ± 1.0 | 3/10 | 1 |
+| C | `st1` | 0.725 | −0.6 ± 4.3 | 3/10 | 1 | 0.843 | −0.2 ± 1.0 | 3/10 | 1 |
+| C | `st8` | 0.735 | +0.4 ± 1.7 | 5/10 | 1 | 0.848 | +0.4 ± 2.1 | 5/10 | 1 |
+| C | `fixmatch` | 0.747 | +2.7 ± 17.6 | 7/10 | 1 | 0.975 | +14.4 ± 4.8 | 10/10 | 9.1·10⁻⁵ |
+| C | `ls` | 0.926 | +20.4 ± 15.1 | 10/10 | 0.036 | 0.994 | +16.4 ± 4.8 | 10/10 | 3.2·10⁻⁵ |
+| C | `oracle` | 1.000 | +28.2 ± 17.2 | 10/10 | — | 1.000 | +17.0 ± 4.3 | 10/10 | — |
+
+`gp_nngp_*` và `gp_rbf_*` dùng s² = 0.01. Với student bilevel (nhóm B), không ô nào vượt
+supervised-only có ý nghĩa, kể cả trước hiệu chỉnh (t-test p nhỏ nhất 0.12, của `ens` ở 5
+nhãn/lớp).
+
+![evidence forest](figures/toy_moons_evidence.png)
+
+**Snapshot.** Lần rút 8 với 1 nhãn/lớp và lần rút 3 với 5 nhãn/lớp, lần lặp 0 của mỗi biến thể
+bilevel. Các bộ nhãn được tính lại với cùng seed, và PL acc trùng run chính ở mọi bộ nhãn.
+- Mọi biến thể bilevel cho gần đúng bộ nhãn của `sup_ens`: một biên gần thẳng nằm ngang, sai ở hai
+  đầu mút lồng vào mặt trăng kia.
+- `elbo_sum` ở lần rút 8: lần lặp 0 gán một lớp cho cả X_u; lần lặp 1 trùng biên của `sup_ens`.
+- Evidence với prior RBF sửa phần lớn hai đầu mút; với prior NNGP chỉ sửa một phần.
+
+![evidence snapshot, 1 label per class](figures/toy_moons_evidence_snapshot_1.png)
+
+![evidence snapshot, 5 labels per class](figures/toy_moons_evidence_snapshot_5.png)
+
+**Evidence chính xác.** Δf = f(bộ nhãn) − f(nhãn thật), với f = −2 log evidence + const; Δf > 0
+nghĩa là nhãn thật có evidence cao hơn. Accuracy là trung bình, Δf là trung vị qua 10 lần rút.
+
+| prior | nhãn | sup: acc, Δf | thật > sup | acc: ICM từ sup / mặt cầu / ngẫu nhiên | best: acc, Δf | best kém nhãn thật | ICM từ nhãn thật: acc, Δf | best > ICM từ nhãn thật |
+|---|---|---|---|---|---|---|---|---|
+| NNGP, s² = 0.01 | 1 | 0.746, +1671 | 10/10 | 0.744 / 0.750 / 0.523 | 0.764, +377 | 8/10 | 0.997, −250 | 0/10 |
+| RBF, s² = 0.01 | 1 | 0.751, +1473 | 10/10 | 0.753 / 0.882 / 0.540 | 0.882, +669 | 10/10 | 0.998, −124 | 0/10 |
+| NNGP, s² = 0.1 | 1 | 0.750, +32 | 7/10 | 0.763 / 0.747 / 0.729 | 0.798, −184 | 0/10 | 0.985, −66 | 9/10 |
+| RBF, s² = 0.1 | 1 | 0.751, +174 | 10/10 | 0.753 / 0.882 / 0.573 | 0.882, +82 | 10/10 | 0.998, −17 | 0/10 |
+| NNGP, s² = 0.01 | 5 | 0.862, +925 | 10/10 | 0.869 / 0.851 / 0.714 | 0.874, +553 | 8/10 | 0.997, −250 | 0/10 |
+| RBF, s² = 0.01 | 5 | 0.910, +850 | 10/10 | 0.911 / 0.953 / 0.582 | 0.953, +307 | 9/10 | 0.998, −124 | 0/10 |
+| NNGP, s² = 0.1 | 5 | 0.863, −25 | 3/10 | 0.867 / 0.865 / 0.771 | 0.871, −115 | 2/10 | 0.986, −66 | 8/10 |
+| RBF, s² = 0.1 | 5 | 0.909, +101 | 10/10 | 0.912 / 0.952 / 0.620 | 0.948, +40 | 9/10 | 0.998, −17 | 0/10 |
+
+- Với RBF, "best" luôn là nghiệm nới trên mặt cầu (10/10 lần rút, trừ 2/10 ở s² = 0.1 với 5 nhãn/lớp).
+  Với NNGP và s² = 0.01, best là ICM từ nhãn supervised ở 6/10 và 9/10 lần rút.
+- Khi "best" có evidence cao hơn nhãn thật (cột "best kém nhãn thật" < 10/10) ở s² = 0.01, nó vẫn
+  thấp hơn cực trị gần nhãn thật (cột cuối 0/10).
+
+**Tách phần đóng góp** (so cặp giữa các bộ nhãn, cùng student đánh giá, t-test chưa hiệu chỉnh):
+
+| hiệu | so sánh | 1 nhãn/lớp | 5 nhãn/lớp |
+|---|---|---|---|
+| `gp_rbf_best − gp_rbf_icm` | tìm evidence so với nhãn supervised của cùng prior, RBF | +13.5 ± 12.2, 9/10, p = 0.006 | +4.9 ± 4.1, 9/10, p = 0.004 |
+| `gp_nngp_best − gp_nngp_sup` | như trên, NNGP | +1.8 ± 4.6, 5/10, p = 0.25 | +1.0 ± 1.9, 7/10, p = 0.11 |
+| `gp_nngp_sup − sup_ens` | trung bình posterior NNGP chính xác so với 8 student SGD, cùng chỉ dùng Y_l | +1.4 ± 6.0, 3/10, p = 0.48 | +2.0 ± 2.6, 8/10, p = 0.040 |
+| `ens − mpl1` | 8 student so với một | +0.7 ± 2.2, 5/10, p = 0.36 | +0.4 ± 2.8, 6/10, p = 0.64 |
+| `ens_lme − ens` | log-mean-exp so với trung bình | +0.2 ± 0.9, 5/10, p = 0.58 | −0.1 ± 0.2, 3/10, p = 0.23 |
+| `elbo_mean − ens` | thêm CE trên X_u | −0.6 ± 6.2, 6/10, p = 0.78 | +0.8 ± 2.8, 6/10, p = 0.41 |
+| `elbo_lab − elbo_mean` | student thấy cả Y_l (bilevel suy biến) | +1.6 ± 15.2, 5/10, p = 0.75 | −0.8 ± 2.1, 3/10, p = 0.29 |
+| `elbo_mean_sup − sup_ens` | bilevel xuất phát từ nhãn supervised, so với chính nhãn đó | +0.8 ± 5.0, 6/10, p = 0.61 | +0.8 ± 3.1, 6/10, p = 0.46 |
+| `st8 − sup_ens` | cực tiểu luân phiên so với điểm xuất phát | +0.2 ± 1.7, 2/10, p = 0.75 | +0.3 ± 1.2, 6/10, p = 0.45 |
+| `gp_rbf_best − ls` | evidence chính xác tốt nhất so với label spreading | −4.6 ± 14.8, 3/10, p = 0.35 | −4.4 ± 4.3, 0/10, p = 0.009 |
+| `gp_rbf_best − fixmatch` | so với FixMatch | +13.1 ± 22.5, 6/10, p = 0.10 | −2.4 ± 4.6, 3/10, p = 0.14 |
+
+**Log.**
+- **Quỹ đạo bilevel.** Mọi biến thể đạt PL acc cuối trong 10 bước ngoài đầu tiên, rồi đứng yên hoặc
+  giảm nhẹ. Ví dụ `ens`: 0.709 ở bước 10 và 0.706 ở bước 40 (1 nhãn/lớp); 0.865 và 0.858 (5
+  nhãn/lớp).
+  - CE trên Y_l của student đánh giá trong bài toán bilevel: 0.16–0.27 (`elbo_lab` 0.04).
+  - Riêng `elbo_sum`: 0.72–1.42, tức student của nó sai cả trên điểm có nhãn.
+  - Mỗi lần chạy mất 3 giây (`mpl1`) đến 15–18 giây (8 student).
+- **Kết cục của `elbo_sum`** (20 lần chạy mỗi số nhãn = 10 lần rút × 2 lần lặp):
+  - 1 nhãn/lớp: một lớp ở 10 lần; PL acc 0.86–0.88 ở 5 lần; đảo lớp (PL acc 0.12–0.13) ở 2 lần; còn
+    lại 3 lần.
+  - 5 nhãn/lớp: một lớp ở 5 lần; PL acc 0.87–0.88 ở 15 lần.
+  - Đường thẳng tốt nhất trên X_u đạt 0.909, nên các bộ nhãn 0.86–0.88 là biên gần thẳng.
+- **Cực tiểu luân phiên dừng ngay.** PL acc của `st1` / `st8` qua 5 vòng: 0.724 → 0.725 / 0.734 →
+  0.735 (1 nhãn/lớp) và 0.841 → 0.843 / 0.849 → 0.848 (5 nhãn/lớp). Ở vòng cuối, ≤ 0.08% nhãn đổi.
+- **Student chép pseudo-label.** Trên 250 cặp (lần rút, bộ nhãn) mỗi số nhãn, tương quan giữa PL acc
+  và accuracy student là 0.997 / 0.991. Student kém pseudo-label của nó trung bình 1.2 / 1.3 điểm.
+- **Các lần rút khó với 1 nhãn/lớp.**
+  - Supervised-only ở lần rút 0, 5, 7 chỉ đạt 0.52, 0.55, 0.39.
+  - Teacher FixMatch có PL acc 0.54 / 0.12 / 0.51 ở lần rút 5, 7, 9. Ở lần rút 7, lớp bị đảo gần
+    hết, vì hai điểm có nhãn nằm ở đầu mút gần mặt trăng còn lại.
+  - Các biến thể bilevel kém supervised-only 14–19 điểm ở lần rút 0 và 5. `gp_rbf_best` hơn 12, 45
+    và 25 điểm ở lần rút 0, 5, 7.
+
+**Đối chiếu với dự đoán ghi trước:**
+
+| | dự đoán | kết quả |
+|---|---|---|
+| P1 | s² = 0.01: nhãn thật có evidence cao hơn nhãn supervised; phép tìm không tới được nó ổn định | **đúng**: 10/10 với cả hai prior và cả hai số nhãn; best kém nhãn thật ở 8–10/10; ICM từ nhãn supervised đổi PL acc ≤ 0.007. Không dự đoán được: nới trên mặt cầu với RBF tới 0.88 / 0.95 |
+| P2 | `ens` ≥ `mpl1`; hơn supervised-only vài điểm, nhiều hơn ở 1 nhãn/lớp; dưới LS và FixMatch | **sai phần chính**: PL acc ≥ `mpl1` (+0.6 / +0.4 điểm) nhưng −2.7 / +1.3 so với supervised-only, n.s., và ngược chiều dự đoán theo số nhãn. Dưới LS và FixMatch: đúng |
+| P3 | `elbo_sum` sụp về một lớp; `elbo_mean` ≈ `ens` | **đúng một phần**: một lớp ở 10/20 và 5/20 lần chạy, còn lại phần lớn là biên gần thẳng. `elbo_mean − ens` = −0.6 / +0.8, n.s.: đúng |
+| P4 | `st1` / `st8` ≈ nhãn supervised; FixMatch ≫ supervised-only | `st`: **đúng** (≤ 0.08% nhãn đổi). FixMatch: đúng ở 5 nhãn/lớp (+14.4, Holm 9·10⁻⁵); **sai** ở 1 nhãn/lớp (+2.7 ± 17.6), vì teacher hỏng ở 3/10 lần rút |
+
+### 19.4 Đọc kết quả
+
+**Trả lời câu hỏi.**
+- **Các thuật bilevel với student mạng nơ-ron mà khung này sinh ra đều không vượt supervised-only.**
+  Bảy biến thể đã thử: MPL một student, ensemble 8 student, log-mean-exp, ELBO trọng số trung bình,
+  ELBO với trọng số của chính nó, xuất phát từ nhãn supervised, và student thấy cả Y_l.
+  - 1 nhãn/lớp: −3.3 đến +1.1 điểm. 5 nhãn/lớp: +0.9 đến +2.1 điểm.
+  - Không ô nào có ý nghĩa, kể cả trước Holm.
+  - ELBO với trọng số của chính nó (`elbo_sum`) sụp: −17.3 / −6.8 điểm.
+- **Dạng chính xác của khung có vượt, nhưng chỉ với prior RBF.** Dạng chính xác là posterior GP dạng
+  đóng thay cho tầng dưới, và tối đa evidence chính xác trên nhãn cứng.
+  - Với RBF: +15.8 điểm (1 nhãn/lớp, 10/10, Holm 0.040) và +12.0 điểm (5 nhãn/lớp, 10/10, Holm
+    0.0015).
+  - Với prior NNGP của chính student: +3.4 / +3.2 điểm, Holm ≥ 0.2.
+  - Dù vậy, nó vẫn kém label spreading 4.6 / 4.4 điểm (ở 5 nhãn/lớp: 0/10, p = 0.009), và ở 5
+    nhãn/lớp kém FixMatch 2.4 điểm (n.s.).
+
+**Vì sao.**
+- **Objective đúng, nhưng chỉ khi tính chính xác.**
+  - Với s² = 0.01, evidence GP ưu tiên nhãn thật hơn nhãn supervised ở 10/10 lần rút, với cả hai
+    prior. Trung vị Δf là 850–1671, tức hơn 425–835 nat.
+  - ICM xuất phát từ nhãn thật dừng ở accuracy 0.997–0.998, với evidence còn cao hơn nhãn thật.
+  - Không bộ nhãn nào tìm được vượt cực trị gần nhãn thật này (0/10).
+- **Phần khó là phép tìm trên nhãn cứng.**
+  - ICM từ nhãn supervised đổi PL acc ≤ 0.007: nhãn supervised là một cực trị địa phương.
+  - Điểm xuất phát ngẫu nhiên còn tệ hơn: 0.52–0.77.
+  - Chỉ nghiệm nới trên mặt cầu tìm ra vùng tốt, và chỉ với RBF. Nghiệm này được giải toàn cục, và
+    chủ yếu nằm trên các vector riêng ứng với trị riêng nhỏ nhất của khối (K + s²I)⁻¹ trên X_u, tức
+    các hướng trơn nhất dưới prior. Với RBF cục bộ, các hướng đó gần như hằng trên từng mặt trăng,
+    giống phân cụm phổ.
+- **Prior quyết định.**
+  - So với nhãn supervised của chính prior đó, tìm evidence thêm +13.5 / +4.9 điểm với RBF (9/10,
+    p = 0.006 / 0.004), nhưng chỉ +1.8 / +1.0 với NNGP (n.s.).
+  - Với NNGP và s² = 0.1, objective còn sai: ở 9/10 và 8/10 lần rút, nó ưu tiên một bộ nhãn xa nhãn
+    thật hơn cực trị gần nhãn thật. Ở lần rút 7 (1 nhãn/lớp), một bộ nhãn PL acc 0.50 có evidence
+    cao hơn cực trị đó khoảng 290 nat.
+  - Thứ làm evidence chính xác hoạt động là kernel nối các điểm gần nhau, tức giả định cụm nằm trong
+    prior. Mạng ReLU ở khởi tạo (NNGP) gần như không có giả định này; FixMatch có được nó qua
+    augmentation.
+- **Bilevel với student mạng nơ-ron không thấy được thứ evidence chính xác thấy.** Ở đây q là luật
+  của student sau K bước SGD.
+  - Số hạng có nhãn E_q log P(Y_l | X_l, h) chính là meta objective của Mục 13–14. Nó thưởng cho bộ
+    nhãn giúp student khớp nhanh vài điểm có nhãn, mà gần như mọi bộ nhãn nhất quán quanh các điểm
+    có nhãn đều làm được.
+  - Ensemble chỉ lấy trung bình theo khởi tạo, không đổi thứ được đo: `ens − mpl1` = +0.7 / +0.4
+    (n.s.); log-mean-exp thêm ≤ 0.2 điểm.
+  - Số hạng Occam log P(Ŷ_u | X) bị thay bằng "học được trong K bước + KL tham số". Nó ưu tiên bộ
+    nhãn đơn giản (một lớp, một đường gần thẳng) chứ không ưu tiên bộ nhãn theo cụm.
+  - Với trọng số của chính ELBO, tổng trên 1000 điểm không nhãn lấn át 2–10 điểm có nhãn. Đó là lý
+    do `elbo_sum` sụp hoặc ra biên gần thẳng, có lúc đảo lớp.
+- **Suy biến hay không suy biến không quan trọng ở đây.**
+  - `elbo_lab` (suy biến) và `elbo_mean` (held-out) cho cùng kết quả: +1.6 / −0.8, n.s.
+  - Cực tiểu luân phiên (`st1`, `st8`) dừng ngay tại nhãn supervised, đúng như dự đoán: nhãn
+    supervised là điểm bất động của bước Ŷ khi q được khớp trên chính nó.
+- **Dấu hiệu duy nhất của "giúp nhiều mô hình" đến từ trung bình Bayes chính xác, không từ X_u.**
+  - Nhãn của trung bình posterior NNGP khi chỉ có Y_l hơn nhãn của 8 student SGD 2.0 điểm (5
+    nhãn/lớp, 8/10, p = 0.040 chưa hiệu chỉnh).
+  - Ensemble SGD thì không hơn: `sup_ens` +0.1.
+
+**Hệ quả cho FashionMNIST.**
+- Thành viên bilevel của khung (MPL, MPL với ensemble student) gặp lại đúng giới hạn của Mục 13–17.
+  Số hạng có nhãn quá yếu, còn số hạng Occam theo student thì ưu tiên sự đơn giản chứ không ưu tiên
+  cụm.
+- Dạng chính xác chỉ ra thứ cần có: một prior nối các điểm (kernel hoặc augmentation) và một phép tìm
+  toàn cục trên nhãn cứng. Prior của chính student không cung cấp điều đó.
+- Một hướng (chưa chạy) là dùng evidence của một kernel trên embedding của teacher cho bước Ŷ.
+  Hướng này gần với các phương pháp lan nhãn trên đồ thị đặc trưng đã có, nên cần đối chiếu tài liệu
+  trước.
+
+**Giới hạn.**
+- Toy 2D, 10 lần rút, một kiến trúc student.
+- K = 20, M = 8, 40 bước ngoài và bước mirror descent chưa tinh chỉnh (lấy theo Mục 14).
+- GP hồi quy trên ±1, không dùng likelihood phân loại.
+- s² và ℓ đặt cố định; chọn ℓ theo evidence sẽ là bản Bayes đầy đủ hơn.
+- Bảng chính hiệu chỉnh Holm qua 17 bộ nhãn; các phép so cặp phụ chưa hiệu chỉnh.
